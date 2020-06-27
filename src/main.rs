@@ -3,6 +3,7 @@ extern crate log;
 
 mod dataset;
 mod naive;
+mod period_index;
 mod reporter;
 mod types;
 mod zipf;

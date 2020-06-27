@@ -7,7 +7,7 @@ pub struct LinearScan {
 impl LinearScan {
     pub fn new() -> Self {
         Self {
-            dataset: Vec::new()
+            dataset: Vec::new(),
         }
     }
 }
@@ -28,7 +28,7 @@ impl Algorithm for LinearScan {
         self.dataset.clear();
         self.dataset.extend(dataset.iter().cloned());
     }
-    
+
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut result = Vec::with_capacity(queries.len());
         for query in queries.iter() {
@@ -45,7 +45,7 @@ impl Algorithm for LinearScan {
                     .map(|range| range.overlaps(interval))
                     .unwrap_or(true);
                 if matches_duration && overlaps {
-                    query_result.push(i);
+                    query_result.push(self.dataset[i]);
                 }
             }
             result.push(query_result.finalize())

@@ -1,9 +1,9 @@
 pub type Time = u32;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Interval {
-    start: Time,
-    end: Time,
+    pub start: Time,
+    pub end: Time,
 }
 
 impl Interval {
@@ -23,10 +23,10 @@ impl Interval {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct DurationRange {
-    min: Time,
-    max: Time,
+    pub min: Time,
+    pub max: Time,
 }
 
 impl DurationRange {
@@ -49,7 +49,7 @@ pub struct Query {
 #[derive(Debug)]
 pub struct QueryAnswer {
     elapsed: std::time::Duration,
-    indices: Vec<usize>
+    intervals: Vec<Interval>,
 }
 
 impl QueryAnswer {
@@ -58,31 +58,31 @@ impl QueryAnswer {
     }
 
     pub fn num_matches(&self) -> u32 {
-        self.indices.len() as u32
+        self.intervals.len() as u32
     }
 
     pub fn builder(expected: usize) -> QueryAnswerBuilder {
         QueryAnswerBuilder {
             start: std::time::Instant::now(),
-            indices: Vec::with_capacity(expected),
+            intervals: Vec::with_capacity(expected),
         }
     }
 }
 
 pub struct QueryAnswerBuilder {
     start: std::time::Instant,
-    indices: Vec<usize>,
+    intervals: Vec<Interval>,
 }
 
 impl QueryAnswerBuilder {
-    pub fn push(&mut self, index: usize) {
-        self.indices.push(index);
+    pub fn push(&mut self, interval: Interval) {
+        self.intervals.push(interval);
     }
 
     pub fn finalize(self) -> QueryAnswer {
         QueryAnswer {
             elapsed: std::time::Instant::now() - self.start,
-            indices: self.indices
+            intervals: self.intervals,
         }
     }
 }
