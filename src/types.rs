@@ -40,7 +40,7 @@ impl DurationRange {
 
 pub struct Query {
     pub range: Option<Interval>,
-    pub duration: Option<DurationRange>
+    pub duration: Option<DurationRange>,
 }
 
 pub trait Algorithm {
@@ -49,4 +49,3 @@ pub trait Algorithm {
     fn version(&self) -> u8;
     fn run(&self, dataset: &[Interval], queries: &[Query]) -> Vec<Vec<usize>>;
 }
-

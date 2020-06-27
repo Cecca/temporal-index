@@ -1,5 +1,5 @@
-use anyhow::{Context,Result};
 use crate::Config;
+use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
 use rusqlite::{params, Connection, Result as SQLResult};
@@ -22,7 +22,6 @@ impl Reporter {
         }
     }
 
-
     fn sha(&self) -> String {
         let datestr = self.date.to_rfc2822();
         let mut sha = Sha256::new();
@@ -38,52 +37,64 @@ impl Reporter {
         std::path::PathBuf::from("temporal-index-results.sqlite")
     }
 
-    pub fn already_run(&self) -> Option<String> {
+    pub fn already_run(&self) -> Result<Option<String>> {
         if self.config.rerun {
-            return None;
+            return Ok(None);
         }
-        // let dbpath = Self::get_db_path();
-        // let conn = Connection::open(dbpath).expect("error connecting to the database");
-        // conn.query_row(
-        //     "SELECT sha FROM main WHERE
-        //         threads == ?2 AND 
-        //         hosts == ?3 AND 
-        //         dataset == ?4 AND
-        //         algorithm == ?5 AND 
-        //         parameters == ?6 AND
-        //         offline == ?7",
-        //     params![
-        //         format!("{}", self.config.seed()),
-        //         self.config.threads.unwrap_or(1) as u32,
-        //         self.config.hosts_string(),
-        //         self.config.dataset,
-        //         self.config.algorithm.name(),
-        //         self.config.algorithm.parameters_string(),
-        //         self.config.offline
-        //     ],
-        //     |row| row.get(0),
-        // )
-        // .optional()
-        // .unwrap_or(None)
-        todo!()
+        let algorithm = self.config.get_algorithm()?;
+        let dataset = self.config.get_dataset()?;
+        let queryset = self.config.get_queryset()?;
+
+        let dbpath = Self::get_db_path();
+        let hostname = get_hostname()?;
+        let conn = Connection::open(dbpath).context("error connecting to the database")?;
+        conn.query_row(
+            "SELECT sha FROM main
+            WHERE hostname == ?1
+              AND dataset == ?2
+              AND dataset_params == ?3
+              AND dataset_version == ?4
+              AND queryset == ?5
+              AND queryset_params == ?6
+              AND queryset_version == ?7
+              AND algorithm == ?8
+              AND algorithm_params == ?9
+              AND algorithm_version == ?10
+            ",
+            params![
+                hostname,
+                dataset.name(),
+                dataset.parameters(),
+                dataset.version(),
+                queryset.name(),
+                queryset.parameters(),
+                queryset.version(),
+                algorithm.name(),
+                algorithm.parameters(),
+                algorithm.version()
+            ],
+            |row| row.get(0),
+        )
+        .optional()
+        .context("problem checking if the algorithm already ran")
     }
 
     pub fn report(&self, elapsed: i64) -> Result<()> {
         let sha = self.sha();
         let dbpath = Self::get_db_path();
-        let conn = Connection::open(dbpath).expect("error connecting to the database");
-        let hostname = get_hostname();
+        let conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let hostname = get_hostname()?;
 
         let algorithm = self.config.get_algorithm()?;
         let dataset = self.config.get_dataset()?;
         let queryset = self.config.get_queryset()?;
 
         conn.execute(
-            "INSERT INTO main ( sha, date, git_rev, hostname, 
-                                     dataset, dataset_params, dataset_version, 
-                                     queryset, queryset_params, queryset_version,
-                                     algorithm, algorithm_params, algorithm_version,
-                                     total_time_ms )
+            "INSERT INTO raw ( sha, date, git_rev, hostname, 
+                                    dataset, dataset_params, dataset_version, 
+                                    queryset, queryset_params, queryset_version,
+                                    algorithm, algorithm_params, algorithm_version,
+                                    total_time_ms )
                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14 )",
             params![
                 sha,
@@ -103,38 +114,39 @@ impl Reporter {
             ],
         )
         .context("error inserting into main table")?;
-        conn.close().expect("error inserting into the database");
+        conn.close().map_err(|e| e.1).context("error inserting into the database")?;
         Ok(())
     }
 }
 
-pub fn get_hostname() -> String {
+pub fn get_hostname() -> Result<String> {
     let output = std::process::Command::new("hostname")
         .output()
-        .expect("Failed to run the hostname command");
-    String::from_utf8_lossy(&output.stdout).trim().to_owned()
+        .context("Failed to run the hostname command")?;
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
-fn bump(conn: &Connection, ver: u32) {
+fn bump(conn: &Connection, ver: u32) -> Result<()> {
     conn.pragma_update(None, "user_version", &ver)
-        .expect("error updating version");
+        .context("error updating version")
 }
 
-pub fn db_setup() {
-    let conn = Connection::open(Reporter::get_db_path()).expect("error connecting to the database");
+pub fn db_setup() -> Result<()> {
+    let conn =
+        Connection::open(Reporter::get_db_path()).context("error connecting to the database")?;
     let version: u32 = conn
         .query_row(
             "SELECT user_version FROM pragma_user_version",
             params![],
             |row| row.get(0),
         )
-        .unwrap();
+        .context("cannot get version of the database")?;
     info!("Current database version is {}", version);
 
     if version < 1 {
         info!("applying changes for version 1");
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS main (
+            "CREATE TABLE IF NOT EXISTS raw (
             sha               TEXT PRIMARY KEY,
             date              TEXT NOT NULL,
             git_rev           TEXT NOT NULL,
@@ -152,10 +164,39 @@ pub fn db_setup() {
             )",
             params![],
         )
-        .expect("Error creating main table");
+        .context("Error creating main table")?;
 
-        bump(&conn, 1);
+        conn.execute(
+            "CREATE VIEW top_algorithm_version AS 
+            SELECT algorithm, MAX(algorithm_version) as algorithm_version 
+            FROM raw GROUP BY algorithm",
+            params![]
+        )?;
+        conn.execute(
+            "CREATE VIEW top_dataset_version AS 
+            SELECT dataset, MAX(dataset_version) as dataset_version 
+            FROM raw GROUP BY dataset",
+            params![]
+        )?;
+        conn.execute(
+            "CREATE VIEW top_queryset_version AS 
+            SELECT queryset, MAX(queryset_version) as queryset_version 
+            FROM raw GROUP BY queryset",
+            params![]
+        )?;
+
+        conn.execute(
+            "CREATE VIEW main AS
+            SELECT * FROM raw 
+            NATURAL JOIN top_algorithm_version 
+            NATURAL JOIN top_queryset_version 
+            NATURAL JOIN top_dataset_version",
+            params![]
+        )?;
+
+        bump(&conn, 1)?;
     }
 
     info!("database schema up tp date");
+    Ok(())
 }

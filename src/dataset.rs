@@ -40,7 +40,10 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 
     fn parameters(&self) -> String {
-        format!("{},{},{},{}", self.seed, self.n, self.exponent, self.max_time)
+        format!(
+            "{},{},{},{}",
+            self.seed, self.n, self.exponent, self.max_time
+        )
     }
 
     fn version(&self) -> u8 {
@@ -104,7 +107,10 @@ impl Queryset for RandomQueriesZipfAndUniform {
     }
 
     fn parameters(&self) -> String {
-        format!("{},{},{},{},{}", self.seed, self.n, self.exponent, self.max_start_time, self.max_duration_factor)
+        format!(
+            "{},{},{},{},{}",
+            self.seed, self.n, self.exponent, self.max_start_time, self.max_duration_factor
+        )
     }
 
     fn version(&self) -> u8 {

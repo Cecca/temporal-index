@@ -19,8 +19,16 @@ impl Algorithm for LinearScan {
         for query in queries.iter() {
             let mut query_result = Vec::with_capacity(dataset.len());
             for (i, interval) in dataset.iter().enumerate() {
-                let matches_duration = query.duration.as_ref().map(|d| d.contains(interval)).unwrap_or(true);
-                let overlaps = query.range.as_ref().map(|range| range.overlaps(interval)).unwrap_or(true);
+                let matches_duration = query
+                    .duration
+                    .as_ref()
+                    .map(|d| d.contains(interval))
+                    .unwrap_or(true);
+                let overlaps = query
+                    .range
+                    .as_ref()
+                    .map(|range| range.overlaps(interval))
+                    .unwrap_or(true);
                 if matches_duration && overlaps {
                     query_result.push(i);
                 }
