@@ -29,10 +29,10 @@ impl Algorithm for LinearScan {
         self.dataset.extend(dataset.iter().cloned());
     }
     
-    fn run(&self, queries: &[Query]) -> Vec<Vec<usize>> {
+    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut result = Vec::with_capacity(queries.len());
         for query in queries.iter() {
-            let mut query_result = Vec::with_capacity(self.dataset.len());
+            let mut query_result = QueryAnswer::builder(self.dataset.len());
             for (i, interval) in self.dataset.iter().enumerate() {
                 let matches_duration = query
                     .duration
@@ -48,7 +48,7 @@ impl Algorithm for LinearScan {
                     query_result.push(i);
                 }
             }
-            result.push(query_result)
+            result.push(query_result.finalize())
         }
         result
     }

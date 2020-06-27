@@ -46,10 +46,51 @@ pub struct Query {
     pub duration: Option<DurationRange>,
 }
 
+#[derive(Debug)]
+pub struct QueryAnswer {
+    elapsed: std::time::Duration,
+    indices: Vec<usize>
+}
+
+impl QueryAnswer {
+    pub fn elapsed_millis(&self) -> i64 {
+        self.elapsed.as_millis() as i64
+    }
+
+    pub fn num_matches(&self) -> u32 {
+        self.indices.len() as u32
+    }
+
+    pub fn builder(expected: usize) -> QueryAnswerBuilder {
+        QueryAnswerBuilder {
+            start: std::time::Instant::now(),
+            indices: Vec::with_capacity(expected),
+        }
+    }
+}
+
+pub struct QueryAnswerBuilder {
+    start: std::time::Instant,
+    indices: Vec<usize>,
+}
+
+impl QueryAnswerBuilder {
+    pub fn push(&mut self, index: usize) {
+        self.indices.push(index);
+    }
+
+    pub fn finalize(self) -> QueryAnswer {
+        QueryAnswer {
+            elapsed: std::time::Instant::now() - self.start,
+            indices: self.indices
+        }
+    }
+}
+
 pub trait Algorithm {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
     fn index(&mut self, dataset: &[Interval]);
-    fn run(&self, queries: &[Query]) -> Vec<Vec<usize>>;
+    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer>;
 }

@@ -132,11 +132,11 @@ fn main() -> Result<()> {
     let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
     let start = Instant::now();
-    algorithm.run(&queryset_queries);
+    let answers = algorithm.run(&queryset_queries);
     let end = Instant::now();
     let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
-    reporter.report(elapsed_index, elapsed_run)?;
+    reporter.report(elapsed_index, elapsed_run, answers)?;
 
     Ok(())
 }

@@ -1,13 +1,10 @@
+use crate::types::*;
 use crate::Config;
 use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
-use rusqlite::{params, Connection, Result as SQLResult};
+use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
-use std::fs::File;
-use std::io::{Result as IOResult, Write};
-use std::path::Path;
-use std::time::Duration;
 
 pub struct Reporter {
     date: DateTime<Utc>,
@@ -79,43 +76,68 @@ impl Reporter {
         .context("problem checking if the algorithm already ran")
     }
 
-    pub fn report(&self, elapsed_index: i64, elapsed_query: i64) -> Result<()> {
+    pub fn report(
+        &self,
+        elapsed_index: i64,
+        elapsed_query: i64,
+        answers: Vec<QueryAnswer>,
+    ) -> Result<()> {
         let sha = self.sha();
         let dbpath = Self::get_db_path();
-        let conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
         let hostname = get_hostname()?;
 
         let algorithm = self.config.get_algorithm()?;
         let dataset = self.config.get_dataset()?;
         let queryset = self.config.get_queryset()?;
 
-        conn.execute(
-            "INSERT INTO raw ( sha, date, git_rev, hostname, 
+        let tx = conn.transaction()?;
+        {
+            tx.execute(
+                "INSERT INTO raw ( sha, date, git_rev, hostname, 
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
                                     time_index_ms, time_query_ms )
                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15 )",
-            params![
-                sha,
-                self.date.to_rfc3339(),
-                env!("VERGEN_SHA_SHORT"),
-                hostname,
-                dataset.name(),
-                dataset.parameters(),
-                dataset.version(),
-                queryset.name(),
-                queryset.parameters(),
-                queryset.version(),
-                algorithm.name(),
-                algorithm.parameters(),
-                algorithm.version(),
-                elapsed_index,
-                elapsed_query
-            ],
-        )
-        .context("error inserting into main table")?;
-        conn.close().map_err(|e| e.1).context("error inserting into the database")?;
+                params![
+                    sha,
+                    self.date.to_rfc3339(),
+                    env!("VERGEN_SHA_SHORT"),
+                    hostname,
+                    dataset.name(),
+                    dataset.parameters(),
+                    dataset.version(),
+                    queryset.name(),
+                    queryset.parameters(),
+                    queryset.version(),
+                    algorithm.name(),
+                    algorithm.parameters(),
+                    algorithm.version(),
+                    elapsed_index,
+                    elapsed_query
+                ],
+            )
+            .context("error inserting into main table")?;
+
+            let mut stmt = tx.prepare(
+                "INSERT INTO query_stats (sha, query_index, query_time_ms, query_count)
+            VALUES (?1, ?2, ?3, ?4)",
+            )?;
+            for (i, ans) in answers.into_iter().enumerate() {
+                stmt.execute(params![
+                    sha,
+                    i as u32,
+                    ans.elapsed_millis(),
+                    ans.num_matches()
+                ])?;
+            }
+        }
+
+        tx.commit()?;
+        conn.close()
+            .map_err(|e| e.1)
+            .context("error inserting into the database")?;
         Ok(())
     }
 }
@@ -169,22 +191,33 @@ pub fn db_setup() -> Result<()> {
         .context("Error creating main table")?;
 
         conn.execute(
+            "CREATE TABLE query_stats (
+                sha               TEXT NOT NULL,
+                query_index       INT,
+                query_time_ms     INT64,
+                query_count       INT64,
+                FOREIGN KEY (sha) REFERENCES raw(sha)
+            )",
+            NO_PARAMS,
+        )?;
+
+        conn.execute(
             "CREATE VIEW top_algorithm_version AS 
             SELECT algorithm, MAX(algorithm_version) as algorithm_version 
             FROM raw GROUP BY algorithm",
-            params![]
+            params![],
         )?;
         conn.execute(
             "CREATE VIEW top_dataset_version AS 
             SELECT dataset, MAX(dataset_version) as dataset_version 
             FROM raw GROUP BY dataset",
-            params![]
+            params![],
         )?;
         conn.execute(
             "CREATE VIEW top_queryset_version AS 
             SELECT queryset, MAX(queryset_version) as queryset_version 
             FROM raw GROUP BY queryset",
-            params![]
+            params![],
         )?;
 
         conn.execute(
@@ -193,7 +226,7 @@ pub fn db_setup() -> Result<()> {
             NATURAL JOIN top_algorithm_version 
             NATURAL JOIN top_queryset_version 
             NATURAL JOIN top_dataset_version",
-            params![]
+            params![],
         )?;
 
         bump(&conn, 1)?;

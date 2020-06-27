@@ -122,7 +122,7 @@ impl Queryset for RandomQueriesZipfAndUniform {
         let interval_duration_distribution = ZipfDistribution::new(self.n, self.exponent)
             .expect("problem creating Zipf distribution");
         let start_time_distribution = Uniform::new(0, self.max_start_time);
-        let duration_factor_distribution = Uniform::new(0.1, self.max_duration_factor);
+        let duration_factor_distribution = Uniform::new(0.01, self.max_duration_factor);
         let mut data = Vec::new();
         for _ in 0..self.n {
             let range = Interval::new(
