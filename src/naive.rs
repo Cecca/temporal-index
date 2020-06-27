@@ -1,10 +1,20 @@
 use crate::types::*;
 
-pub struct LinearScan;
+pub struct LinearScan {
+    dataset: Vec<Interval>,
+}
+
+impl LinearScan {
+    pub fn new() -> Self {
+        Self {
+            dataset: Vec::new()
+        }
+    }
+}
 
 impl Algorithm for LinearScan {
     fn name(&self) -> String {
-        "Linear Scan".to_owned()
+        "linear-scan".to_owned()
     }
     fn parameters(&self) -> String {
         String::new()
@@ -14,11 +24,16 @@ impl Algorithm for LinearScan {
         1
     }
 
-    fn run(&self, dataset: &[Interval], queries: &[Query]) -> Vec<Vec<usize>> {
+    fn index(&mut self, dataset: &[Interval]) {
+        self.dataset.clear();
+        self.dataset.extend(dataset.iter().cloned());
+    }
+    
+    fn run(&self, queries: &[Query]) -> Vec<Vec<usize>> {
         let mut result = Vec::with_capacity(queries.len());
         for query in queries.iter() {
-            let mut query_result = Vec::with_capacity(dataset.len());
-            for (i, interval) in dataset.iter().enumerate() {
+            let mut query_result = Vec::with_capacity(self.dataset.len());
+            for (i, interval) in self.dataset.iter().enumerate() {
                 let matches_duration = query
                     .duration
                     .as_ref()

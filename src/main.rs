@@ -36,7 +36,7 @@ pub struct Config {
 impl Config {
     pub fn get_algorithm(&self) -> Result<Box<dyn Algorithm>> {
         match self.algorithm.as_ref() {
-            "linear-scan" => Ok(Box::new(naive::LinearScan)),
+            "linear-scan" => Ok(Box::new(naive::LinearScan::new())),
             e => Err(anyhow!("unknown algorithm: {}", e)),
         }
     }
@@ -88,7 +88,9 @@ impl Config {
 fn main() -> Result<()> {
     use std::time::*;
 
-    pretty_env_logger::init();
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
     reporter::db_setup()?;
 
     let config: Config = argh::from_env();
@@ -100,7 +102,7 @@ fn main() -> Result<()> {
         queryset.version(),
         queryset.parameters()
     );
-    let algorithm = config.get_algorithm()?;
+    let mut algorithm = config.get_algorithm()?;
     info!(
         "algorithm: {} (v{}) {}",
         algorithm.name(),
@@ -118,18 +120,23 @@ fn main() -> Result<()> {
     let reporter = reporter::Reporter::new(config);
     if let Some(sha) = reporter.already_run()? {
         info!("parameter configuration already run: {}", sha);
-        return Ok(())
+        return Ok(());
     }
 
     let queryset_queries = queryset.get();
     let dataset_intervals = dataset.get();
 
     let start = Instant::now();
-    algorithm.run(&dataset_intervals, &queryset_queries);
+    algorithm.index(&dataset_intervals);
     let end = Instant::now();
-    let elapsed = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+    let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
-    reporter.report(elapsed)?;
+    let start = Instant::now();
+    algorithm.run(&queryset_queries);
+    let end = Instant::now();
+    let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+
+    reporter.report(elapsed_index, elapsed_run)?;
 
     Ok(())
 }

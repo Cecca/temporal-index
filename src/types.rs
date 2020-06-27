@@ -1,5 +1,6 @@
 pub type Time = u32;
 
+#[derive(Debug, Clone)]
 pub struct Interval {
     start: Time,
     end: Time,
@@ -22,6 +23,7 @@ impl Interval {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DurationRange {
     min: Time,
     max: Time,
@@ -38,6 +40,7 @@ impl DurationRange {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Query {
     pub range: Option<Interval>,
     pub duration: Option<DurationRange>,
@@ -47,5 +50,6 @@ pub trait Algorithm {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
-    fn run(&self, dataset: &[Interval], queries: &[Query]) -> Vec<Vec<usize>>;
+    fn index(&mut self, dataset: &[Interval]);
+    fn run(&self, queries: &[Query]) -> Vec<Vec<usize>>;
 }

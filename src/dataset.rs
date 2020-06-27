@@ -36,7 +36,7 @@ impl RandomDatasetZipfAndUniform {
 
 impl Dataset for RandomDatasetZipfAndUniform {
     fn name(&self) -> String {
-        String::from("RandomDatasetZipAndUniform")
+        String::from("zipf-and-uniform")
     }
 
     fn parameters(&self) -> String {
@@ -103,7 +103,7 @@ impl RandomQueriesZipfAndUniform {
 
 impl Queryset for RandomQueriesZipfAndUniform {
     fn name(&self) -> String {
-        String::from("RandomQueriesZipfAndUniform")
+        String::from("zipf-and-uniform")
     }
 
     fn parameters(&self) -> String {

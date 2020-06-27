@@ -79,7 +79,7 @@ impl Reporter {
         .context("problem checking if the algorithm already ran")
     }
 
-    pub fn report(&self, elapsed: i64) -> Result<()> {
+    pub fn report(&self, elapsed_index: i64, elapsed_query: i64) -> Result<()> {
         let sha = self.sha();
         let dbpath = Self::get_db_path();
         let conn = Connection::open(dbpath).context("error connecting to the database")?;
@@ -94,8 +94,8 @@ impl Reporter {
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
-                                    total_time_ms )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14 )",
+                                    time_index_ms, time_query_ms )
+                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15 )",
             params![
                 sha,
                 self.date.to_rfc3339(),
@@ -110,7 +110,8 @@ impl Reporter {
                 algorithm.name(),
                 algorithm.parameters(),
                 algorithm.version(),
-                elapsed,
+                elapsed_index,
+                elapsed_query
             ],
         )
         .context("error inserting into main table")?;
@@ -160,7 +161,8 @@ pub fn db_setup() -> Result<()> {
             algorithm         TEXT NOT NULL,
             algorithm_params  TEXT NOT NULL,
             algorithm_version INT NOT NULL,
-            total_time_ms      INT64 NOT NULL
+            time_index_ms      INT64 NOT NULL,
+            time_query_ms      INT64 NOT NULL
             )",
             params![],
         )
