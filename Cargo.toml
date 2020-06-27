@@ -1,5 +1,5 @@
 [package]
-name = "period-index"
+name = "temporal-index"
 version = "0.1.0"
 authors = ["Matteo Ceccarello <mceccarello@unibz.it>"]
 edition = "2018"

@@ -326,24 +326,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
-name = "period-index"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argh",
- "chrono",
- "dirs",
- "log",
- "pretty_env_logger",
- "rand",
- "rand_xoshiro",
- "regex",
- "rusqlite",
- "sha2",
- "vergen",
-]
-
-[[package]]
 name = "pkg-config"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -530,6 +512,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "temporal-index"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argh",
+ "chrono",
+ "dirs",
+ "log",
+ "pretty_env_logger",
+ "rand",
+ "rand_xoshiro",
+ "regex",
+ "rusqlite",
+ "sha2",
+ "vergen",
 ]
 
 [[package]]

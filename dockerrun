@@ -11,7 +11,7 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 COMMAND=$@
 
-container_name=${CONTAINER_NAME:-"period-index"}
+container_name=${CONTAINER_NAME:-"temporal-index"}
 
 command -v docker >/dev/null 2>&1 || { echo >&2 "Please install docker. E.g., go to https://www.docker.com/products/docker-desktop "; exit 1; }
 
