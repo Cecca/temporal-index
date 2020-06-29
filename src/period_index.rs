@@ -106,26 +106,20 @@ impl Bucket {
         ) as usize
     }
 
-    fn insert(&mut self, interval: Interval) {
-        let d = interval.duration();
-        let level = self.level_for(d);
+    #[inline]
+    fn cells_for(&self, level: usize, interval: Interval) -> (usize, usize) {
+        let cell_duration = self.cells[level][0].time_range.duration();
+        let start = ((std::cmp::max(0, interval.start - self.time_range.start)) / cell_duration) as usize;
+        let end = ((std::cmp::max(0, interval.end - self.time_range.start)) / cell_duration) as usize;
+        (start, end)
+    }
 
-        // let mut start = (((interval.start - self.time_range.start) as f64) / d as f64).floor()
-        //     * (1 << level) as f64;
-        // if start < 0.0 {
-        //     start = 0.0;
-        // }
-        // let mut end = (((interval.end - self.time_range.start) as f64) / d as f64).floor()
-        //     * (1 << level) as f64;
-        // if end < 0.0 {
-        //     end = 0.0;
-        // }
-        // let start = start as usize;
-        // let end = end as usize;
-        // for cell in self.cells[level][start..end].iter_mut() {
-        //     cell.insert(interval);
-        // }
-        for cell in self.cells[level].iter_mut() {
+    fn insert(&mut self, interval: Interval) {
+        let block_length = interval.duration();
+        let level = self.level_for(block_length);
+        let (start, end) = self.cells_for(level, interval);
+
+        for cell in self.cells[level][start..=end].iter_mut() {
             if cell.time_range.overlaps(&interval) {
                 cell.insert(interval);
             }
@@ -144,7 +138,8 @@ impl Bucket {
         };
 
         for level in level_min..=level_max {
-            for (idx, cell) in self.cells[level].iter().enumerate() {
+            let (start, end) = query.range.map(|r| self.cells_for(level, r)).unwrap_or_else(|| (0, self.cells.len() - 1));
+            for (idx, cell) in self.cells[level][start..end].iter().enumerate() {
                 cell.query(query, &mut |interval| {
                     println!(
                         "First occurrence of {:?} at level {}, cell {} ({:?})",
