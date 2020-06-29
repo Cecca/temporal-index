@@ -139,14 +139,8 @@ impl Bucket {
 
         for level in level_min..=level_max {
             let (start, end) = query.range.map(|r| self.cells_for(level, r)).unwrap_or_else(|| (0, self.cells.len() - 1));
-            for (idx, cell) in self.cells[level][start..end].iter().enumerate() {
-                cell.query(query, &mut |interval| {
-                    println!(
-                        "First occurrence of {:?} at level {}, cell {} ({:?})",
-                        interval, level, idx, cell.time_range
-                    );
-                    action(interval);
-                });
+            for cell in self.cells[level][start..end].iter() {
+                cell.query(query, action);
             }
         }
     }
@@ -177,6 +171,15 @@ impl PeriodIndex {
             })
         }
     }
+
+    #[inline]
+    fn bucket_for(&self, interval: Interval) -> (usize, usize) {
+        debug_assert!(interval.start >= self.anchor_point);
+        let start = ((std::cmp::max(0, interval.start - self.anchor_point)) / self.bucket_length) as usize;
+        let end = ((std::cmp::max(0, interval.end - self.anchor_point)) / self.bucket_length) as usize;
+        (start, end)
+    }
+
 }
 
 impl Algorithm for PeriodIndex {
@@ -218,7 +221,8 @@ impl Algorithm for PeriodIndex {
         debug!("Created {} buckets", self.buckets.len());
 
         for interval in dataset {
-            for bucket in self.buckets.iter_mut() {
+            let (start, end) = self.bucket_for(*interval);
+            for bucket in self.buckets[start..=end].iter_mut() {
                 if interval.overlaps(&bucket.time_range) {
                     bucket.insert(*interval);
                 }
@@ -229,14 +233,14 @@ impl Algorithm for PeriodIndex {
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut answers = Vec::with_capacity(queries.len());
         for query in queries {
+            let (start, end) = query.range.map(|r| self.bucket_for(r)).unwrap_or_else(|| (0, self.buckets.len() -1));
             let mut ans_builder = QueryAnswer::builder(self.n);
-            for (idx, bucket) in self.buckets.iter().enumerate() {
+            for bucket in self.buckets[start..=end].iter() {
                 if query
                     .range
                     .map(|r| r.overlaps(&bucket.time_range))
                     .unwrap_or(true)
                 {
-                    println!("Bucket {}, ({:?})", idx, bucket.time_range);
                     bucket.query(query, &mut |interval| {
                         ans_builder.push(*interval);
                     });
