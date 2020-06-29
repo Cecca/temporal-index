@@ -36,10 +36,21 @@ pub struct Config {
 
 impl Config {
     pub fn get_algorithm(&self) -> Result<Box<dyn Algorithm>> {
-        match self.algorithm.as_ref() {
-            "linear-scan" => Ok(Box::new(naive::LinearScan::new())),
-            e => Err(anyhow!("unknown algorithm: {}", e)),
+        if self.algorithm == "linear-scan" {
+            return Ok(Box::new(naive::LinearScan::new()));
         }
+        let re_period_index = Regex::new(r"period-index\((\d+), *(\d+)\)")?;
+        if let Some(captures) = re_period_index.captures(&self.algorithm) {
+            trace!("algorithm parsing {:?}", captures);
+            let bucket_length = captures[1].parse::<u32>()?;
+            let num_levels = captures[2].parse::<u32>()?;
+            return Ok(Box::new(period_index::PeriodIndex::new(
+                bucket_length,
+                num_levels,
+            )?));
+        }
+
+        Err(anyhow!("unknown algorithm {}", self.algorithm))
     }
 
     pub fn get_queryset(&self) -> Result<Box<dyn Queryset>> {
@@ -89,9 +100,10 @@ impl Config {
 fn main() -> Result<()> {
     use std::time::*;
 
-    pretty_env_logger::formatted_builder()
-        .filter_level(log::LevelFilter::Info)
-        .init();
+    // pretty_env_logger::formatted_builder()
+    //     .filter_level(log::LevelFilter::Info)
+    //     .init();
+    pretty_env_logger::init();
     reporter::db_setup()?;
 
     let config: Config = argh::from_env();
