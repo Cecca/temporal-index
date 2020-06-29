@@ -1,6 +1,6 @@
 pub type Time = u32;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Interval {
     pub start: Time,
     pub end: Time,
@@ -19,7 +19,7 @@ impl Interval {
     }
 
     pub fn overlaps(&self, other: &Self) -> bool {
-        self.start < other.end || self.end > other.start
+        !(self.start > other.end || other.start > self.end)
     }
 }
 
@@ -67,6 +67,12 @@ impl QueryAnswer {
             intervals: Vec::with_capacity(expected),
         }
     }
+
+    pub fn intervals(&self) -> Vec<Interval> {
+        let mut res = self.intervals.clone();
+        res.sort();
+        res
+    }
 }
 
 pub struct QueryAnswerBuilder {
@@ -93,4 +99,17 @@ pub trait Algorithm {
     fn version(&self) -> u8;
     fn index(&mut self, dataset: &[Interval]);
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer>;
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_overlap() {
+        assert!(Interval::new(0, 3).overlaps(&Interval::new(2, 3)));
+        assert!(!Interval::new(0, 3).overlaps(&Interval::new(4, 3)));
+        assert!(Interval::new(0, 6).overlaps(&Interval::new(4, 3)));
+        assert!(Interval::new(0, 6).overlaps(&Interval::new(2, 3)));
+    }
 }

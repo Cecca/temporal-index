@@ -44,10 +44,9 @@ impl Cell {
                 // before the interval. If the interval starts before the cell,
                 // we have still to check if the query covers the previous cell,
                 // otherwise it's the first occurrence for _this_ query
-                if self.time_range.start <= interval.start {
-                    action(interval);
-                } else if query.range.is_some()
-                    && self.time_range.start <= query.range.unwrap().start
+                if (self.time_range.start <= interval.start)
+                    || (query.range.is_some()
+                        && self.time_range.start <= query.range.unwrap().start)
                 {
                     action(interval);
                 }
@@ -111,9 +110,25 @@ impl Bucket {
         let d = interval.duration();
         let level = self.level_for(d);
 
-        // TODO: Insert only in the ones that can contain it.
+        // let mut start = (((interval.start - self.time_range.start) as f64) / d as f64).floor()
+        //     * (1 << level) as f64;
+        // if start < 0.0 {
+        //     start = 0.0;
+        // }
+        // let mut end = (((interval.end - self.time_range.start) as f64) / d as f64).floor()
+        //     * (1 << level) as f64;
+        // if end < 0.0 {
+        //     end = 0.0;
+        // }
+        // let start = start as usize;
+        // let end = end as usize;
+        // for cell in self.cells[level][start..end].iter_mut() {
+        //     cell.insert(interval);
+        // }
         for cell in self.cells[level].iter_mut() {
-            cell.insert(interval);
+            if cell.time_range.overlaps(&interval) {
+                cell.insert(interval);
+            }
         }
     }
 
@@ -129,8 +144,14 @@ impl Bucket {
         };
 
         for level in level_min..=level_max {
-            for cell in self.cells[level].iter() {
-                cell.query(query, action);
+            for (idx, cell) in self.cells[level].iter().enumerate() {
+                cell.query(query, &mut |interval| {
+                    println!(
+                        "First occurrence of {:?} at level {}, cell {} ({:?})",
+                        interval, level, idx, cell.time_range
+                    );
+                    action(interval);
+                });
             }
         }
     }
@@ -211,21 +232,49 @@ impl Algorithm for PeriodIndex {
     }
 
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
-        let answers = Vec::with_capacity(queries.len());
+        let mut answers = Vec::with_capacity(queries.len());
         for query in queries {
             let mut ans_builder = QueryAnswer::builder(self.n);
-            for bucket in self.buckets.iter() {
+            for (idx, bucket) in self.buckets.iter().enumerate() {
                 if query
                     .range
                     .map(|r| r.overlaps(&bucket.time_range))
                     .unwrap_or(true)
                 {
+                    println!("Bucket {}, ({:?})", idx, bucket.time_range);
                     bucket.query(query, &mut |interval| {
                         ans_builder.push(*interval);
                     });
                 }
             }
+            answers.push(ans_builder.finalize());
         }
         answers
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::dataset::*;
+    use crate::naive::*;
+    use crate::types::*;
+
+    #[test]
+    fn test_same_result() {
+        let data = RandomDatasetZipfAndUniform::new(123, 10, 1.0, 1000).get();
+        let queries = RandomQueriesZipfAndUniform::new(1734, 10, 1.0, 1000, 0.5).get();
+
+        let mut linear_scan = LinearScan::new();
+        linear_scan.index(&data);
+        let ls_result = linear_scan.run(&queries);
+
+        let mut period_index = PeriodIndex::new(128, 4).unwrap();
+        period_index.index(&data);
+        let mut pi_result = period_index.run(&queries);
+
+        for (ls_ans, pi_ans) in ls_result.into_iter().zip(pi_result.into_iter()) {
+            assert_eq!(ls_ans.intervals(), pi_ans.intervals());
+        }
     }
 }
