@@ -23,7 +23,7 @@ impl Interval {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DurationRange {
     pub min: Time,
     pub max: Time,
@@ -40,7 +40,7 @@ impl DurationRange {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Query {
     pub range: Option<Interval>,
     pub duration: Option<DurationRange>,

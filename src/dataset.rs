@@ -63,6 +63,8 @@ impl Dataset for RandomDatasetZipfAndUniform {
             );
             data.push(interval)
         }
+        data.sort();
+        data.dedup();
         data
     }
 }
@@ -141,6 +143,8 @@ impl Queryset for RandomQueriesZipfAndUniform {
                 duration: Some(DurationRange::new(d_min, d_max)),
             });
         }
+        data.sort();
+        data.dedup();
         data
     }
 }
