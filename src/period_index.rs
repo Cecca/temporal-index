@@ -109,14 +109,21 @@ impl Bucket {
     #[inline]
     fn cells_for(&self, level: usize, interval: Interval) -> (usize, usize) {
         let cell_duration = self.cells[level][0].time_range.duration();
-        let start = ((std::cmp::max(0, interval.start - self.time_range.start)) / cell_duration) as usize;
-        let end = ((std::cmp::max(0, interval.end - self.time_range.start)) / cell_duration) as usize;
-        (start, end)
+        let start = if interval.start < self.time_range.start {
+            0
+        } else {
+            ((interval.start - self.time_range.start) / cell_duration) as usize
+        };
+        let end = if interval.start < self.time_range.start {
+            0
+        } else {
+            ((interval.end - self.time_range.start) / cell_duration) as usize
+        };
+        (start, std::cmp::min(end, self.cells[level].len() - 1))
     }
 
     fn insert(&mut self, interval: Interval) {
-        let block_length = interval.duration();
-        let level = self.level_for(block_length);
+        let level = self.level_for(interval.duration());
         let (start, end) = self.cells_for(level, interval);
 
         for cell in self.cells[level][start..=end].iter_mut() {
@@ -138,8 +145,11 @@ impl Bucket {
         };
 
         for level in level_min..=level_max {
-            let (start, end) = query.range.map(|r| self.cells_for(level, r)).unwrap_or_else(|| (0, self.cells.len() - 1));
-            for cell in self.cells[level][start..end].iter() {
+            let (start, end) = query
+                .range
+                .map(|r| self.cells_for(level, r))
+                .unwrap_or_else(|| (0, self.cells.len() - 1));
+            for cell in self.cells[level][start..=end].iter() {
                 cell.query(query, action);
             }
         }
@@ -175,11 +185,12 @@ impl PeriodIndex {
     #[inline]
     fn bucket_for(&self, interval: Interval) -> (usize, usize) {
         debug_assert!(interval.start >= self.anchor_point);
-        let start = ((std::cmp::max(0, interval.start - self.anchor_point)) / self.bucket_length) as usize;
-        let end = ((std::cmp::max(0, interval.end - self.anchor_point)) / self.bucket_length) as usize;
+        let start =
+            ((std::cmp::max(0, interval.start - self.anchor_point)) / self.bucket_length) as usize;
+        let end =
+            ((std::cmp::max(0, interval.end - self.anchor_point)) / self.bucket_length) as usize;
         (start, end)
     }
-
 }
 
 impl Algorithm for PeriodIndex {
@@ -222,6 +233,8 @@ impl Algorithm for PeriodIndex {
 
         for interval in dataset {
             let (start, end) = self.bucket_for(*interval);
+            assert!(end < self.buckets.len());
+            assert!(start <= end);
             for bucket in self.buckets[start..=end].iter_mut() {
                 if interval.overlaps(&bucket.time_range) {
                     bucket.insert(*interval);
@@ -233,7 +246,10 @@ impl Algorithm for PeriodIndex {
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut answers = Vec::with_capacity(queries.len());
         for query in queries {
-            let (start, end) = query.range.map(|r| self.bucket_for(r)).unwrap_or_else(|| (0, self.buckets.len() -1));
+            let (start, end) = query
+                .range
+                .map(|r| self.bucket_for(r))
+                .unwrap_or_else(|| (0, self.buckets.len() - 1));
             let mut ans_builder = QueryAnswer::builder(self.n);
             for bucket in self.buckets[start..=end].iter() {
                 if query
@@ -270,10 +286,34 @@ mod test {
 
         let mut period_index = PeriodIndex::new(128, 4).unwrap();
         period_index.index(&data);
-        let mut pi_result = period_index.run(&queries);
+        let pi_result = period_index.run(&queries);
 
         for (ls_ans, pi_ans) in ls_result.into_iter().zip(pi_result.into_iter()) {
             assert_eq!(ls_ans.intervals(), pi_ans.intervals());
+        }
+    }
+
+    #[test]
+    fn test_same_result_2() {
+        let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
+        let queries = RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get();
+
+        let mut linear_scan = LinearScan::new();
+        linear_scan.index(&data);
+        let ls_result = linear_scan.run(&queries);
+
+        let mut period_index = PeriodIndex::new(128, 4).unwrap();
+        period_index.index(&data);
+        let pi_result = period_index.run(&queries);
+
+        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
+        {
+            assert_eq!(
+                ls_ans.intervals(),
+                pi_ans.intervals(),
+                "query is {:?}",
+                queries[idx]
+            );
         }
     }
 }
