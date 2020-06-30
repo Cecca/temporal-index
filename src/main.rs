@@ -29,7 +29,7 @@ pub struct Config {
     /// the algorithm to test, including its parameters
     pub algorithm: String,
 
-    #[argh(option, default = "false")]
+    #[argh(switch)]
     /// whether to resrun the given configuration
     pub rerun: bool,
 }
