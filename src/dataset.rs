@@ -9,13 +9,14 @@ use rand::distributions::Uniform;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-pub trait Dataset {
+pub trait Dataset: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn get(&self) -> Vec<Interval>;
     fn version(&self) -> u8;
 }
 
+#[derive(Debug, Clone)]
 pub struct RandomDatasetZipfAndUniform {
     seed: u64,
     n: usize,
@@ -69,7 +70,7 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 }
 
-pub trait Queryset {
+pub trait Queryset: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;

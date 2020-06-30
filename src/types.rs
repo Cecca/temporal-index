@@ -93,7 +93,7 @@ impl QueryAnswerBuilder {
     }
 }
 
-pub trait Algorithm {
+pub trait Algorithm: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;

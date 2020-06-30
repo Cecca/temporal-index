@@ -164,6 +164,12 @@ pub struct PeriodIndex {
     buckets: Vec<Bucket>,
 }
 
+impl std::fmt::Debug for PeriodIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "period-index({}, {})", self.bucket_length, self.num_levels)
+    }
+}
+
 impl PeriodIndex {
     pub fn new(bucket_length: Time, num_levels: u32) -> Result<Self> {
         if num_levels > ((bucket_length as f64).log2().floor() as u32) {

@@ -1,5 +1,5 @@
 use crate::types::*;
-use crate::Config;
+use crate::ExperimentConfiguration;
 use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
@@ -8,11 +8,11 @@ use sha2::{Digest, Sha256};
 
 pub struct Reporter {
     date: DateTime<Utc>,
-    config: Config,
+    config: ExperimentConfiguration,
 }
 
 impl Reporter {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: ExperimentConfiguration) -> Self {
         Self {
             date: Utc::now(),
             config: config,
@@ -35,12 +35,9 @@ impl Reporter {
     }
 
     pub fn already_run(&self) -> Result<Option<String>> {
-        if self.config.rerun {
-            return Ok(None);
-        }
-        let algorithm = self.config.get_algorithm()?;
-        let dataset = self.config.get_dataset()?;
-        let queryset = self.config.get_queryset()?;
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+        let queryset = &self.config.queries;
 
         let dbpath = Self::get_db_path();
         let hostname = get_hostname()?;
@@ -66,9 +63,9 @@ impl Reporter {
                 queryset.name(),
                 queryset.parameters(),
                 queryset.version(),
-                algorithm.name(),
-                algorithm.parameters(),
-                algorithm.version()
+                algorithm.borrow().name(),
+                algorithm.borrow().parameters(),
+                algorithm.borrow().version()
             ],
             |row| row.get(0),
         )
@@ -87,9 +84,9 @@ impl Reporter {
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
         let hostname = get_hostname()?;
 
-        let algorithm = self.config.get_algorithm()?;
-        let dataset = self.config.get_dataset()?;
-        let queryset = self.config.get_queryset()?;
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+        let queryset = &self.config.queries;
 
         let tx = conn.transaction()?;
         {
@@ -111,9 +108,9 @@ impl Reporter {
                     queryset.name(),
                     queryset.parameters(),
                     queryset.version(),
-                    algorithm.name(),
-                    algorithm.parameters(),
-                    algorithm.version(),
+                    algorithm.borrow().name(),
+                    algorithm.borrow().parameters(),
+                    algorithm.borrow().version(),
                     elapsed_index,
                     elapsed_query
                 ],
