@@ -5,17 +5,20 @@ use chrono::prelude::*;
 use rusqlite::*;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
+use std::path::{Path, PathBuf};
 
 pub struct Reporter {
     date: DateTime<Utc>,
     config: ExperimentConfiguration,
+    config_file: PathBuf,
 }
 
 impl Reporter {
-    pub fn new(config: ExperimentConfiguration) -> Self {
+    pub fn new<P: AsRef<Path>>(config_file: P, config: ExperimentConfiguration) -> Self {
         Self {
             date: Utc::now(),
             config: config,
+            config_file: config_file.as_ref().to_owned(),
         }
     }
 
@@ -88,20 +91,27 @@ impl Reporter {
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
 
+        let conf_file = self
+            .config_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
+            .to_owned();
+
         let tx = conn.transaction()?;
         {
             tx.execute(
-                "INSERT INTO raw ( sha, date, git_rev, hostname, 
+                "INSERT INTO raw ( sha, date, git_rev, hostname, conf_file,
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
                                     time_index_ms, time_query_ms )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15 )",
+                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16 )",
                 params![
                     sha,
                     self.date.to_rfc3339(),
                     env!("VERGEN_SHA_SHORT"),
                     hostname,
+                    conf_file,
                     dataset.name(),
                     dataset.parameters(),
                     dataset.version(),
@@ -171,6 +181,7 @@ pub fn db_setup() -> Result<()> {
             date              TEXT NOT NULL,
             git_rev           TEXT NOT NULL,
             hostname          TEXT NOT NULL,
+            conf_file         TEXT,
             dataset           TEXT NOT NULL,
             dataset_params    TEXT NOT NULL,
             dataset_version   INT NOT NULL,

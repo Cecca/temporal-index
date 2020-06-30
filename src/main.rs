@@ -289,7 +289,8 @@ fn main() -> Result<()> {
 
     reporter::db_setup()?;
 
-    let conf_file = std::fs::File::open(&cmdline.experiment_file)?;
+    let conf_file_path = &cmdline.experiment_file;
+    let conf_file = std::fs::File::open(conf_file_path)?;
     let configurations: Configuration = serde_yaml::from_reader(conf_file)?;
 
     configurations.for_each(|experiment| {
@@ -313,11 +314,11 @@ fn main() -> Result<()> {
             experiment.algorithm.borrow().parameters()
         );
 
-        let reporter = reporter::Reporter::new(experiment.clone());
+        let reporter = reporter::Reporter::new(conf_file_path, experiment.clone());
         if !cmdline.rerun {
             if let Some(sha) = reporter.already_run()? {
                 info!(
-                    "parameter experimentsuration already run: {}, skipping",
+                    "parameter configuration already run: {}, skipping",
                     sha
                 );
                 return Ok(());
