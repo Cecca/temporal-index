@@ -150,10 +150,15 @@ impl Reporter {
 }
 
 pub fn get_hostname() -> Result<String> {
-    let output = std::process::Command::new("hostname")
-        .output()
-        .context("Failed to run the hostname command")?;
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+    std::env::var("HOST_HOSTNAME").map_or_else(
+        |_err| {
+            let output = std::process::Command::new("hostname")
+                .output()
+                .context("Failed to run the hostname command")?;
+            Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        },
+        |host_hostname| Ok(format!("{}(docker)", host_hostname)),
+    )
 }
 
 fn bump(conn: &Connection, ver: u32) -> Result<()> {

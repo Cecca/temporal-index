@@ -2,13 +2,13 @@
 datasets:
   - ZipfUniform:
       seed: [123]
-      n: [100000]
+      n: [10000]
       exponent: [0.4]
       max_start_time: [1000]
 queries:
   - ZipfUniform:
       seed: [23512]
-      n: [50, 5000]
+      n: [50]
       exponent: [0.4]
       max_start_time: [1000]
       max_duration_factor: [0.5]
