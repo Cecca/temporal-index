@@ -1,15 +1,9 @@
-FROM rust:1.44.1
- ARG USER_NAME
- ARG USER_ID
- ARG GROUP_ID
-# We install some useful packages
- RUN apt-get update -qq
- RUN apt-get install -y python3 python3-yaml sqlite3 r-base
- RUN addgroup --gid $GROUP_ID user; exit 0
- RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID $USER_NAME; exit 0
- RUN echo 'root:Docker!' | chpasswd
- RUN R -e 'install.packages("renv")'
- ENV TERM xterm-256color
+FROM rust:1.44.1 as builder
+ WORKDIR /usr/src/temporal-index
  ENV RUST_LOG info
- USER $USER_NAME
+ COPY . .
+ RUN cargo install --path .
 
+FROM debian:buster-slim
+ RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+ COPY --from=builder /usr/local/cargo/bin/temporal-index /usr/local/bin/temporal-index
