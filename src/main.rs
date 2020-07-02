@@ -1,3 +1,5 @@
+#![feature(is_sorted)]
+
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -10,6 +12,7 @@ mod reporter;
 mod types;
 mod zipf;
 mod btree;
+mod interval_tree;
 
 use anyhow::{anyhow, Context, Result};
 use argh::FromArgs;

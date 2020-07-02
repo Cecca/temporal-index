@@ -21,6 +21,14 @@ impl Interval {
     pub fn overlaps(&self, other: &Self) -> bool {
         !(self.start > other.end || other.start > self.end)
     }
+
+    pub fn contains(&self, point: Time) -> bool {
+        self.start <= point && point < self.end
+    }
+
+    pub fn middle(&self) -> Time {
+        (self.end + self.start) / 2
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
