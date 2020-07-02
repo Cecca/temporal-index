@@ -31,6 +31,7 @@ pub struct DurationRange {
 
 impl DurationRange {
     pub fn new(min: Time, max: Time) -> Self {
+        assert!(min <= max);
         Self { min, max }
     }
 

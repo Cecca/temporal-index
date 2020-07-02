@@ -9,6 +9,7 @@ mod period_index;
 mod reporter;
 mod types;
 mod zipf;
+mod btree;
 
 use anyhow::{anyhow, Context, Result};
 use argh::FromArgs;
@@ -141,6 +142,7 @@ enum AlgorithmConfiguration {
         num_levels: Vec<u32>,
     },
     LinearScan,
+    BTree,
 }
 
 impl AlgorithmConfiguration {
@@ -161,6 +163,11 @@ impl AlgorithmConfiguration {
             Self::LinearScan => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(naive::LinearScan::new()));
+                Box::new(Some(algo).into_iter())
+            }
+            Self::BTree => {
+                let algo: Rc<RefCell<dyn Algorithm>> =
+                    Rc::new(RefCell::new(btree::BTree::new()));
                 Box::new(Some(algo).into_iter())
             }
         }

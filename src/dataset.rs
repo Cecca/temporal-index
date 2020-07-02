@@ -138,10 +138,10 @@ impl Queryset for RandomQueriesZipfAndUniform {
             );
             let (d_min, d_max) = if d_a < d_b { (d_a, d_b) } else { (d_b, d_a) };
             let d_min = std::cmp::max((d_min * range.duration() as f64) as Time, 1);
-            let d_max = (d_max * range.duration() as f64) as Time;
+            let d_max = std::cmp::max((d_max * range.duration() as f64) as Time, 1);
             data.push(Query {
                 range: Some(range),
-                duration: Some(DurationRange::new(d_min, d_max)),
+                duration: Some(DurationRange::new(d_min as u32, d_max as u32)),
             });
         }
         data.sort();

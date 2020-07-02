@@ -2,18 +2,19 @@
 datasets:
   - ZipfUniform:
       seed: [123]
-      n: [10000]
+      n: [1000000]
       exponent: [0.4]
       max_start_time: [1000]
 queries:
   - ZipfUniform:
       seed: [23512]
-      n: [50, 5000]
+      n: [5000]
       exponent: [0.4]
       max_start_time: [1000]
-      max_duration_factor: [0.5]
+      max_duration_factor: [2]
 algorithms:
+  - BTree
   - LinearScan
-  - PeriodIndex:
-      bucket_length: [64,128]
-      num_levels: [4]
+  # - PeriodIndex:
+  #     bucket_length: [512]
+  #     num_levels: [4]
