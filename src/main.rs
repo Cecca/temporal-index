@@ -194,7 +194,7 @@ impl Configuration {
 
 #[derive(FromArgs)]
 /// run experiments on temporal indices
-struct Cmdline2 {
+struct Cmdline {
     #[argh(switch)]
     /// force rerunning the experiments
     rerun: bool,
@@ -208,7 +208,7 @@ fn main() -> Result<()> {
     use std::time::*;
 
     pretty_env_logger::init();
-    let cmdline: Cmdline2 = argh::from_env();
+    let cmdline: Cmdline = argh::from_env();
 
     reporter::db_setup()?;
 
@@ -260,6 +260,8 @@ fn main() -> Result<()> {
             let answers = algorithm.run(&queryset_queries);
             let end = Instant::now();
             let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+            // Clear up the index to free resources
+            algorithm.clear();
             (
                 elapsed_index,
                 elapsed_run,

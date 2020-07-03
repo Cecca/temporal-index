@@ -1,5 +1,5 @@
 use crate::types::*;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use deepsize::DeepSizeOf;
 
 #[derive(DeepSizeOf)]
@@ -296,6 +296,13 @@ impl Algorithm for PeriodIndex {
             answers.push(ans_builder.finalize());
         }
         answers
+    }
+    
+    fn clear(&mut self) {
+        self.buckets.clear();
+        self.anchor_point = 0;
+        self.bucket_length.take();
+        self.n = 0;
     }
 }
 

@@ -66,4 +66,8 @@ impl Algorithm for LinearScan {
         }
         result
     }
+
+    fn clear(&mut self) {
+        self.dataset.clear();
+    }
 }

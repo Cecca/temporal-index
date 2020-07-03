@@ -167,6 +167,11 @@ impl Algorithm for IntervalTree {
         }
         answers
     }
+    fn clear(&mut self) {
+        let root = self.root.take();
+        // This drops all the children as well, because they are owned by the root
+        drop(root);
+    }
 }
 
 #[derive(DeepSizeOf)]

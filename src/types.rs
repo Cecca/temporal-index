@@ -112,6 +112,8 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
     fn version(&self) -> u8;
     fn index(&mut self, dataset: &[Interval]);
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer>;
+    /// Clears the index, freeing up space
+    fn clear(&mut self);
 
     fn index_size(&self) -> usize {
         self.deep_size_of()

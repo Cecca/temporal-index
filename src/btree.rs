@@ -83,6 +83,10 @@ impl Algorithm for BTree {
         }
         result
     }
+
+    fn clear(&mut self) {
+        self.data.clear();
+    }
 }
 
 impl deepsize::DeepSizeOf for BTree {
