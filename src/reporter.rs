@@ -157,7 +157,7 @@ pub fn get_hostname() -> Result<String> {
                 .context("Failed to run the hostname command")?;
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
         },
-        |host_hostname| Ok(format!("{}(docker)", host_hostname)),
+        |host_hostname| Ok(format!("(docker){}", host_hostname)),
     )
 }
 

@@ -1,5 +1,6 @@
 use crate::types::*;
 use std::collections::BTreeMap;
+use deepsize::DeepSizeOf;
 
 pub struct BTree {
     data: BTreeMap<Time, Vec<Interval>>,
@@ -37,6 +38,8 @@ impl Algorithm for BTree {
                 .or_insert_with(|| Vec::new())
                 .push(*interval);
         }
+        let size = self.deep_size_of();
+        info!("Allocated for index: {} bytes ({} Mb)", size, size / (1024*1024));
     }
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut result = Vec::with_capacity(queries.len());
@@ -75,6 +78,18 @@ impl Algorithm for BTree {
             result.push(query_result.finalize())
         }
         result
+    }
+}
+
+impl deepsize::DeepSizeOf for BTree
+{
+    fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
+        // I actually don't know the overhead of the BTReeMap
+        self.data.iter()
+            .fold(0, |sum, (key, val)| {
+                sum + key.deep_size_of_children(context)
+                    + val.deep_size_of_children(context)
+            })
     }
 }
 

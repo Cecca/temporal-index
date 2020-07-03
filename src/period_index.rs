@@ -1,6 +1,8 @@
 use crate::types::*;
 use anyhow::{anyhow, Result};
+use deepsize::DeepSizeOf;
 
+#[derive(DeepSizeOf)]
 struct Cell {
     time_range: Interval,
     duration_range: DurationRange,
@@ -55,6 +57,7 @@ impl Cell {
     }
 }
 
+#[derive(DeepSizeOf)]
 struct Bucket {
     time_range: Interval,
     /// Two dimensional arrangement of cells: each level holds cells
@@ -156,6 +159,7 @@ impl Bucket {
     }
 }
 
+#[derive(DeepSizeOf)]
 pub struct PeriodIndex {
     bucket_length: Time,
     anchor_point: Time,
@@ -166,7 +170,11 @@ pub struct PeriodIndex {
 
 impl std::fmt::Debug for PeriodIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "period-index({}, {})", self.bucket_length, self.num_levels)
+        write!(
+            f,
+            "period-index({}, {})",
+            self.bucket_length, self.num_levels
+        )
     }
 }
 
@@ -239,14 +247,28 @@ impl Algorithm for PeriodIndex {
 
         for interval in dataset {
             let (start, end) = self.bucket_for(*interval);
+            let mut cnt = 0;
             assert!(end < self.buckets.len());
             assert!(start <= end);
             for bucket in self.buckets[start..=end].iter_mut() {
                 if interval.overlaps(&bucket.time_range) {
                     bucket.insert(*interval);
+                    cnt += 1;
                 }
             }
+            debug!(
+                "Inserted into {} buckets, since it has duration {} and the bucket length is {}",
+                cnt,
+                interval.duration(),
+                self.bucket_length
+            );
         }
+        let size = self.deep_size_of();
+        info!(
+            "Allocated for index: {} bytes ({} Mb)",
+            size,
+            size / (1024 * 1024)
+        );
     }
 
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {

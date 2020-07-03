@@ -1,6 +1,8 @@
+use deepsize::DeepSizeOf;
+
 pub type Time = u32;
 
-#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, DeepSizeOf)]
 pub struct Interval {
     pub start: Time,
     pub end: Time,
@@ -32,7 +34,7 @@ impl Interval {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, DeepSizeOf)]
 pub struct DurationRange {
     pub min: Time,
     pub max: Time,
@@ -50,7 +52,7 @@ impl DurationRange {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeepSizeOf)]
 pub struct Query {
     pub range: Option<Interval>,
     pub duration: Option<DurationRange>,
