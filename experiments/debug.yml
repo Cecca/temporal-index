@@ -15,6 +15,7 @@ queries:
 algorithms:
   - BTree
   - LinearScan
+  - IntervalTree
   # - PeriodIndex:
   #     bucket_length: [512]
   #     num_levels: [4]

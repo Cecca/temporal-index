@@ -6,28 +6,24 @@ pub struct IntervalTree {
 }
 
 impl IntervalTree {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { n: 0, root: None }
     }
 
     fn query<F: FnMut(Interval)>(&self, query: Interval, action: &mut F) {
         let mut node = self.root.as_ref();
         while node.is_some() {
-            println!("looking into {:?}, {:?}", node, query);
             let node_ref = node.unwrap();
             // We use <= because the end point is not part of the interval,
             // hence the current node is not the fork node and we have to
             // descend further
             if query.end <= node_ref.middle {
                 node_ref.overlapping_upper(query.start, action);
-                println!("going left");
                 node = node_ref.left.as_ref();
             } else if node_ref.middle < query.start {
                 node_ref.overlapping_lower(query.end, action);
-                println!("going right");
                 node = node_ref.right.as_ref();
             } else {
-                println!("fork node for {:?} ({:?})", node, query);
                 debug_assert!(query.contains(node_ref.middle));
                 // we are at the fork node, iterate through all the values,
                 // which are all overlapping the query
@@ -80,11 +76,9 @@ impl IntervalTree {
         while cursor.is_some() {
             let node_ref = cursor.unwrap();
             if query.end <= node_ref.middle {
-                println!("outside of range");
                 node_ref.overlapping_lower(query.end, action);
                 cursor = node_ref.left.as_ref();
             } else {
-                println!("inside range");
                 node_ref.node_intervals().for_each(|interval| {
                     debug_assert!(query.overlaps(&interval));
                     action(interval);
@@ -216,7 +210,6 @@ impl Node {
             None
         } else {
             trace!("insert left {} intervals", to_left.len());
-            debug_assert!(to_left.is_sorted_by_key(|i| i.middle()));
             Some(Box::new(Self::new(&to_left)))
         };
 
@@ -224,7 +217,6 @@ impl Node {
             None
         } else {
             trace!("insert right {} intervals", to_right.len());
-            debug_assert!(to_right.is_sorted_by_key(|i| i.middle()));
             Some(Box::new(Self::new(&to_right)))
         };
 

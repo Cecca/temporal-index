@@ -78,6 +78,7 @@ impl QueryAnswer {
         }
     }
 
+    #[cfg(test)]
     pub fn intervals(&self) -> Vec<Interval> {
         let mut res = self.intervals.clone();
         res.sort();

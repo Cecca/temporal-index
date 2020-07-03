@@ -279,7 +279,6 @@ mod test {
     use super::*;
     use crate::dataset::*;
     use crate::naive::*;
-    use crate::types::*;
 
     #[test]
     fn test_same_result() {

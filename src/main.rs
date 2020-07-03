@@ -1,5 +1,3 @@
-#![feature(is_sorted)]
-
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -14,11 +12,10 @@ mod zipf;
 mod btree;
 mod interval_tree;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use argh::FromArgs;
 use dataset::*;
 use itertools::iproduct;
-use regex::*;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -46,98 +43,6 @@ impl std::fmt::Display for ExperimentConfiguration {
     }
 }
 
-#[derive(FromArgs, Debug)]
-/// Run experiments indexing temporal relations
-pub struct CmdlineConfig {
-    #[argh(option)]
-    /// description of the dataset to use
-    pub dataset: String,
-
-    #[argh(option)]
-    /// description of the queryset to use
-    pub queries: String,
-
-    #[argh(option)]
-    /// the algorithm to test, including its parameters
-    pub algorithm: String,
-
-    #[argh(switch)]
-    /// whether to resrun the given configuration
-    pub rerun: bool,
-}
-
-impl CmdlineConfig {
-    pub fn get_configuration(&self) -> Result<ExperimentConfiguration> {
-        // Ok(ExperimentConfiguration {
-        //     dataset: self.get_dataset()?,
-        //     queries: self.get_queryset()?,
-        //     algorithm: self.get_algorithm()?,
-        // })
-        todo!()
-    }
-
-    pub fn get_algorithm(&self) -> Result<Box<dyn Algorithm>> {
-        if self.algorithm == "linear-scan" {
-            return Ok(Box::new(naive::LinearScan::new()));
-        }
-        let re_period_index = Regex::new(r"period-index\((\d+), *(\d+)\)")?;
-        if let Some(captures) = re_period_index.captures(&self.algorithm) {
-            trace!("algorithm parsing {:?}", captures);
-            let bucket_length = captures[1].parse::<u32>()?;
-            let num_levels = captures[2].parse::<u32>()?;
-            return Ok(Box::new(period_index::PeriodIndex::new(
-                bucket_length,
-                num_levels,
-            )?));
-        }
-
-        Err(anyhow!("unknown algorithm {}", self.algorithm))
-    }
-
-    pub fn get_queryset(&self) -> Result<Box<dyn Queryset>> {
-        let re_zipf_and_uniform = Regex::new(
-            r"^zipf-and-uniform\((\d+), *(\d+), *(\d+(:?\.\d+)?), *(\d+), *(\d+(:?\.\d+)?)\)$",
-        )?;
-        if let Some(captures) = re_zipf_and_uniform.captures(&self.queries) {
-            trace!("Captures: {:?}", captures);
-            let seed = captures[1].parse::<u64>().context("seed")?;
-            let n = captures[2].parse::<usize>().context("n")?;
-            let exponent = captures[3].parse::<f64>().context("exponent")?;
-            let max_start_time = captures[5].parse::<u32>().context("max start time")?;
-            let max_duration_factor = captures[6].parse::<f64>().context("max duration factor")?;
-            return Ok(Box::new(RandomQueriesZipfAndUniform::new(
-                seed,
-                n,
-                exponent,
-                max_start_time,
-                max_duration_factor,
-            )));
-        }
-
-        Err(anyhow!("unknown queryset: {}", self.queries))
-    }
-
-    pub fn get_dataset(&self) -> Result<Box<dyn Dataset>> {
-        let re_zipf_and_uniform =
-            Regex::new(r"^zipf-and-uniform\((\d+), *(\d+), *(\d+(:?\.\d+)?), *(\d+)\)$")?;
-        if let Some(captures) = re_zipf_and_uniform.captures(&self.dataset) {
-            trace!("Captures: {:?}", captures);
-            let seed = captures[1].parse::<u64>().context("seed")?;
-            let n = captures[2].parse::<usize>().context("n")?;
-            let exponent = captures[3].parse::<f64>().context("exponent")?;
-            let max_start_time = captures[5].parse::<u32>().context("max start time")?;
-            return Ok(Box::new(RandomDatasetZipfAndUniform::new(
-                seed,
-                n,
-                exponent,
-                max_start_time,
-            )));
-        }
-
-        Err(anyhow!("unknown dataset: {}", self.dataset))
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 enum AlgorithmConfiguration {
     PeriodIndex {
@@ -146,6 +51,7 @@ enum AlgorithmConfiguration {
     },
     LinearScan,
     BTree,
+    IntervalTree,
 }
 
 impl AlgorithmConfiguration {
@@ -171,6 +77,11 @@ impl AlgorithmConfiguration {
             Self::BTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(btree::BTree::new()));
+                Box::new(Some(algo).into_iter())
+            },
+            Self::IntervalTree => {
+                let algo: Rc<RefCell<dyn Algorithm>> =
+                    Rc::new(RefCell::new(interval_tree::IntervalTree::new()));
                 Box::new(Some(algo).into_iter())
             }
         }
