@@ -17,5 +17,5 @@ algorithms:
   - LinearScan
   - IntervalTree
   - PeriodIndex:
-      bucket_length: [4096]
+      num_buckets: [16, 32, 64, 128, 256]
       num_levels: [4]

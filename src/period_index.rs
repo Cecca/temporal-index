@@ -161,9 +161,10 @@ impl Bucket {
 
 #[derive(DeepSizeOf)]
 pub struct PeriodIndex {
-    bucket_length: Time,
-    anchor_point: Time,
+    num_buckets: usize,
     num_levels: u32,
+    anchor_point: Time,
+    bucket_length: Option<Time>,
     n: usize,
     buckets: Vec<Bucket>,
 }
@@ -173,36 +174,30 @@ impl std::fmt::Debug for PeriodIndex {
         write!(
             f,
             "period-index({}, {})",
-            self.bucket_length, self.num_levels
+            self.num_buckets, self.num_levels
         )
     }
 }
 
 impl PeriodIndex {
-    pub fn new(bucket_length: Time, num_levels: u32) -> Result<Self> {
-        if num_levels > ((bucket_length as f64).log2().floor() as u32) {
-            Err(anyhow!(
-                "too many levels, should be less than log2(bucket_length), i.e. <={}",
-                (bucket_length as f64).log2()
-            ))
-        } else {
-            Ok(Self {
-                bucket_length,
-                anchor_point: 0,
-                num_levels,
-                n: 0,
-                buckets: Vec::new(),
-            })
-        }
+    pub fn new(num_buckets: usize, num_levels: u32) -> Result<Self> {
+        Ok(Self {
+            num_buckets,
+            num_levels,
+            anchor_point: 0,
+            bucket_length: None,
+            n: 0,
+            buckets: Vec::new(),
+        })
     }
 
     #[inline]
     fn bucket_for(&self, interval: Interval) -> (usize, usize) {
         debug_assert!(interval.start >= self.anchor_point);
         let start =
-            ((std::cmp::max(0, interval.start - self.anchor_point)) / self.bucket_length) as usize;
+            ((std::cmp::max(0, interval.start - self.anchor_point)) / self.bucket_length.expect("uninitialized index")) as usize;
         let end =
-            ((std::cmp::max(0, interval.end - self.anchor_point)) / self.bucket_length) as usize;
+            ((std::cmp::max(0, interval.end - self.anchor_point)) / self.bucket_length.expect("uninitialized index")) as usize;
         (start, end)
     }
 }
@@ -213,11 +208,11 @@ impl Algorithm for PeriodIndex {
     }
 
     fn parameters(&self) -> String {
-        format!("{},{}", self.bucket_length, self.num_levels)
+        format!("{},{}", self.num_buckets, self.num_levels)
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -231,17 +226,24 @@ impl Algorithm for PeriodIndex {
             .map(|i| i.end)
             .max()
             .expect("maximum of an empty collection");
+        let bucket_length = ((endtime - anchor) as f64 / self.num_buckets as f64).ceil() as u32;
         debug!("Anchor {}, endtime {}", anchor, endtime);
+        self.bucket_length.replace(bucket_length);
+
+        if self.num_levels > ((bucket_length as f64).log2().floor() as u32) {
+            warn!("the parameters `num_levels` is larger than the actual number of levels, not using it.");
+            self.num_levels = (bucket_length as f64).log2().floor() as u32;
+        }
 
         self.buckets.clear();
         self.anchor_point = anchor;
         self.n = dataset.len();
         let mut start = anchor;
         while start < endtime {
-            let bucket = Bucket::new(Interval::new(start, self.bucket_length), self.num_levels);
+            let bucket = Bucket::new(Interval::new(start, bucket_length), self.num_levels);
             debug!("bucket with interval {:?}", bucket.time_range);
             self.buckets.push(bucket);
-            start += self.bucket_length;
+            start += bucket_length;
         }
         debug!("Created {} buckets", self.buckets.len());
 
@@ -260,7 +262,7 @@ impl Algorithm for PeriodIndex {
                 "Inserted into {} buckets, since it has duration {} and the bucket length is {}",
                 cnt,
                 interval.duration(),
-                self.bucket_length
+                bucket_length
             );
         }
         let size = self.deep_size_of();

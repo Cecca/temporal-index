@@ -46,7 +46,7 @@ impl std::fmt::Display for ExperimentConfiguration {
 #[derive(Serialize, Deserialize)]
 enum AlgorithmConfiguration {
     PeriodIndex {
-        bucket_length: Vec<u32>,
+        num_buckets: Vec<usize>,
         num_levels: Vec<u32>,
     },
     LinearScan,
@@ -58,12 +58,12 @@ impl AlgorithmConfiguration {
     fn algorithms(&self) -> Box<dyn Iterator<Item = Rc<RefCell<dyn Algorithm>>> + '_> {
         match self {
             Self::PeriodIndex {
-                bucket_length,
+                num_buckets,
                 num_levels,
             } => {
-                let iter = iproduct!(bucket_length, num_levels).map(|(bl, nl)| {
+                let iter = iproduct!(num_buckets, num_levels).map(|(nb, nl)| {
                     Rc::new(RefCell::new(
-                        period_index::PeriodIndex::new(*bl, *nl)
+                        period_index::PeriodIndex::new(*nb, *nl)
                             .expect("error in configured algorithm"),
                     )) as Rc<RefCell<dyn Algorithm>>
                 });
