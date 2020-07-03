@@ -80,6 +80,7 @@ impl Reporter {
         &self,
         elapsed_index: i64,
         elapsed_query: i64,
+        index_size_bytes: u32,
         answers: Vec<QueryAnswer>,
     ) -> Result<()> {
         let sha = self.sha();
@@ -104,8 +105,8 @@ impl Reporter {
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
-                                    time_index_ms, time_query_ms )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16 )",
+                                    time_index_ms, time_query_ms, index_size_bytes )
+                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17 )",
                 params![
                     sha,
                     self.date.to_rfc3339(),
@@ -122,7 +123,8 @@ impl Reporter {
                     algorithm.borrow().parameters(),
                     algorithm.borrow().version(),
                     elapsed_index,
-                    elapsed_query
+                    elapsed_query,
+                    index_size_bytes
                 ],
             )
             .context("error inserting into main table")?;
@@ -197,7 +199,8 @@ pub fn db_setup() -> Result<()> {
             algorithm_params  TEXT NOT NULL,
             algorithm_version INT NOT NULL,
             time_index_ms      INT64 NOT NULL,
-            time_query_ms      INT64 NOT NULL
+            time_query_ms      INT64 NOT NULL,
+            index_size_bytes   INT NOT NULL
             )",
             params![],
         )

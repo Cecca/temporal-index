@@ -3,14 +3,14 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
+mod btree;
 mod dataset;
+mod interval_tree;
 mod naive;
 mod period_index;
 mod reporter;
 mod types;
 mod zipf;
-mod btree;
-mod interval_tree;
 
 use anyhow::{Context, Result};
 use argh::FromArgs;
@@ -75,10 +75,9 @@ impl AlgorithmConfiguration {
                 Box::new(Some(algo).into_iter())
             }
             Self::BTree => {
-                let algo: Rc<RefCell<dyn Algorithm>> =
-                    Rc::new(RefCell::new(btree::BTree::new()));
+                let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(btree::BTree::new()));
                 Box::new(Some(algo).into_iter())
-            },
+            }
             Self::IntervalTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(interval_tree::IntervalTree::new()));
@@ -238,15 +237,12 @@ fn main() -> Result<()> {
         let reporter = reporter::Reporter::new(conf_file_path, experiment.clone());
         if !cmdline.rerun {
             if let Some(sha) = reporter.already_run()? {
-                info!(
-                    "parameter configuration already run: {}, skipping",
-                    sha
-                );
+                info!("parameter configuration already run: {}, skipping", sha);
                 return Ok(());
             }
         }
 
-        let (elapsed_index, elapsed_run, answers) = {
+        let (elapsed_index, elapsed_run, index_size_bytes, answers) = {
             let mut algorithm = experiment.algorithm.borrow_mut();
 
             let queryset_queries = experiment.queries.get();
@@ -261,16 +257,23 @@ fn main() -> Result<()> {
             let answers = algorithm.run(&queryset_queries);
             let end = Instant::now();
             let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
-            (elapsed_index, elapsed_run, answers)
+            (
+                elapsed_index,
+                elapsed_run,
+                algorithm.index_size() as u32,
+                answers,
+            )
         };
 
-        info!("time for index {}ms, time for query {}ms", elapsed_index, elapsed_run);
+        info!(
+            "time for index {}ms, time for query {}ms",
+            elapsed_index, elapsed_run
+        );
 
-        reporter.report(elapsed_index, elapsed_run, answers)?;
+        reporter.report(elapsed_index, elapsed_run, index_size_bytes, answers)?;
 
         Ok(())
     })?;
 
     Ok(())
-
 }

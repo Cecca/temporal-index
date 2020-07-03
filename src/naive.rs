@@ -36,7 +36,11 @@ impl Algorithm for LinearScan {
         self.dataset.clear();
         self.dataset.extend(dataset.iter().cloned());
         let size = self.deep_size_of();
-        info!("Space taken by intervals: {} bytes ({} Mb)", size, size / (1024*1024));
+        info!(
+            "Space taken by intervals: {} bytes ({} Mb)",
+            size,
+            size / (1024 * 1024)
+        );
     }
 
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {

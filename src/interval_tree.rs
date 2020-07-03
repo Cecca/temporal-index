@@ -118,7 +118,11 @@ impl Algorithm for IntervalTree {
         self.root = Some(Box::new(Node::new(&intervals)));
         self.n = intervals.len();
         let size = self.deep_size_of();
-        info!("Allocated for index: {} bytes ({} Mb)", size, size / (1024*1024));
+        info!(
+            "Allocated for index: {} bytes ({} Mb)",
+            size,
+            size / (1024 * 1024)
+        );
     }
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut answers = Vec::with_capacity(queries.len());
@@ -276,7 +280,7 @@ impl Node {
             .for_each(|interval| {
                 if interval.contains(point) {
                     action(*interval);
-                } 
+                }
             });
     }
 }

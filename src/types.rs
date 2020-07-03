@@ -106,12 +106,16 @@ impl QueryAnswerBuilder {
     }
 }
 
-pub trait Algorithm: std::fmt::Debug {
+pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
     fn index(&mut self, dataset: &[Interval]);
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer>;
+
+    fn index_size(&self) -> usize {
+        self.deep_size_of()
+    }
 }
 
 #[cfg(test)]
@@ -124,6 +128,6 @@ mod test {
         assert!(!Interval::new(0, 3).overlaps(&Interval::new(4, 3)));
         assert!(Interval::new(0, 6).overlaps(&Interval::new(4, 3)));
         assert!(Interval::new(0, 6).overlaps(&Interval::new(2, 3)));
-        assert!(!Interval::new(17,1).overlaps(&Interval::new(18, 22)))
+        assert!(!Interval::new(17, 1).overlaps(&Interval::new(18, 22)))
     }
 }
