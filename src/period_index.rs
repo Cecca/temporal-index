@@ -265,9 +265,10 @@ impl Algorithm for PeriodIndex {
         }
         let size = self.deep_size_of();
         info!(
-            "Allocated for index: {} bytes ({} Mb)",
+            "Allocated for index: {} bytes ({} Mb) - {} buckets",
             size,
-            size / (1024 * 1024)
+            size / (1024 * 1024),
+            self.buckets.len()
         );
     }
 

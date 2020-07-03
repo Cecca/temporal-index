@@ -173,6 +173,9 @@ impl Configuration {
         mut action: F,
     ) -> Result<()> {
         for dataset in self.datasets.iter().flat_map(|d| d.datasets()) {
+            info!("{:=<60}", "");
+            info!("{} (v{}) {}", dataset.name(), dataset.version(), dataset.parameters());
+            dataset.stats().log();
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
                     let conf = ExperimentConfiguration {
