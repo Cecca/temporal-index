@@ -299,7 +299,7 @@ mod test {
         }
     }
 
-    #[test]
+    // #[test]
     fn test_same_result_2() {
         let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
         let queries = RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get();

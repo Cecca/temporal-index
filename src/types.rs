@@ -19,7 +19,8 @@ impl Interval {
     }
 
     pub fn overlaps(&self, other: &Self) -> bool {
-        !(self.start > other.end || other.start > self.end)
+        self.start < other.end && other.start < self.end
+        // !(self.start > other.end || other.start > self.end)
     }
 
     pub fn contains(&self, point: Time) -> bool {
@@ -120,5 +121,6 @@ mod test {
         assert!(!Interval::new(0, 3).overlaps(&Interval::new(4, 3)));
         assert!(Interval::new(0, 6).overlaps(&Interval::new(4, 3)));
         assert!(Interval::new(0, 6).overlaps(&Interval::new(2, 3)));
+        assert!(!Interval::new(17,1).overlaps(&Interval::new(18, 22)))
     }
 }

@@ -15,17 +15,15 @@ impl IntervalTree {
         while node.is_some() {
             println!("looking into {:?}, {:?}", node, query);
             let node_ref = node.unwrap();
-            if query.end < node_ref.middle {
+            // We use <= because the end point is not part of the interval,
+            // hence the current node is not the fork node and we have to
+            // descend further
+            if query.end <= node_ref.middle {
                 node_ref.overlapping_upper(query.start, action);
                 println!("going left");
                 node = node_ref.left.as_ref();
             } else if node_ref.middle < query.start {
-                // TODO use binary search here
-                node_ref.lower.iter().for_each(|interval| {
-                    if query.overlaps(interval) {
-                        action(*interval);
-                    }
-                });
+                node_ref.overlapping_lower(query.end, action);
                 println!("going right");
                 node = node_ref.right.as_ref();
             } else {
@@ -33,9 +31,9 @@ impl IntervalTree {
                 debug_assert!(query.contains(node_ref.middle));
                 // we are at the fork node, iterate through all the values,
                 // which are all overlapping the query
-                node_ref.lower.iter().for_each(|interval| {
-                    debug_assert!(query.overlaps(interval));
-                    action(*interval);
+                node_ref.node_intervals().for_each(|interval| {
+                    debug_assert!(query.overlaps(&interval));
+                    action(interval);
                 });
                 break;
             }
@@ -44,54 +42,58 @@ impl IntervalTree {
             // We are done
             return;
         }
-        let mut left = node.expect("None fork node").left.as_ref();
-        let mut right = node.expect("None fork node").right.as_ref();
+        let left = node.expect("None fork node").left.as_ref();
+        let right = node.expect("None fork node").right.as_ref();
 
-        // Explore to the left of the fork node
-        while left.is_some() {
-            let left_ref = left.unwrap();
-            if query.end < left_ref.middle {
-                // TODO use binary search here
-                left_ref.upper.iter().for_each(|interval| {
-                    if query.overlaps(interval) {
-                        action(*interval);
-                    }
-                });
-                left = left_ref.right.as_ref();
+        // Descend into the left subtree. From now on, we go right if the
+        // middle point of the node is less than the start of the query,
+        // and left otherwise. For nodes with middle point less than the start
+        // of the query we scan the upper list. Otherwise we report all the
+        // intervals of the node and all the intervals of the right subtree.
+        let mut cursor = left;
+        while cursor.is_some() {
+            let node_ref = cursor.unwrap();
+            if node_ref.middle < query.start {
+                // We should steer right
+                node_ref.overlapping_upper(query.start, action);
+                cursor = node_ref.right.as_ref();
             } else {
-                left_ref.upper.iter().for_each(|interval| {
-                    if query.overlaps(interval) {
-                        action(*interval);
-                    }
+                // We should steer left
+                node_ref.node_intervals().for_each(|interval| {
+                    debug_assert!(query.overlaps(&interval));
+                    action(interval);
                 });
-                if let Some(right) = left_ref.right.as_ref() {
-                    right.for_each_interval(action);
-                }
-                left = left_ref.left.as_ref();
+                node_ref
+                    .right
+                    .as_ref()
+                    .map(|child| child.subtree_intervals(action));
+                cursor = node_ref.left.as_ref();
             }
         }
 
-        // Explore to the right of the fork node
-        while right.is_some() {
-            let right_ref = right.unwrap();
-            if right_ref.middle < query.end {
-                // TODO use binary search here
-                right_ref.lower.iter().for_each(|interval| {
-                    if query.overlaps(interval) {
-                        action(*interval);
-                    }
-                });
-                right = right_ref.left.as_ref();
+        // Descend into the right subtree of the fork node. We go left if the middle
+        // point of the node is greater than or _equal_ (because the end
+        // is not part of an interval), otherwise we go right.
+        // In the first case we scan the lower list, in the second we report
+        // all the intervals in the node and in the left subtree.
+        let mut cursor = right;
+        while cursor.is_some() {
+            let node_ref = cursor.unwrap();
+            if query.end <= node_ref.middle {
+                println!("outside of range");
+                node_ref.overlapping_lower(query.end, action);
+                cursor = node_ref.left.as_ref();
             } else {
-                right_ref.upper.iter().for_each(|interval| {
-                    if query.overlaps(interval) {
-                        action(*interval);
-                    }
+                println!("inside range");
+                node_ref.node_intervals().for_each(|interval| {
+                    debug_assert!(query.overlaps(&interval));
+                    action(interval);
                 });
-                if let Some(left) = right_ref.left.as_ref() {
-                    left.for_each_interval(action);
-                }
-                right = right_ref.right.as_ref();
+                node_ref
+                    .left
+                    .as_ref()
+                    .map(|child| child.subtree_intervals(action));
+                cursor = node_ref.right.as_ref();
             }
         }
     }
@@ -143,7 +145,7 @@ impl Algorithm for IntervalTree {
                     }
                 })
             } else {
-                self.root.as_ref().unwrap().for_each_interval(&mut |i| {
+                self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
                     let matches_duration = query
                         .duration
                         .as_ref()
@@ -189,13 +191,16 @@ impl Node {
         let mut to_left = Vec::new();
         let mut to_right = Vec::new();
         for &interval in intervals.into_iter() {
-            if interval.end < middle {
+            // The end point is not part of the interval, hence we have to
+            // put the interval in the left subtree it if is equal to the
+            // middle point
+            if interval.end <= middle {
                 to_left.push(interval);
             } else if interval.start > middle {
                 to_right.push(interval)
             } else {
                 debug_assert!(
-                    interval.contains(middle) || middle == interval.end,
+                    interval.contains(middle),
                     "{:?} middle: {}",
                     interval,
                     middle
@@ -205,12 +210,12 @@ impl Node {
             }
         }
         lower.sort_by_key(|i| i.start);
-        upper.sort_by_key(|i| i.end);
+        upper.sort_by_key(|i| -(i.end as i32));
 
         let left = if to_left.is_empty() {
             None
         } else {
-            println!("insert left {} intervals", to_left.len());
+            trace!("insert left {} intervals", to_left.len());
             debug_assert!(to_left.is_sorted_by_key(|i| i.middle()));
             Some(Box::new(Self::new(&to_left)))
         };
@@ -218,7 +223,7 @@ impl Node {
         let right = if to_right.is_empty() {
             None
         } else {
-            println!("insert right {} intervals", to_right.len());
+            trace!("insert right {} intervals", to_right.len());
             debug_assert!(to_right.is_sorted_by_key(|i| i.middle()));
             Some(Box::new(Self::new(&to_right)))
         };
@@ -242,47 +247,40 @@ impl Node {
         }
     }
 
-    fn for_each_interval<F: FnMut(Interval)>(&self, action: &mut F) {
+    fn subtree_intervals<F: FnMut(Interval)>(&self, action: &mut F) {
         self.traverse(&mut |node: &Node| {
             node.lower.iter().for_each(|i| action(*i));
         })
     }
 
+    fn node_intervals(&self) -> impl Iterator<Item = Interval> + '_ {
+        self.upper.iter().copied()
+    }
+
     /// Finds the intervals in the upper list such that the given
     /// point is less than the end point of the intervals
     fn overlapping_upper<F: FnMut(Interval)>(&self, point: Time, action: &mut F) {
-        self.upper.iter().for_each(|interval| {
-            if interval.contains(point) {
-                action(*interval);
-            }
-        });
-        // let idx = match self.upper.binary_search_by_key(&point, |i| i.end) {
-        //     Ok(mut idx) => {
-        //         // position at the first matching element
-        //         while idx > 0 && self.upper[idx-1].end == point {
-        //             idx -= 1;
-        //         }
-        //         idx
-        //     },
-        //     Err(idx) => idx,
-        // };
-        // self.upper[idx..self.upper.len()].iter().for_each(|i| action(*i));
+        self.upper
+            .iter()
+            .take_while(|interval| point < interval.end)
+            .for_each(|interval| {
+                if interval.contains(point) {
+                    action(*interval);
+                }
+            });
     }
 
     /// Finds the intervals in the lower list such that the given point is
-    /// greater than the start point of the intervals
+    /// strictly greater than the start point of the intervals
     fn overlapping_lower<F: FnMut(Interval)>(&self, point: Time, action: &mut F) {
-        let idx = match self.lower.binary_search_by_key(&point, |i| i.start) {
-            Ok(mut idx) => {
-                // position after the last matching element
-                while idx < self.lower.len() && self.lower[idx].start == point {
-                    idx += 1;
-                }
-                idx
-            }
-            Err(idx) => idx,
-        };
-        self.lower[0..idx].iter().for_each(|i| action(*i));
+        self.lower
+            .iter()
+            .take_while(|interval| interval.start < point)
+            .for_each(|interval| {
+                if interval.contains(point) {
+                    action(*interval);
+                } 
+            });
     }
 }
 
