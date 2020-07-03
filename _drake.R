@@ -2,4 +2,4 @@ source("R/packages.R")
 source("R/functions.R")
 source("R/plan.R")
 
-make(plan)
+drake_config(plan)
