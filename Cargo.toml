@@ -25,3 +25,6 @@ deepsize = "0.1"
 
 [build-dependencies]
 vergen = "3"
+
+[profile.release]
+debug = true

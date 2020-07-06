@@ -156,30 +156,62 @@ impl Algorithm for Grid {
         for query in queries {
             let mut ans_builder = QueryAnswer::builder(self.n.unwrap());
 
-            let (qi, qj) = if let Some(qrange) = query.range {
-                self.index_for_query(qrange)
-            } else {
-                (grid_side, 0)
-            };
-            for i in 0..=qi {
-                for j in qj..grid_side {
-                    self.grid[row_major((i, j), grid_side)]
-                        .iter()
-                        .for_each(|interval| {
-                            let matches_duration = query
-                                .duration
-                                .as_ref()
-                                .map(|d| d.contains(interval))
-                                .unwrap_or(true);
-                            let overlaps = query
-                                .range
-                                .as_ref()
-                                .map(|range| range.overlaps(interval))
-                                .unwrap_or(true);
-                            if matches_duration && overlaps {
-                                ans_builder.push(*interval);
-                            }
-                        });
+            match (query.range, query.duration) {
+                (Some(range), Some(duration)) => {
+                    let (qi, qj) = self.index_for_query(range);
+                    for i in 0..=qi {
+                        for j in qj..grid_side {
+                            self.grid[row_major((i, j), grid_side)]
+                                .iter()
+                                .for_each(|interval| {
+                                    let matches_duration = duration.contains(interval);
+                                    let overlaps = range.overlaps(interval);
+                                    if matches_duration && overlaps {
+                                        ans_builder.push(*interval);
+                                    }
+                                });
+                        }
+                    }
+                }
+                (None, Some(duration)) => {
+                    for i in 0..grid_side {
+                        for j in 0..grid_side {
+                            self.grid[row_major((i, j), grid_side)]
+                                .iter()
+                                .for_each(|interval| {
+                                    let matches_duration = duration.contains(interval);
+                                    if matches_duration {
+                                        ans_builder.push(*interval);
+                                    }
+                                });
+                        }
+                    }
+                }
+                (Some(range), None) => {
+                    let (qi, qj) = self.index_for_query(range);
+                    for i in 0..=qi {
+                        for j in qj..grid_side {
+                            self.grid[row_major((i, j), grid_side)]
+                                .iter()
+                                .for_each(|interval| {
+                                    let overlaps = range.overlaps(interval);
+                                    if overlaps {
+                                        ans_builder.push(*interval);
+                                    }
+                                });
+                        }
+                    }
+                }
+                (None, None) => {
+                    for i in 0..grid_side {
+                        for j in 0..grid_side {
+                            self.grid[row_major((i, j), grid_side)]
+                                .iter()
+                                .for_each(|interval| {
+                                    ans_builder.push(*interval);
+                                });
+                        }
+                    }
                 }
             }
 
