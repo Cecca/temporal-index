@@ -5,13 +5,13 @@ extern crate serde_derive;
 
 mod btree;
 mod dataset;
+mod grid;
 mod interval_tree;
 mod naive;
 mod period_index;
 mod reporter;
 mod types;
 mod zipf;
-mod grid;
 
 use anyhow::{Context, Result};
 use argh::FromArgs;
@@ -50,6 +50,9 @@ enum AlgorithmConfiguration {
         num_buckets: Vec<usize>,
         num_levels: Vec<u32>,
     },
+    Grid {
+        bucket_size: Vec<usize>,
+    },
     LinearScan,
     BTree,
     IntervalTree,
@@ -67,6 +70,13 @@ impl AlgorithmConfiguration {
                         period_index::PeriodIndex::new(*nb, *nl)
                             .expect("error in configured algorithm"),
                     )) as Rc<RefCell<dyn Algorithm>>
+                });
+                Box::new(iter)
+            }
+            Self::Grid { bucket_size } => {
+                let iter = bucket_size.iter().map(|bucket_size| {
+                    Rc::new(RefCell::new(grid::Grid::new(*bucket_size)))
+                        as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
             }
@@ -175,7 +185,12 @@ impl Configuration {
     ) -> Result<()> {
         for dataset in self.datasets.iter().flat_map(|d| d.datasets()) {
             info!("{:=<60}", "");
-            info!("{} (v{}) {}", dataset.name(), dataset.version(), dataset.parameters());
+            info!(
+                "{} (v{}) {}",
+                dataset.name(),
+                dataset.version(),
+                dataset.parameters()
+            );
             dataset.stats().log();
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
@@ -261,7 +276,7 @@ fn main() -> Result<()> {
             let answers = algorithm.run(&queryset_queries);
             let end = Instant::now();
             let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
-            // Clear up the index to free resources
+                                                                // Clear up the index to free resources
             algorithm.clear();
             (
                 elapsed_index,

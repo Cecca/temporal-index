@@ -331,26 +331,26 @@ mod test {
     }
 
     // #[test]
-    fn test_same_result_2() {
-        let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
-        let queries = RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get();
+    // fn test_same_result_2() {
+    //     let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
+    //     let queries = RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get();
 
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
+    //     let mut linear_scan = LinearScan::new();
+    //     linear_scan.index(&data);
+    //     let ls_result = linear_scan.run(&queries);
 
-        let mut period_index = PeriodIndex::new(128, 4).unwrap();
-        period_index.index(&data);
-        let pi_result = period_index.run(&queries);
+    //     let mut period_index = PeriodIndex::new(128, 4).unwrap();
+    //     period_index.index(&data);
+    //     let pi_result = period_index.run(&queries);
 
-        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
-        {
-            assert_eq!(
-                ls_ans.intervals(),
-                pi_ans.intervals(),
-                "query is {:?}",
-                queries[idx]
-            );
-        }
-    }
+    //     for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
+    //     {
+    //         assert_eq!(
+    //             ls_ans.intervals(),
+    //             pi_ans.intervals(),
+    //             "query is {:?}",
+    //             queries[idx]
+    //         );
+    //     }
+    // }
 }
