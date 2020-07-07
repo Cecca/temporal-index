@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
 
-if [ -z "$1" ]
-  then
-    echo "The run script takes a command as a argument. E.g., try ./run 'ls' "
-    exit 1
-fi
-
 set -o noglob
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
-COMMAND=$@
+ARGUMENTS=$@
 
 container_name=${CONTAINER_NAME:-"temporal-index"}
 
@@ -17,26 +11,15 @@ command -v docker >/dev/null 2>&1 || { echo >&2 "Please install docker. E.g., go
 
 docker info >/dev/null 2>&1 || { echo >&2 "Docker server is not running? "; exit 1; }
 
-SSHPARAM=""
-[ -e "${SSH_AUTH_SOCK}" ] && SSHPARAM="--volume /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock  --env SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock"
-[ -e "${HOME}/.ssh" ] && SSHPARAM="--volume ${HOME}/.ssh:/home/$USER/.ssh:ro"  
-
-RENV_PATHS_CACHE_HOST=~/.cache/renv
-RENV_PATHS_CACHE_HOST=~/Library/Application\ Support/renv/cache
-RENV_PATHS_CACHE_CONTAINER=/renv/cache
-
-docker image inspect $container_name >/dev/null 2>&1 || ( echo "instantiating the container" ; docker build --no-cache -t $container_name -f $SCRIPTPATH/Dockerfile --build-arg USER_NAME="$USER"  --build-arg USER_ID=$(id -u)  --build-arg GROUP_ID=$(id -g) .  )
+docker image inspect $container_name >/dev/null 2>&1 || ( echo "instantiating the container" ; docker build --no-cache -t $container_name -f $SCRIPTPATH/Dockerfile .  )
 
 HOSTNAME=$(hostname)
 
-# We run in privileged mode to have access to performance counters.
-docker run --rm -it --privileged $SSHPARAM \
-  -e "RENV_PATHS_CACHE=${RENV_PATHS_CACHE_CONTAINER}" \
+docker run --rm \
   -e "HOST_HOSTNAME=${HOSTNAME}" \
-  -v "${RENV_PATHS_CACHE_HOST}:${RENV_PATHS_CACHE_CONTAINER}" \
   -v $(pwd):$(pwd):Z  \
   -w $(pwd)  \
-  $container_name sh -c "$COMMAND"
+  $container_name temporal-index $ARGUMENTS 
 
 
 
