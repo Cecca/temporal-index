@@ -20,6 +20,8 @@ algorithms:
   - IntervalTree
   - Grid:
       bucket_size: [4096, 8192]
+  - Grid3D:
+      bucket_size: [4096, 8192]
   - PeriodIndex:
       num_buckets: [16, 32, 64, 128]
       num_levels: [4]
