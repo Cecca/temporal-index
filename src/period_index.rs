@@ -29,32 +29,83 @@ impl Cell {
         self.intervals.push(interval);
     }
 
-    fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
+    fn query_range_duration<F: FnMut(&Interval)>(
+        &self,
+        range: Interval,
+        duration: DurationRange,
+        action: &mut F,
+    ) {
         for interval in &self.intervals {
-            if query
-                .duration
-                .as_ref()
-                .map(|d| d.contains(interval))
-                .unwrap_or(true)
-                && query
-                    .range
-                    .as_ref()
-                    .map(|r| r.overlaps(interval))
-                    .unwrap_or(true)
-            {
+            if duration.contains(interval) && range.overlaps(interval) {
                 // Check that this is the first occurrence, which happens if the cell starts
                 // before the interval. If the interval starts before the cell,
                 // we have still to check if the query covers the previous cell,
                 // otherwise it's the first occurrence for _this_ query
                 if (self.time_range.start <= interval.start)
-                    || (query.range.is_some()
-                        && self.time_range.start <= query.range.unwrap().start)
+                    || (self.time_range.start <= range.start)
                 {
                     action(interval);
                 }
             }
         }
     }
+
+    fn query_range_only<F: FnMut(&Interval)>(&self, range: Interval, action: &mut F) {
+        for interval in &self.intervals {
+            if range.overlaps(interval) {
+                // Check that this is the first occurrence, which happens if the cell starts
+                // before the interval. If the interval starts before the cell,
+                // we have still to check if the query covers the previous cell,
+                // otherwise it's the first occurrence for _this_ query
+                if (self.time_range.start <= interval.start)
+                    || (self.time_range.start <= range.start)
+                {
+                    action(interval);
+                }
+            }
+        }
+    }
+
+    fn query_duration_only<F: FnMut(&Interval)>(&self, duration: &DurationRange, action: &mut F) {
+        for interval in &self.intervals {
+            if duration.contains(interval) {
+                // Check that this is the first occurrence, which happens if the cell starts
+                // before the interval. If the interval starts before the cell,
+                // we have still to check if the query covers the previous cell,
+                // otherwise it's the first occurrence for _this_ query
+                if self.time_range.start <= interval.start {
+                    action(interval);
+                }
+            }
+        }
+    }
+
+    // fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
+    //     for interval in &self.intervals {
+    //         if query
+    //             .duration
+    //             .as_ref()
+    //             .map(|d| d.contains(interval))
+    //             .unwrap_or(true)
+    //             && query
+    //                 .range
+    //                 .as_ref()
+    //                 .map(|r| r.overlaps(interval))
+    //                 .unwrap_or(true)
+    //         {
+    //             // Check that this is the first occurrence, which happens if the cell starts
+    //             // before the interval. If the interval starts before the cell,
+    //             // we have still to check if the query covers the previous cell,
+    //             // otherwise it's the first occurrence for _this_ query
+    //             if (self.time_range.start <= interval.start)
+    //                 || (query.range.is_some()
+    //                     && self.time_range.start <= query.range.unwrap().start)
+    //             {
+    //                 action(interval);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 #[derive(DeepSizeOf)]
@@ -152,8 +203,23 @@ impl Bucket {
                 .range
                 .map(|r| self.cells_for(level, r))
                 .unwrap_or_else(|| (0, self.cells.len() - 1));
-            for cell in self.cells[level][start..=end].iter() {
-                cell.query(query, action);
+            match (query.range, query.duration) {
+                (Some(range), Some(duration)) => {
+                    for cell in self.cells[level][start..=end].iter() {
+                        cell.query_range_duration(range, duration, action);
+                    }
+                }
+                (Some(range), None) => {
+                    for cell in self.cells[level][start..=end].iter() {
+                        cell.query_range_only(range, action);
+                    }
+                }
+                (None, Some(duration)) => {
+                    for cell in self.cells[level][start..=end].iter() {
+                        cell.query_duration_only(&duration, action);
+                    }
+                }
+                (None, None) => unimplemented!("enumeration not supportedk"),
             }
         }
     }
@@ -171,11 +237,7 @@ pub struct PeriodIndex {
 
 impl std::fmt::Debug for PeriodIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "period-index({}, {})",
-            self.num_buckets, self.num_levels
-        )
+        write!(f, "period-index({}, {})", self.num_buckets, self.num_levels)
     }
 }
 
@@ -194,10 +256,10 @@ impl PeriodIndex {
     #[inline]
     fn bucket_for(&self, interval: Interval) -> (usize, usize) {
         debug_assert!(interval.start >= self.anchor_point);
-        let start =
-            ((std::cmp::max(0, interval.start - self.anchor_point)) / self.bucket_length.expect("uninitialized index")) as usize;
-        let end =
-            ((std::cmp::max(0, interval.end - self.anchor_point)) / self.bucket_length.expect("uninitialized index")) as usize;
+        let start = ((std::cmp::max(0, interval.start - self.anchor_point))
+            / self.bucket_length.expect("uninitialized index")) as usize;
+        let end = ((std::cmp::max(0, interval.end - self.anchor_point))
+            / self.bucket_length.expect("uninitialized index")) as usize;
         (start, end)
     }
 }
@@ -297,7 +359,7 @@ impl Algorithm for PeriodIndex {
         }
         answers
     }
-    
+
     fn clear(&mut self) {
         self.buckets.clear();
         self.anchor_point = 0;
