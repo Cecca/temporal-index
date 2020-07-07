@@ -124,7 +124,7 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
         }
         result
     }
-    
+
     fn index_size(&self) -> usize {
         self.deep_size_of()
     }

@@ -2,7 +2,7 @@
 datasets:
   - ZipfUniform:
       seed: [123]
-      n: [1000000,10000000]
+      n: [1000000]
       exponent: [1]
       max_start_time: [1000]
 queries:
@@ -14,6 +14,10 @@ queries:
       max_duration_factor: [2]
 algorithms:
   - BTree
+  - Grid:
+      bucket_size: [4096]
+  - Grid3D:
+      bucket_size: [4096]
   - LinearScan
   - IntervalTree
   - PeriodIndex:

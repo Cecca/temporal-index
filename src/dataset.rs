@@ -53,7 +53,10 @@ impl Stats {
     }
 
     pub fn log(&self) {
-        info!("         {:>8} {:>8} {:>8} {:>8} {:>8}", "min", 25, 50, 75, "max");
+        info!(
+            "         {:>8} {:>8} {:>8} {:>8} {:>8}",
+            "min", 25, 50, 75, "max"
+        );
         info!(
             "start    {:>8} {:>8} {:>8} {:>8} {:>8}",
             self.start_percentiles[&0],

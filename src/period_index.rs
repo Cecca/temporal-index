@@ -79,7 +79,6 @@ impl Cell {
             }
         }
     }
-
 }
 
 #[derive(DeepSizeOf)]

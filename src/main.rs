@@ -6,13 +6,13 @@ extern crate serde_derive;
 mod btree;
 mod dataset;
 mod grid;
+mod grid3d;
 mod interval_tree;
 mod naive;
 mod period_index;
 mod reporter;
 mod types;
 mod zipf;
-mod duration_grid;
 
 use anyhow::{Context, Result};
 use argh::FromArgs;
@@ -54,6 +54,9 @@ enum AlgorithmConfiguration {
     Grid {
         bucket_size: Vec<usize>,
     },
+    Grid3D {
+        bucket_size: Vec<usize>,
+    },
     LinearScan,
     BTree,
     IntervalTree,
@@ -77,6 +80,13 @@ impl AlgorithmConfiguration {
             Self::Grid { bucket_size } => {
                 let iter = bucket_size.iter().map(|bucket_size| {
                     Rc::new(RefCell::new(grid::Grid::new(*bucket_size)))
+                        as Rc<RefCell<dyn Algorithm>>
+                });
+                Box::new(iter)
+            }
+            Self::Grid3D { bucket_size } => {
+                let iter = bucket_size.iter().map(|bucket_size| {
+                    Rc::new(RefCell::new(grid3d::Grid3D::new(*bucket_size)))
                         as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)

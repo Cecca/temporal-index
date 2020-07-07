@@ -25,6 +25,10 @@ impl std::fmt::Debug for Grid {
 }
 
 impl Grid {
+    pub fn iter(&self) -> impl Iterator<Item = Interval> + '_ {
+        self.grid.iter().flatten().copied()
+    }
+
     fn ecdf<I: IntoIterator<Item = Time>>(times: I) -> BTreeMap<Time, u32> {
         let mut ecdf = BTreeMap::new();
         let mut n = 0;
