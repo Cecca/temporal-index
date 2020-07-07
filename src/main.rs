@@ -12,6 +12,7 @@ mod period_index;
 mod reporter;
 mod types;
 mod zipf;
+mod duration_grid;
 
 use anyhow::{Context, Result};
 use argh::FromArgs;

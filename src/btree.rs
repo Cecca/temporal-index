@@ -45,43 +45,36 @@ impl Algorithm for BTree {
             size / (1024 * 1024)
         );
     }
-    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
-        let mut result = Vec::with_capacity(queries.len());
-        for query in queries.iter() {
-            let mut query_result = QueryAnswer::builder(self.data.len());
-            if let Some(duration_range) = query.duration {
-                for (_duration, intervals) in
-                    self.data.range(duration_range.min..=duration_range.max)
-                {
-                    for interval in intervals {
-                        debug_assert!(duration_range.contains(interval));
-                        let overlaps = query
-                            .range
-                            .as_ref()
-                            .map(|range| range.overlaps(interval))
-                            .unwrap_or(true);
-                        if overlaps {
-                            query_result.push(*interval);
-                        }
-                    }
-                }
-            } else {
-                for (_duration, intervals) in self.data.iter() {
-                    for interval in intervals {
-                        let overlaps = query
-                            .range
-                            .as_ref()
-                            .map(|range| range.overlaps(interval))
-                            .unwrap_or(true);
-                        if overlaps {
-                            query_result.push(*interval);
-                        }
+
+    fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
+        if let Some(duration_range) = query.duration {
+            for (_duration, intervals) in self.data.range(duration_range.min..=duration_range.max) {
+                for interval in intervals {
+                    debug_assert!(duration_range.contains(interval));
+                    let overlaps = query
+                        .range
+                        .as_ref()
+                        .map(|range| range.overlaps(interval))
+                        .unwrap_or(true);
+                    if overlaps {
+                        answers.push(*interval);
                     }
                 }
             }
-            result.push(query_result.finalize())
+        } else {
+            for (_duration, intervals) in self.data.iter() {
+                for interval in intervals {
+                    let overlaps = query
+                        .range
+                        .as_ref()
+                        .map(|range| range.overlaps(interval))
+                        .unwrap_or(true);
+                    if overlaps {
+                        answers.push(*interval);
+                    }
+                }
+            }
         }
-        result
     }
 
     fn clear(&mut self) {

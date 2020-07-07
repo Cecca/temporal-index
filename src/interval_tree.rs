@@ -124,49 +124,45 @@ impl Algorithm for IntervalTree {
             size / (1024 * 1024)
         );
     }
-    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
-        let mut answers = Vec::with_capacity(queries.len());
-        for query in queries {
-            let mut ans_builder = QueryAnswer::builder(self.n);
-            if let Some(range) = query.range {
-                self.query(range, &mut |i| {
-                    debug_assert!(
-                        i.overlaps(&range),
-                        "interval: {:?}, query range: {:?}",
-                        i,
-                        range
-                    );
-                    // TODO: do the unwrapping once and for all
-                    let matches_duration = query
-                        .duration
-                        .as_ref()
-                        .map(|d| d.contains(&i))
-                        .unwrap_or(true);
-                    if matches_duration {
-                        ans_builder.push(i);
-                    }
-                })
-            } else {
-                self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
-                    let matches_duration = query
-                        .duration
-                        .as_ref()
-                        .map(|d| d.contains(&i))
-                        .unwrap_or(true);
-                    let overlaps = query
-                        .range
-                        .as_ref()
-                        .map(|range| range.overlaps(&i))
-                        .unwrap_or(true);
-                    if matches_duration && overlaps {
-                        ans_builder.push(i);
-                    }
-                })
-            }
-            answers.push(ans_builder.finalize());
+
+    fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
+        if let Some(range) = query.range {
+            self.query(range, &mut |i| {
+                debug_assert!(
+                    i.overlaps(&range),
+                    "interval: {:?}, query range: {:?}",
+                    i,
+                    range
+                );
+                // TODO: do the unwrapping once and for all
+                let matches_duration = query
+                    .duration
+                    .as_ref()
+                    .map(|d| d.contains(&i))
+                    .unwrap_or(true);
+                if matches_duration {
+                    answers.push(i);
+                }
+            })
+        } else {
+            self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
+                let matches_duration = query
+                    .duration
+                    .as_ref()
+                    .map(|d| d.contains(&i))
+                    .unwrap_or(true);
+                let overlaps = query
+                    .range
+                    .as_ref()
+                    .map(|range| range.overlaps(&i))
+                    .unwrap_or(true);
+                if matches_duration && overlaps {
+                    answers.push(i);
+                }
+            })
         }
-        answers
     }
+
     fn clear(&mut self) {
         let root = self.root.take();
         // This drops all the children as well, because they are owned by the root

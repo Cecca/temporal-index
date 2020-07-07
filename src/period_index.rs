@@ -80,32 +80,6 @@ impl Cell {
         }
     }
 
-    // fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
-    //     for interval in &self.intervals {
-    //         if query
-    //             .duration
-    //             .as_ref()
-    //             .map(|d| d.contains(interval))
-    //             .unwrap_or(true)
-    //             && query
-    //                 .range
-    //                 .as_ref()
-    //                 .map(|r| r.overlaps(interval))
-    //                 .unwrap_or(true)
-    //         {
-    //             // Check that this is the first occurrence, which happens if the cell starts
-    //             // before the interval. If the interval starts before the cell,
-    //             // we have still to check if the query covers the previous cell,
-    //             // otherwise it's the first occurrence for _this_ query
-    //             if (self.time_range.start <= interval.start)
-    //                 || (query.range.is_some()
-    //                     && self.time_range.start <= query.range.unwrap().start)
-    //             {
-    //                 action(interval);
-    //             }
-    //         }
-    //     }
-    // }
 }
 
 #[derive(DeepSizeOf)]
@@ -336,28 +310,22 @@ impl Algorithm for PeriodIndex {
         );
     }
 
-    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
-        let mut answers = Vec::with_capacity(queries.len());
-        for query in queries {
-            let (start, end) = query
+    fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        let (start, end) = query
+            .range
+            .map(|r| self.bucket_for(r))
+            .unwrap_or_else(|| (0, self.buckets.len() - 1));
+        for bucket in self.buckets[start..=end].iter() {
+            if query
                 .range
-                .map(|r| self.bucket_for(r))
-                .unwrap_or_else(|| (0, self.buckets.len() - 1));
-            let mut ans_builder = QueryAnswer::builder(self.n);
-            for bucket in self.buckets[start..=end].iter() {
-                if query
-                    .range
-                    .map(|r| r.overlaps(&bucket.time_range))
-                    .unwrap_or(true)
-                {
-                    bucket.query(query, &mut |interval| {
-                        ans_builder.push(*interval);
-                    });
-                }
+                .map(|r| r.overlaps(&bucket.time_range))
+                .unwrap_or(true)
+            {
+                bucket.query(query, &mut |interval| {
+                    answer.push(*interval);
+                });
             }
-            answers.push(ans_builder.finalize());
         }
-        answers
     }
 
     fn clear(&mut self) {

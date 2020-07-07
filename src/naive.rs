@@ -43,28 +43,22 @@ impl Algorithm for LinearScan {
         );
     }
 
-    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
-        let mut result = Vec::with_capacity(queries.len());
-        for query in queries.iter() {
-            let mut query_result = QueryAnswer::builder(self.dataset.len());
-            for (i, interval) in self.dataset.iter().enumerate() {
-                let matches_duration = query
-                    .duration
-                    .as_ref()
-                    .map(|d| d.contains(interval))
-                    .unwrap_or(true);
-                let overlaps = query
-                    .range
-                    .as_ref()
-                    .map(|range| range.overlaps(interval))
-                    .unwrap_or(true);
-                if matches_duration && overlaps {
-                    query_result.push(self.dataset[i]);
-                }
+    fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        for (i, interval) in self.dataset.iter().enumerate() {
+            let matches_duration = query
+                .duration
+                .as_ref()
+                .map(|d| d.contains(interval))
+                .unwrap_or(true);
+            let overlaps = query
+                .range
+                .as_ref()
+                .map(|range| range.overlaps(interval))
+                .unwrap_or(true);
+            if matches_duration && overlaps {
+                answer.push(self.dataset[i]);
             }
-            result.push(query_result.finalize())
         }
-        result
     }
 
     fn clear(&mut self) {

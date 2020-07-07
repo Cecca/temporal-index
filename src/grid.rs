@@ -132,93 +132,71 @@ impl Algorithm for Grid {
             let idx = self.index_for(interval);
             self.grid[row_major(idx, grid_side)].push(interval);
         }
-
-        // #[cfg(test)]
-        // {
-        //     for (idx, cell) in &self.grid {
-        //         assert!(
-        //             cell.len() <= self.bucket_size,
-        //             "cell {:?} has size {}, but configuration is {:?}\n{:?}\n{:?}",
-        //             idx,
-        //             cell.len(),
-        //             self,
-        //             self.grid.iter().map(|(idx, cell)| (*idx, cell.len())).collect::<BTreeMap<(usize, usize), usize>>(),
-        //             self.start_time_ecdf
-        //         );
-        //     }
-        // }
     }
 
-    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
-        let mut answers = Vec::with_capacity(queries.len());
+    fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         let grid_side = self.grid_side.unwrap();
 
-        for query in queries {
-            let mut ans_builder = QueryAnswer::builder(self.n.unwrap());
-
-            match (query.range, query.duration) {
-                (Some(range), Some(duration)) => {
-                    let (qi, qj) = self.index_for_query(range);
-                    for i in 0..=qi {
-                        for j in qj..grid_side {
-                            self.grid[row_major((i, j), grid_side)]
-                                .iter()
-                                .for_each(|interval| {
-                                    let matches_duration = duration.contains(interval);
-                                    let overlaps = range.overlaps(interval);
-                                    if matches_duration && overlaps {
-                                        ans_builder.push(*interval);
-                                    }
-                                });
-                        }
-                    }
-                }
-                (None, Some(duration)) => {
-                    for i in 0..grid_side {
-                        for j in 0..grid_side {
-                            self.grid[row_major((i, j), grid_side)]
-                                .iter()
-                                .for_each(|interval| {
-                                    let matches_duration = duration.contains(interval);
-                                    if matches_duration {
-                                        ans_builder.push(*interval);
-                                    }
-                                });
-                        }
-                    }
-                }
-                (Some(range), None) => {
-                    let (qi, qj) = self.index_for_query(range);
-                    for i in 0..=qi {
-                        for j in qj..grid_side {
-                            self.grid[row_major((i, j), grid_side)]
-                                .iter()
-                                .for_each(|interval| {
-                                    let overlaps = range.overlaps(interval);
-                                    if overlaps {
-                                        ans_builder.push(*interval);
-                                    }
-                                });
-                        }
-                    }
-                }
-                (None, None) => {
-                    for i in 0..grid_side {
-                        for j in 0..grid_side {
-                            self.grid[row_major((i, j), grid_side)]
-                                .iter()
-                                .for_each(|interval| {
-                                    ans_builder.push(*interval);
-                                });
-                        }
+        match (query.range, query.duration) {
+            (Some(range), Some(duration)) => {
+                let (qi, qj) = self.index_for_query(range);
+                for i in 0..=qi {
+                    for j in qj..grid_side {
+                        self.grid[row_major((i, j), grid_side)]
+                            .iter()
+                            .for_each(|interval| {
+                                let matches_duration = duration.contains(interval);
+                                let overlaps = range.overlaps(interval);
+                                if matches_duration && overlaps {
+                                    answers.push(*interval);
+                                }
+                            });
                     }
                 }
             }
-
-            answers.push(ans_builder.finalize());
+            (None, Some(duration)) => {
+                for i in 0..grid_side {
+                    for j in 0..grid_side {
+                        self.grid[row_major((i, j), grid_side)]
+                            .iter()
+                            .for_each(|interval| {
+                                let matches_duration = duration.contains(interval);
+                                if matches_duration {
+                                    answers.push(*interval);
+                                }
+                            });
+                    }
+                }
+            }
+            (Some(range), None) => {
+                let (qi, qj) = self.index_for_query(range);
+                for i in 0..=qi {
+                    for j in qj..grid_side {
+                        self.grid[row_major((i, j), grid_side)]
+                            .iter()
+                            .for_each(|interval| {
+                                let overlaps = range.overlaps(interval);
+                                if overlaps {
+                                    answers.push(*interval);
+                                }
+                            });
+                    }
+                }
+            }
+            (None, None) => {
+                for i in 0..grid_side {
+                    for j in 0..grid_side {
+                        self.grid[row_major((i, j), grid_side)]
+                            .iter()
+                            .for_each(|interval| {
+                                answers.push(*interval);
+                            });
+                    }
+                }
+            }
         }
-        answers
     }
+
     fn clear(&mut self) {
         self.grid.clear();
         self.start_time_ecdf.clear();
