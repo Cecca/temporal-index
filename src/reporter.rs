@@ -30,7 +30,7 @@ impl Reporter {
         // to have a identifier to join different tables created in this run.
         sha.update(format!("{:?}", self.config));
 
-        format!("{:x}", sha.finalize())[..6].to_owned()
+        format!("{:x}", sha.finalize())
     }
 
     fn get_db_path() -> std::path::PathBuf {

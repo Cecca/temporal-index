@@ -131,10 +131,9 @@ impl Algorithm for Grid3D {
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
-        let grid_side = self.grid_side.unwrap();
 
         match (query.range, query.duration) {
-            (Some(range), Some(duration)) => {
+            (Some(_range), Some(duration)) => {
                 let indices = self.index_for_query(duration);
                 for grid in &self.grid[indices] {
                     grid.query(query, answers);
@@ -151,7 +150,7 @@ impl Algorithm for Grid3D {
                     })
                 }
             }
-            (Some(range), None) => {
+            (Some(_range), None) => {
                 for grid in &self.grid {
                     grid.query(query, answers);
                 }
