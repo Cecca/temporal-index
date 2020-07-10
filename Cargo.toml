@@ -9,7 +9,7 @@ build = "build.rs"
 rand = "0.7"
 rand_xoshiro = "0.4"
 argh = "0.1"
-rusqlite = "0.23"
+rusqlite = { version = "0.23", features = ["bundled"] }
 sha2 = "0.9"
 chrono = "0.4"
 dirs = "3.0"
