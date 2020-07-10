@@ -22,7 +22,7 @@ Implemented indices
 Just scan the entire dataset for each query, useful as a naive baseline and
 to check correctness. To use it add
 
-   - LinearScan
+    - LinearScan
 
 to the `algorithms` section of the configuration file.
 
