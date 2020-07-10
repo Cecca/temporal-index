@@ -98,6 +98,13 @@ impl Reporter {
             .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
             .to_owned();
 
+        let dataset_description = format!(
+            "{}-v{}({})",
+            dataset.name(),
+            dataset.version(),
+            dataset.parameters()
+        );
+
         let tx = conn.transaction()?;
         {
             tx.execute(
@@ -140,6 +147,72 @@ impl Reporter {
                     ans.elapsed_millis(),
                     ans.num_matches()
                 ])?;
+            }
+
+            // Save the data about the dataset
+            let dataset_id: Option<u32> = tx
+                .query_row(
+                    "SELECT data_id FROM data_description WHERE description == ?1",
+                    params![dataset_description],
+                    |row| row.get(0),
+                )
+                .optional()?;
+
+            if dataset_id.is_some() {
+                debug!("Dataset already saved");
+            } else {
+                info!("Saving data about the dataset");
+                tx.execute(
+                    "INSERT INTO data_description ( description ) VALUES (?1)",
+                    params![dataset_description],
+                )?;
+
+                let mut durations = std::collections::BTreeMap::new();
+                let mut starts = std::collections::BTreeMap::new();
+                let mut ends = std::collections::BTreeMap::new();
+                for interval in dataset.get() {
+                    durations
+                        .entry(interval.duration())
+                        .and_modify(|c| *c += 1u32)
+                        .or_insert(1u32);
+                    starts
+                        .entry(interval.start)
+                        .and_modify(|c| *c += 1u32)
+                        .or_insert(1u32);
+                    ends
+                        .entry(interval.end)
+                        .and_modify(|c| *c += 1u32)
+                        .or_insert(1u32);
+                }
+
+                // This time is no longer optional
+                let dataset_id: u32 = tx.query_row(
+                    "SELECT data_id FROM data_description WHERE description == ?1",
+                    params![dataset_description],
+                    |row| row.get(0),
+                )?;
+
+                let mut stmt_duration = tx.prepare(
+                    "INSERT INTO duration_distribution (data_id, duration, count)
+                    VALUES (?1, ?2, ?3)"
+                )?;
+                let mut stmt_start = tx.prepare(
+                    "INSERT INTO start_distribution (data_id, start_time, count)
+                    VALUES (?1, ?2, ?3)"
+                )?;
+                let mut stmt_end = tx.prepare(
+                    "INSERT INTO end_distribution (data_id, end_time, count)
+                    VALUES (?1, ?2, ?3)"
+                )?;
+                for (duration, count) in durations.into_iter() {
+                    stmt_duration.execute(params![dataset_id, duration, count])?;
+                }
+                for (start, count) in starts.into_iter() {
+                    stmt_start.execute(params![dataset_id, start, count])?;
+                }
+                for (end, count) in ends.into_iter() {
+                    stmt_end.execute(params![dataset_id, end, count])?;
+                }
             }
         }
 
@@ -246,6 +319,53 @@ pub fn db_setup() -> Result<()> {
         )?;
 
         bump(&conn, 1)?;
+    }
+    if version < 2 {
+        info!("Appliying changes for version 2");
+        // Add support for dataset information
+        conn.execute(
+            "CREATE TABLE data_description (
+                data_id          INTEGER PRIMARY KEY,
+                description      TEXT NOT NULL
+            )",
+            NO_PARAMS,
+        )
+        .context("data description table creation")?;
+
+        conn.execute(
+            "CREATE TABLE duration_distribution (
+                data_id            INTEGER NOT NULL,
+                duration           INTEGER NOT NULL,
+                count              INTEGER NOT NULL,
+                FOREIGN KEY (data_id) REFERENCES data_description(data_id)
+            )",
+            NO_PARAMS,
+        )
+        .context("duration distribution creation")?;
+
+        conn.execute(
+            "CREATE TABLE start_distribution (
+                data_id            INTEGER NOT NULL,
+                start_time         INTEGER NOT NULL,
+                count              INTEGER NOT NULL,
+                FOREIGN KEY (data_id) REFERENCES data_description(data_id)
+            )",
+            NO_PARAMS,
+        )
+        .context("duration distribution creation")?;
+
+        conn.execute(
+            "CREATE TABLE end_distribution (
+                data_id            INTEGER NOT NULL,
+                end_time           INTEGER NOT NULL,
+                count              INTEGER NOT NULL,
+                FOREIGN KEY (data_id) REFERENCES data_description(data_id)
+            )",
+            NO_PARAMS,
+        )
+        .context("duration distribution creation")?;
+
+        bump(&conn, 2)?;
     }
 
     info!("database schema up tp date");
