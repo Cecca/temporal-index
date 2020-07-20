@@ -119,8 +119,6 @@ impl Algorithm for Grid3D {
             self.grid.push(Grid::new(self.num_buckets));
             parts.push(Vec::new());
         }
-        println!("bucket size: {:?}, grid len: {}", self.bucket_size, self.grid.len());
-        println!("n: {:?}", self.n);
 
         // TODO Instead of copying data, do it with sorting and slicing.
         for &interval in dataset {
