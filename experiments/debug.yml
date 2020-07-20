@@ -15,9 +15,9 @@ queries:
 algorithms:
   - BTree
   - Grid:
-      bucket_size: [4096]
+      num_buckets: [128]
   - Grid3D:
-      bucket_size: [4096]
+      num_buckets: [128]
   - LinearScan
   - IntervalTree
   - PeriodIndex:

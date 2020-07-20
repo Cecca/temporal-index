@@ -4,22 +4,22 @@ use std::collections::BTreeMap;
 use std::ops::Bound::{Included, Unbounded};
 
 pub struct Grid {
-    bucket_size: usize,
+    num_buckets: usize,
+    bucket_size: Option<usize>,
     /// Grid of intervals. Since the intervals can occupy only the upper triangle,
     /// we represent it as a vector of nested vectors in order not to waste space
     grid: Vec<Vec<Interval>>,
     start_time_ecdf: BTreeMap<Time, u32>,
     end_time_ecdf: BTreeMap<Time, u32>,
     n: Option<usize>,
-    grid_side: Option<usize>,
 }
 
 impl std::fmt::Debug for Grid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "grid {:?}x{:?} for {:?} elements, bucket size {}",
-            self.grid_side, self.grid_side, self.n, self.bucket_size
+            "grid {:?}x{:?} for {:?} elements, bucket size {:?}",
+            self.num_buckets, self.num_buckets, self.n, self.bucket_size
         )
     }
 }
@@ -51,6 +51,7 @@ impl Grid {
     }
 
     fn index_for(&self, interval: Interval) -> (usize, usize) {
+        let bucket_size = self.bucket_size.expect("non-configured index");
         let start_count = *self
             .start_time_ecdf
             .get(&interval.start)
@@ -60,13 +61,14 @@ impl Grid {
             .get(&interval.end)
             .expect("missing interval from the index");
         (
-            start_count as usize / self.bucket_size,
-            end_count as usize / self.bucket_size,
+            start_count as usize / bucket_size,
+            end_count as usize / bucket_size,
         )
     }
 
     /// Gets the row major index in the grid, for a query (which requires transposing the endpoints)
     fn index_for_query(&self, interval: Interval) -> (usize, usize) {
+        let bucket_size = self.bucket_size.expect("non-configured index");
         let start_count = self
             .start_time_ecdf
             .range((Included(interval.end), Unbounded))
@@ -82,19 +84,19 @@ impl Grid {
 
         // the indices in the grid
         (
-            start_count as usize / self.bucket_size,
-            end_count as usize / self.bucket_size,
+            start_count as usize / bucket_size,
+            end_count as usize / bucket_size,
         )
     }
 
-    pub fn new(bucket_size: usize) -> Self {
-        Self {
-            bucket_size,
+    pub fn new(num_buckets: usize) -> Self {
+        Self{
+            num_buckets,
+            bucket_size: None,
             grid: Vec::new(),
             start_time_ecdf: BTreeMap::new(),
             end_time_ecdf: BTreeMap::new(),
             n: None,
-            grid_side: None,
         }
     }
 }
@@ -115,31 +117,31 @@ impl Algorithm for Grid {
         String::from("grid")
     }
     fn parameters(&self) -> String {
-        format!("{}", self.bucket_size)
+        format!("{}", self.num_buckets)
     }
     fn version(&self) -> u8 {
-        1
+        2
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
         self.n.replace(dataset.len());
         self.start_time_ecdf = Self::ecdf(dataset.iter().map(|i| i.start));
         self.end_time_ecdf = Self::ecdf(dataset.iter().map(|i| i.end));
-        let grid_side = dataset.len() / self.bucket_size + 1;
-        self.grid_side.replace(grid_side);
 
-        for _ in 0..(grid_side * grid_side) {
+        self.bucket_size.replace(((dataset.len() / self.num_buckets as usize) as f64).ceil() as usize + 1);
+
+        for _ in 0..(self.num_buckets * self.num_buckets) {
             self.grid.push(Vec::new());
         }
 
         for &interval in dataset {
             let idx = self.index_for(interval);
-            self.grid[row_major(idx, grid_side)].push(interval);
+            self.grid[row_major(idx, self.num_buckets)].push(interval);
         }
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
-        let grid_side = self.grid_side.unwrap();
+        let grid_side = self.num_buckets;
 
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
@@ -206,7 +208,6 @@ impl Algorithm for Grid {
         self.start_time_ecdf.clear();
         self.end_time_ecdf.clear();
         self.n.take();
-        self.grid_side.take();
     }
 }
 
@@ -239,7 +240,7 @@ mod test {
         linear_scan.index(&data);
         let ls_result = linear_scan.run(&queries);
 
-        let mut index = Grid::new(100000);
+        let mut index = Grid::new(4);
         index.index(&data);
         let index_result = index.run(&queries);
         println!("{:?}", index.grid);
@@ -258,7 +259,7 @@ mod test {
         linear_scan.index(&data);
         let ls_result = linear_scan.run(&queries);
 
-        let mut period_index = Grid::new(100000);
+        let mut period_index = Grid::new(4);
         period_index.index(&data);
         let pi_result = period_index.run(&queries);
 
@@ -276,7 +277,7 @@ mod test {
         linear_scan.index(&data);
         let ls_result = linear_scan.run(&queries);
 
-        let mut period_index = Grid::new(128);
+        let mut period_index = Grid::new(4);
         period_index.index(&data);
         let pi_result = period_index.run(&queries);
 

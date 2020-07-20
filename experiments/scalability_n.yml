@@ -7,21 +7,21 @@ datasets:
         - 10000000
         - 100000000
       exponent: [1]
-      max_start_time: [1000]
+      max_start_time: [10000000]
 queries:
   - ZipfUniform:
       seed: [23512]
       n: [5000]
       exponent: [1]
-      max_start_time: [1000]
+      max_start_time: [10000000]
       max_duration_factor: [2]
 algorithms:
   - BTree
   - IntervalTree
   - Grid:
-      bucket_size: [4096, 8192]
+      num_buckets: [16, 32, 64, 128]
   - Grid3D:
-      bucket_size: [4096, 8192]
+      num_buckets: [16, 32, 64, 128]
   - PeriodIndex:
       num_buckets: [16, 32, 64, 128]
       num_levels: [4]

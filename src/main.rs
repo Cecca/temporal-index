@@ -52,10 +52,10 @@ enum AlgorithmConfiguration {
         num_levels: Vec<u32>,
     },
     Grid {
-        bucket_size: Vec<usize>,
+        num_buckets: Vec<usize>,
     },
     Grid3D {
-        bucket_size: Vec<usize>,
+        num_buckets: Vec<usize>,
     },
     LinearScan,
     BTree,
@@ -77,16 +77,16 @@ impl AlgorithmConfiguration {
                 });
                 Box::new(iter)
             }
-            Self::Grid { bucket_size } => {
-                let iter = bucket_size.iter().map(|bucket_size| {
-                    Rc::new(RefCell::new(grid::Grid::new(*bucket_size)))
+            Self::Grid { num_buckets } => {
+                let iter = num_buckets.iter().map(|num_buckets| {
+                    Rc::new(RefCell::new(grid::Grid::new(*num_buckets)))
                         as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
             }
-            Self::Grid3D { bucket_size } => {
-                let iter = bucket_size.iter().map(|bucket_size| {
-                    Rc::new(RefCell::new(grid3d::Grid3D::new(*bucket_size)))
+            Self::Grid3D { num_buckets } => {
+                let iter = num_buckets.iter().map(|num_buckets| {
+                    Rc::new(RefCell::new(grid3d::Grid3D::new(*num_buckets)))
                         as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)

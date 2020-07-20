@@ -6,21 +6,21 @@ use std::ops::Bound::{Included, Unbounded};
 use std::ops::RangeInclusive;
 
 pub struct Grid3D {
-    bucket_size: usize,
+    num_buckets: usize,
+    bucket_size: Option<usize>,
     /// Grid of intervals. Since the intervals can occupy only the upper triangle,
     /// we represent it as a vector of nested vectors in order not to waste space
     grid: Vec<Grid>,
     duration_ecdf: BTreeMap<Time, u32>,
     n: Option<usize>,
-    grid_side: Option<usize>,
 }
 
 impl std::fmt::Debug for Grid3D {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "3d-grid {:?}x{:?}x{:?} for {:?} elements, bucket size {}",
-            self.grid_side, self.grid_side, self.grid_side, self.n, self.bucket_size
+            "3d-grid {:?}x{:?}x{:?} for {:?} elements, bucket size {:?}",
+            self.num_buckets, self.num_buckets, self.num_buckets, self.n, self.bucket_size
         )
     }
 }
@@ -48,15 +48,17 @@ impl Grid3D {
     }
 
     fn index_for(&self, duration: Time) -> usize {
+        let bucket_size = self.bucket_size.expect("non configured index");
         let duration_count = *self
             .duration_ecdf
             .get(&duration)
             .expect("missing interval from the index");
-        duration_count as usize / self.bucket_size
+        duration_count as usize / bucket_size
     }
 
     /// Gets the row major index in the grid, for a query (which requires transposing the endpoints, while using the duration as is)
     fn index_for_query(&self, range: DurationRange) -> RangeInclusive<usize> {
+        let bucket_size = self.bucket_size.expect("non configured index");
         let n = self.n.expect("uninitialized index");
         let start = *self
             .duration_ecdf
@@ -64,25 +66,25 @@ impl Grid3D {
             .next_back()
             .unwrap_or((&0, &0))
             .1 as usize
-            / self.bucket_size;
+            / bucket_size;
         let end = *self
             .duration_ecdf
             .range((Included(range.max), Unbounded))
             .next()
             .unwrap_or((&0, &(n as u32)))
             .1 as usize
-            / self.bucket_size;
+            / bucket_size;
 
         start..=end
     }
 
-    pub fn new(bucket_size: usize) -> Self {
+    pub fn new(num_buckets: usize) -> Self {
         Self {
-            bucket_size,
+            num_buckets,
+            bucket_size: None,
             grid: Vec::new(),
             duration_ecdf: BTreeMap::new(),
             n: None,
-            grid_side: None,
         }
     }
 }
@@ -101,23 +103,24 @@ impl Algorithm for Grid3D {
         String::from("grid3D")
     }
     fn parameters(&self) -> String {
-        format!("{}", self.bucket_size)
+        format!("{}", self.num_buckets)
     }
     fn version(&self) -> u8 {
-        1
+        2
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
         self.n.replace(dataset.len());
         self.duration_ecdf = Self::ecdf(dataset.iter().map(|i| i.duration()));
-        let grid_side = dataset.len() / self.bucket_size + 1;
-        self.grid_side.replace(grid_side);
+        self.bucket_size.replace(((dataset.len() / self.num_buckets as usize) as f64).ceil() as usize + 1);
         let mut parts = Vec::new();
 
-        for _ in 0..grid_side {
-            self.grid.push(Grid::new(self.bucket_size));
+        for _ in 0..self.num_buckets {
+            self.grid.push(Grid::new(self.num_buckets));
             parts.push(Vec::new());
         }
+        println!("bucket size: {:?}, grid len: {}", self.bucket_size, self.grid.len());
+        println!("n: {:?}", self.n);
 
         // TODO Instead of copying data, do it with sorting and slicing.
         for &interval in dataset {
@@ -169,7 +172,6 @@ impl Algorithm for Grid3D {
         self.grid.clear();
         self.duration_ecdf.clear();
         self.n.take();
-        self.grid_side.take();
     }
 }
 
@@ -191,10 +193,10 @@ mod test {
         linear_scan.index(&data);
         let ls_result = linear_scan.run(&queries);
 
-        let mut index = Grid3D::new(100000);
+        let mut index = Grid3D::new(4);
         index.index(&data);
+        println!("{:?}", index);
         let index_result = index.run(&queries);
-        println!("{:?}", index.grid);
 
         for (ls_ans, i_ans) in ls_result.into_iter().zip(index_result.into_iter()) {
             assert_eq!(ls_ans.intervals(), i_ans.intervals());
@@ -210,7 +212,7 @@ mod test {
         linear_scan.index(&data);
         let ls_result = linear_scan.run(&queries);
 
-        let mut period_index = Grid3D::new(100000);
+        let mut period_index = Grid3D::new(4);
         period_index.index(&data);
         let pi_result = period_index.run(&queries);
 
@@ -228,7 +230,7 @@ mod test {
         linear_scan.index(&data);
         let ls_result = linear_scan.run(&queries);
 
-        let mut period_index = Grid3D::new(128);
+        let mut period_index = Grid3D::new(4);
         period_index.index(&data);
         let pi_result = period_index.run(&queries);
 
