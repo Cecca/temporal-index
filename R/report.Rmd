@@ -89,6 +89,8 @@ being excluded from the interval.
     This data structure is expected to behave well on range queries, with
     duration queries being equivalent to linear scans.
 
+    The data structure is parameterized by the number of cells along each dimension.
+
 `Grid3D`
 
 :   Just like its two-dimensional counterpart, but adds a third dimension for
@@ -97,6 +99,8 @@ being excluded from the interval.
 
     I couldn't find references for this in the literature. Therefore, while simple, 
     it might be novel.
+
+    The data structure is parameterized by the number of cells along each dimension.
 
 `PeriodIndex`
 
@@ -107,6 +111,8 @@ being excluded from the interval.
     My concern with this data structure is that each interval is potentially stored multiple times. This is a unicum among the considered data structures, and requires
     removing the duplicates. While this operation can be done in constant time, it
     does not come for free.
+
+    The data structure is parameterized by the number of buckets and the maximum number of levels within each bucket.
 
 # Replicating the conference workload [2020-07-31]
 
@@ -138,28 +144,47 @@ is in the duration part.
 
 Therefore, in this experiment I would expect indices which are strong in
 filtering durations to be very effective.
-The figure below confirms this expectation.
+The figure below reports the throughput (higher is better) and confirms this expectation.
+The `y` axis is labelled with the index name and its parameterization, if any.
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of one million intervals. The workload is similar to the one used in the conference version of the paper."}
 readd(plot_conference)
 ```
 
+The best performing index is the `BTree`, which is the most optimized implementation for duration queries.
+
+One interesting feature of the above experiment is that data structures are grouped
+in blocks, irrespective of the parameterization. In order of decreasing performance we have the `BTree`, the three dimensional grid, the period index, the two dimensional grid, the interval tree, and the linear scan.
+This ranking, however, is in my opining severely influenced by the workload choice, and is too much in favor of indices that handle well the duration part of the query, which is the only one exhibiting selectivity in this case.
+
+Compared to the conference version, the `BTree` gets a comparable performance to the Java implementation of the adaptive period index.
+
 # A different workload [2020-07-31]
 
-To further investigate the behavior of the various indices,
+To further investigate the behavior of the various indices under a different workload,
 we consider a dataset of one million intervals, with starting times uniformly distributed between
 0 and `r readd(data_one_million) %>% distinct(dataset_max_time) %>% pull()`.
+Therefore we expect only 10 intervals to start at the same time, on average.
 Durations are distributed according to a zipf law with exponent 1.
 ^[The experiments have beed run on the host `r readd(data_one_million) %>% distinct(hostname) %>% pull()`]
 Query intervals have the same characteristics, and the duration part of the query
 goes up to twice the duration of the interval.
 
 The aim of this experiment is to test a workload where the overlap of intervals
-plays some role, unlike the workload used in the conference version.
+plays some role, unlike the workload used in the conference version of the paper.
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of one million intervals."}
 readd(plot_one_million)
 ```
 
-From the figure above, we see that, compared to the conference version
+From the figure above, we see that, compared to the conference version, the ranking is quite different, with the parameterization playing some role.
 
+Now the three dimensional grid is by far the best performing algorithm.
+The `BTree` moved down the ranking to a lower position, due to its inability to handle
+the range part of the queries.
+The `PeriodIndex` performs rather well, but still not as well as the three dimensional grid.
+
+## Future experiments
+
+- Implement the adaptive `PeriodIndex`, to see if it can outperform the three dimensional grid.
+- Add parallelism to the implementations. Both the grids and the period index can benefit from multicore parallelism.
