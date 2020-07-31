@@ -1,0 +1,11 @@
+p {
+    font-size: 1.2rem;
+}
+
+body {
+    font-family: Palatino,Palatino Linotype,Palatino LT STD,Book Antiqua,Georgia,serif;
+}
+
+.sidenote, .marginnote {
+    font-size: 1rem;
+}

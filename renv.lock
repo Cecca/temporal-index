@@ -681,6 +681,13 @@
       "Repository": "CRAN",
       "Hash": "755873c1d55bf76db789abd1ded587a0"
     },
+    "tufte": {
+      "Package": "tufte",
+      "Version": "0.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "66c7be8a6759a37bb319e2586411bd96"
+    },
     "tweenr": {
       "Package": "tweenr",
       "Version": "1.0.1",

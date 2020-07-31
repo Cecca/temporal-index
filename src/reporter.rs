@@ -302,7 +302,7 @@ pub fn db_setup() -> Result<()> {
         conn.execute("DROP TABLE duration_distribution", NO_PARAMS)?;
         conn.execute("DROP TABLE start_distribution", NO_PARAMS)?;
         conn.execute("DROP TABLE end_distribution", NO_PARAMS)?;
-        conn.execute("DROP TABLE data_description_distribution", NO_PARAMS)?;
+        conn.execute("DROP TABLE data_description", NO_PARAMS)?;
 
         bump(&conn, 3)?;
     }

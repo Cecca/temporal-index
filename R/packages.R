@@ -6,4 +6,5 @@ suppressPackageStartupMessages({
     library(ggforce)
     library(units)
     library(ggthemes)
+    library(colorspace)
 })

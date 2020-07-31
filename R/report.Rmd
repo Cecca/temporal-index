@@ -1,0 +1,165 @@
+---
+title: "Comparison of temporal indices"
+bibliography: references.bib
+output: 
+  tufte::tufte_html: 
+    tufte_variant: "envisioned"
+    tufte_features: ["italics"]
+    css: "style.css"
+link-citations: yes
+---
+
+```{r setup, echo=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+```
+
+# The algorithms involved
+
+All the data structures are implemented in memory, using Rust `1.44.0-nightly`.
+Compared to the Java implementation of the conference version, this has the
+advantage of allowing manual memory management, thus avoiding all the issues that
+Java garbage collector brings to the table when measuring performance.
+
+Time chronons are 32 bit integers, and intervals are pairs of chronons, with the end
+being excluded from the interval.
+
+`LinearScan`
+
+:   Builds no index, just scans the entire dataset for each query. This sets a baseline,
+    and should be the slowest performing algorithm.
+    The implementation stores all the intervals in a in-memory vector.
+
+`IntervalTree`
+
+:   A classic data structure for range queries, which does not support duration queries.
+    the implementation is based on the linked data structure described in [@Kriegel2000ManagingIE].
+    Is expected to perform well on range queries, while for duration queries it boils down to a linear scan of the input.
+
+`BTree`
+
+:   Possibly the most classical of all classical data structures in databases.
+    In this context it is used to index _durations_: all the intervals with the same
+    duration are associated to the same node of the tree.
+    The implementation uses Rust's highly optimized [BTreeMap](https://doc.rust-lang.org/std/collections/struct.BTreeMap.html), which is faster than anything I might
+    roll down manually.
+    Note that this data structure is also in-memory. Rather than using it to optimize
+    block transfers from the disk to the main memory (as in classic database systems),
+    Rust's developers use the BTree to optimize the transfers between the
+    main memory and the _processor cache_.
+
+    This data structure performs well on the _duration_ part of the query, while for
+    pure range queries it is equivalent to a linear scan of the dataset.
+
+`Grid2D`
+
+:   An adaptive two-dimensional grid, which indexes intervals as if they were
+    points in a two-dimensional space.
+    To query this data structure, we find all the grid cells that can overlap
+    with the query, like in the shaded area of the following figure
+
+    ```
+      end times     +.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+                    |.................|
+      +------------------------------+ Query, with
+                    |                   swapped endpoints.
+                    |
+                    |
+                    |
+                    +---------------------------------------+
+                                                        start times
+    ```
+
+    The data structure is adaptive in the sense that rather than fixing the 
+    breakpoints between grid cells at fixed intervals, we use the empirical cumulative
+    distribution functions of both the start and end boundaries of the intervals to
+    put the same amount of points in all the cells.
+
+    This data structure is expected to behave well on range queries, with
+    duration queries being equivalent to linear scans.
+
+`Grid3D`
+
+:   Just like its two-dimensional counterpart, but adds a third dimension for
+    the duration, also using an adaptive approach. Is expected to work well for
+    range-duration queries.
+
+    I couldn't find references for this in the literature. Therefore, while simple, 
+    it might be novel.
+
+`PeriodIndex`
+
+:   The data structure proposed in the paper. This is the static variant, I have
+    yet to tackle the adaptive one.
+    Should perform well on both range and duration queries.
+
+    My concern with this data structure is that each interval is potentially stored multiple times. This is a unicum among the considered data structures, and requires
+    removing the duplicates. While this operation can be done in constant time, it
+    does not come for free.
+
+# Replicating the conference workload [2020-07-31]
+
+First of all, let's try to replicate the results of the 
+conference version of the paper [@DBLP:conf/ssd/BehrendDGSVRK19].
+In the paper, two datasets are described:
+
+> Two data sets were generated: one with a uniform distribution and one
+> where the interval duration follows a ZIPF distribution. The time frame for
+> the intervals is fixed from timestamp 0 to 1000. The datasets are created by
+> randomly drawing a starting point within this interval. The duration values
+> are randomly drawn from [1, 100]. This random function either has the same
+> probability for any number (uniform) or will prefer lower numbers (ZIPF).
+
+Of these two datasets we consider, in particular, the second one: intervals
+with start time between 0 and 1000, with durations distributed according to a ZIPF law
+with exponent 1.
+As a query workload, we draw intervals from the same distribution, with query durations
+ranging up to twice the length of the intervals.
+In particular, we consider one million intervals and 5000 queries.^[The experiments have beed run on the host `r readd(data_conference) %>% distinct(hostname) %>% pull()`]
+
+Before looking at the results, an observation is in order.
+With one million intervals with starting times distributed uniformly at random
+in the range $[0, 1000]$, we have 1000 intervals starting at each time point, in
+expectation.
+This means that a very significant fraction of the intervals overlap with the queries,
+making the overlap part of the query almost irrelevant: all the selectivity of the query
+is in the duration part.
+
+Therefore, in this experiment I would expect indices which are strong in
+filtering durations to be very effective.
+The figure below confirms this expectation.
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of one million intervals. The workload is similar to the one used in the conference version of the paper."}
+readd(plot_conference)
+```
+
+# A different workload [2020-07-31]
+
+To further investigate the behavior of the various indices,
+we consider a dataset of one million intervals, with starting times uniformly distributed between
+0 and `r readd(data_one_million) %>% distinct(dataset_max_time) %>% pull()`.
+Durations are distributed according to a zipf law with exponent 1.
+^[The experiments have beed run on the host `r readd(data_one_million) %>% distinct(hostname) %>% pull()`]
+Query intervals have the same characteristics, and the duration part of the query
+goes up to twice the duration of the interval.
+
+The aim of this experiment is to test a workload where the overlap of intervals
+plays some role, unlike the workload used in the conference version.
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of one million intervals."}
+readd(plot_one_million)
+```
+
+From the figure above, we see that, compared to the conference version
+

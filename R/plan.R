@@ -1,20 +1,29 @@
-conn <- dbConnect(RSQLite::SQLite(), here("temporal-index-results.sqlite"))
+db_file <- here("temporal-index-results.sqlite")
+conn <- dbConnect(RSQLite::SQLite(), db_file)
+
+table_main <- function(path) {
+  tbl(conn, "main")
+}
 
 plan <- drake_plan(
-  data = tbl(conn, "main") %>% 
+  data = table_main(file_in("temporal-index-results.sqlite")) %>% 
     filter(
       dataset == "zipf-and-uniform",
       queryset == "zipf-and-uniform",
     ) %>%
     collect() %>%
     separate(dataset_params, into=str_c("dataset_", c("seed", "n", "exponent", "max_time")), convert = T) %>%
-    filter(dataset_max_time == 10000000) %>%
+    separate(queryset_params, into=str_c("queryset_", c("seed", "n", "exponent", "max_time")), convert = T) %>%
     mutate(
-      total_time = time_index_ms + time_query_ms,
+      time_queries = set_units(time_query_ms, "ms"),
+      time_index = set_units(time_index_ms, "ms"),
+      total_time = time_index + time_queries,
       algorithm_wpar = interaction(algorithm, algorithm_params),
-      algorithm_wpar = fct_reorder(algorithm_wpar, total_time)
-    ),
-    # separate(queryset_params, into=str_c("queryset_", c("seed", "n", "exponent", "max_time", "max_duration_factor")))
+      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries),
+      qps = queryset_n / set_units(time_queries, "s"),
+    ) %>%
+    select(-time_query_ms, -time_index_ms)
+    ,
 
   query_stats = tbl(conn, "query_stats") %>%
     collect() %>%
@@ -23,18 +32,78 @@ plan <- drake_plan(
     select(-query_time_ms)
   ,
 
-  plot = ggplot(data, aes(x=algorithm_wpar, 
-                          y=time_query_ms,
-                          fill=algorithm)) +
+  data_one_million = data %>%
+    filter(dataset_n == 1000000,
+           dataset_max_time == 100000,
+           queryset_max_time == 100000) %>%
+    mutate(algorithm_wpar = fct_reorder(algorithm_wpar, desc(qps)))
+  ,
+
+  data_conference = data %>%
+    filter(dataset_n == 1000000,
+           dataset_max_time == 1000,
+           queryset_max_time == 1000) %>%
+    mutate(algorithm_wpar = fct_reorder(algorithm_wpar, desc(qps)))
+  ,
+
+  plot_one_million = ggplot(data_one_million, 
+                            aes(x=algorithm_wpar, 
+                                y=qps,
+                                fill=algorithm)) +
     geom_col() +
-    geom_text(aes(label=time_query_ms),
+    geom_hline(yintercept=seq(0, 120000, 40000), col="white", lwd=.5) +
+    geom_text(aes(label=scales::number(drop_units(qps), 
+                                       accuracy=1)),
+              size=3,
               hjust=0,
-              nudge_y=100) +
+              vjust=0.5,
+              nudge_y=200) +
+    scale_y_unit(limits=c(0,125000)) +
+    scale_fill_discrete_qualitative() +
     coord_flip() +
-    facet_grid(vars(dataset_max_time), 
-               vars(dataset_n), 
-               scales="free") +
-    theme_bw()
+    # facet_grid(vars(dataset_max_time), 
+    #            vars(dataset_n), 
+    #            scales="free") +
+    theme_tufte() +
+    theme(
+      panel.ontop = FALSE,
+      # panel.grid.major.x = element_line(color="white", size=.5),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+   ,
+
+  # Replicate the workload of the conference
+  plot_conference = ggplot(data_conference, 
+                           aes(x=algorithm_wpar, 
+                               y=qps,
+                               fill=algorithm)) +
+    geom_col() +
+    geom_hline(yintercept=seq(0, 8000, 2000), col="white", lwd=.5) +
+    geom_text(aes(label=scales::number(drop_units(qps), 
+                                       accuracy=1)),
+              size=3,
+              hjust=0,
+              vjust=0.5,
+              nudge_y=200) +
+    scale_fill_discrete_qualitative() +
+    coord_flip() +
+    # facet_grid(vars(dataset_max_time), 
+    #            vars(dataset_n), 
+    #            scales="free") +
+    theme_tufte() +
+    theme(
+      panel.ontop = FALSE,
+      # panel.grid.major.x = element_line(color="white", size=.5),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
    ,
 
   query_plot = query_stats %>%
@@ -49,5 +118,12 @@ plan <- drake_plan(
     scale_y_unit() +
     coord_flip() +
     theme_bw()
+  ,
+
+  report = rmarkdown::render(
+    knitr_in("R/report.Rmd"),
+    output_file = file_out("report.html"),
+    output_dir = "."
+  ),
 
 )
