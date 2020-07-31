@@ -1,4 +1,9 @@
-library(drake)
-library(tidyverse)
-library(DBI)
-library(here)
+suppressPackageStartupMessages({
+    library(drake)
+    library(tidyverse)
+    library(DBI)
+    library(here)
+    library(ggforce)
+    library(units)
+    library(ggthemes)
+})

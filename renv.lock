@@ -65,6 +65,13 @@
       "Repository": "CRAN",
       "Hash": "a0356f14b4a68dd51a67c5d469d40c70"
     },
+    "RcppEigen": {
+      "Package": "RcppEigen",
+      "Version": "0.3.3.7.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c6faf038ba4346b1de19ad7c99b8f94a"
+    },
     "askpass": {
       "Package": "askpass",
       "Version": "1.1",
@@ -226,6 +233,13 @@
       "Repository": "CRAN",
       "Hash": "b31d9e5d051553d1177083aeba04b5b9"
     },
+    "farver": {
+      "Package": "farver",
+      "Version": "2.0.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "dad6793a5a1f73c8e91f1a1e3e834b05"
+    },
     "filelock": {
       "Package": "filelock",
       "Version": "1.0.2",
@@ -254,12 +268,26 @@
       "Repository": "CRAN",
       "Hash": "b8cff1d1391fd1ad8b65877f4c7f2e53"
     },
+    "ggforce": {
+      "Package": "ggforce",
+      "Version": "0.3.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4adaf6b01b41f243ba0c62801de3331e"
+    },
     "ggplot2": {
       "Package": "ggplot2",
       "Version": "3.2.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "9ac60f09a2f437af8df8638ef3da0288"
+    },
+    "ggthemes": {
+      "Package": "ggthemes",
+      "Version": "4.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "dfa67ccc3fb199f102a34d557ec1ff45"
     },
     "glue": {
       "Package": "glue",
@@ -457,6 +485,13 @@
       "Repository": "CRAN",
       "Hash": "23026346e3e0f023f326919320627a01"
     },
+    "polyclip": {
+      "Package": "polyclip",
+      "Version": "1.10-0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "cb167f328b3ada4ec5cf67a7df4c900a"
+    },
     "prettyunits": {
       "Package": "prettyunits",
       "Version": "1.0.2",
@@ -646,12 +681,26 @@
       "Repository": "CRAN",
       "Hash": "755873c1d55bf76db789abd1ded587a0"
     },
+    "tweenr": {
+      "Package": "tweenr",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "fc77eb5297507cccfa3349a606061030"
+    },
     "txtq": {
       "Package": "txtq",
       "Version": "0.2.3",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "38a421b8003ba704b5b8471e6c3762a7"
+    },
+    "units": {
+      "Package": "units",
+      "Version": "0.6-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "4a3df844d6d35ca2ba2b7ba95446b955"
     },
     "utf8": {
       "Package": "utf8",
