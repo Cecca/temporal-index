@@ -4,10 +4,8 @@ datasets:
       seed: [123]
       n: 
         - 1000000
-        - 10000000
-        - 100000000
       exponent: [1]
-      max_start_time: [1000000]
+      max_start_time: [100000]
 queries:
   - ZipfUniform:
       seed: [23512]
