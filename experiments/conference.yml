@@ -1,3 +1,5 @@
+# The purpose of this experiment is to replicate the workload tested in
+# the conference paper.
 ---
 datasets:
   - ZipfUniform:
@@ -5,13 +7,13 @@ datasets:
       n: 
         - 1000000
       exponent: [1]
-      max_start_time: [100000]
+      max_start_time: [1000]
 queries:
   - ZipfUniform:
       seed: [23512]
       n: [5000]
       exponent: [1]
-      max_start_time: [100000]
+      max_start_time: [1000]
       max_duration_factor: [2]
 algorithms:
   - LinearScan
