@@ -252,7 +252,6 @@ impl Configuration {
                 dataset.version(),
                 dataset.parameters()
             );
-            dataset.stats().log();
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
                     let conf = ExperimentConfiguration {

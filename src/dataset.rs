@@ -51,28 +51,6 @@ impl Stats {
         }
     }
 
-    pub fn log(&self) {
-        info!(
-            "         {:>8} {:>8} {:>8} {:>8} {:>8}",
-            "min", 25, 50, 75, "max"
-        );
-        info!(
-            "start    {:>8} {:>8} {:>8} {:>8} {:>8}",
-            self.start_percentiles[&0],
-            self.start_percentiles[&25],
-            self.start_percentiles[&50],
-            self.start_percentiles[&75],
-            self.start_percentiles[&100]
-        );
-        info!(
-            "duration {:>8} {:>8} {:>8} {:>8} {:>8}",
-            self.duration_percentiles[&0],
-            self.duration_percentiles[&25],
-            self.duration_percentiles[&50],
-            self.duration_percentiles[&75],
-            self.duration_percentiles[&100]
-        );
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
