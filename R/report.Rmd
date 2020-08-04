@@ -115,7 +115,7 @@ being excluded from the interval.
     The data structure is parameterized by the number of buckets and the maximum number of levels within each bucket.
 
 # Replicating the conference workload [2020-08-04]
-^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.]
+^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.Furthermore, the change introduced the a separate parameterization of the duration of the query.]]
 
 First of all, let's try to replicate the results of the 
 conference version of the paper [@DBLP:conf/ssd/BehrendDGSVRK19].
@@ -161,7 +161,7 @@ This ranking, however, is in my opining severely influenced by the workload choi
 Compared to the conference version, we have that the period index performs rather poorly. This might be due to some missing optimization in my code.
 
 # A different workload [2020-07-31]
-^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.]
+^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for. Furthermore, the change introduced the a separate parameterization of the duration of the query.]
 
 To further investigate the behavior of the various indices under a different workload,
 we consider a dataset of one million intervals, with starting times uniformly distributed between

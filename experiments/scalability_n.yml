@@ -24,6 +24,7 @@ queries:
             Uniform: { low: 1, high: 100 },
             Uniform: { low: 1, high: 100 },
         ]
+        - Free
 
 algorithms:
   - LinearScan

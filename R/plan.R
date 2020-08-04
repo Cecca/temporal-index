@@ -51,14 +51,14 @@ plan <- drake_plan(
                                 y=qps,
                                 fill=algorithm)) +
     geom_col() +
-    geom_hline(yintercept=seq(0, 40000, 10000), col="white", lwd=.5) +
+    geom_hline(yintercept=pretty(pull(data_one_million, qps)), col="white", lwd=.5) +
     geom_text(aes(label=scales::number(drop_units(qps), 
                                        accuracy=1)),
               size=3,
               hjust=0,
               vjust=0.5,
               nudge_y=200) +
-    scale_y_unit(breaks=c(0,1,2,3,4) * 10000) +
+    scale_y_unit(breaks=pretty(pull(data_one_million, qps))) +
     scale_fill_discrete_qualitative() +
     coord_flip() +
     # facet_grid(vars(dataset_max_time), 
