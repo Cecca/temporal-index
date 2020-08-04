@@ -1,11 +1,11 @@
+use crate::btree;
 use crate::dataset::*;
-use crate::types::*;
-use crate::period_index;
 use crate::grid;
 use crate::grid3d;
-use crate::btree;
-use crate::naive;
 use crate::interval_tree;
+use crate::naive;
+use crate::period_index;
+use crate::types::*;
 use anyhow::{Context, Result};
 use itertools::iproduct;
 use std::cell::RefCell;
@@ -329,6 +329,22 @@ impl Configuration {
                     let name = dataset.name();
                     let version = dataset.version();
                     let parameters = dataset.parameters();
+                    for (x, cnt) in h {
+                        println!("{}, {}, {}, {}, {}", name, version, parameters, x, cnt);
+                    }
+                    Ok(())
+                })?;
+            }
+            "queryset-interval-durations" => {
+                self.for_each_queryset(|queryset| {
+                    let h = queryset
+                        .get()
+                        .iter()
+                        .map(|query| query.range.map(|r| r.duration()).unwrap_or(std::u32::MAX))
+                        .histogram();
+                    let name = queryset.name();
+                    let version = queryset.version();
+                    let parameters = queryset.parameters();
                     for (x, cnt) in h {
                         println!("{}, {}, {}, {}, {}", name, version, parameters, x, cnt);
                     }

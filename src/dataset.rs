@@ -313,17 +313,19 @@ impl Queryset for RandomQueryset {
 
     fn get(&self) -> Vec<Query> {
         use rand::RngCore;
+        use std::collections::BTreeSet;
         let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
         let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let rng4 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
-        let mut data = Vec::new();
+        let mut data = BTreeSet::new();
         let mut start_times = self.start_times.stream(rng1);
         let mut durations = self.durations.stream(rng2);
         let mut duration_starts = self.duration_starts.stream(rng3);
         let mut duration_durations = self.duration_durations.stream(rng4);
-        for _ in 0..self.n {
+        // for _ in 0..self.n {
+        while data.len() < self.n {
             let interval = Interval::new(start_times.next().unwrap(), durations.next().unwrap());
             let duration_range_start = duration_starts.next().unwrap();
             let duration_range_duration = duration_durations.next().unwrap();
@@ -331,13 +333,11 @@ impl Queryset for RandomQueryset {
                 duration_range_start,
                 duration_range_start + duration_range_duration,
             );
-            data.push(Query {
+            data.insert(Query {
                 range: Some(interval),
                 duration: Some(duration_range),
-            })
+            });
         }
-        data.sort();
-        data.dedup();
-        data
+        data.into_iter().collect()
     }
 }
