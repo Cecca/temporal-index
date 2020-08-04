@@ -7,49 +7,12 @@ use crate::zipf::ZipfDistribution;
 use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
-use std::collections::BTreeMap;
 
 pub trait Dataset: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn get(&self) -> Vec<Interval>;
     fn version(&self) -> u8;
-
-    fn stats(&self) -> Stats {
-        Stats::new(&self.get())
-    }
-}
-
-#[derive(Debug)]
-pub struct Stats {
-    pub start_percentiles: BTreeMap<usize, Time>,
-    pub duration_percentiles: BTreeMap<usize, Time>,
-}
-
-impl Stats {
-    fn new(intervals: &[Interval]) -> Self {
-        let mut starts: Vec<Time> = intervals.iter().map(|i| i.start).collect();
-        let mut durations: Vec<Time> = intervals.iter().map(|i| i.duration()).collect();
-        starts.sort();
-        durations.sort();
-        let mut start_percentiles = BTreeMap::new();
-        let mut duration_percentiles = BTreeMap::new();
-        start_percentiles.insert(0, starts[0]);
-        start_percentiles.insert(25, starts[starts.len() / 4]);
-        start_percentiles.insert(50, starts[starts.len() / 2]);
-        start_percentiles.insert(75, starts[3 * starts.len() / 4]);
-        start_percentiles.insert(100, starts[starts.len() - 1]);
-        duration_percentiles.insert(0, durations[0]);
-        duration_percentiles.insert(25, durations[durations.len() / 4]);
-        duration_percentiles.insert(50, durations[durations.len() / 2]);
-        duration_percentiles.insert(75, durations[3 * durations.len() / 4]);
-        duration_percentiles.insert(100, durations[durations.len() - 1]);
-
-        Self {
-            start_percentiles,
-            duration_percentiles,
-        }
-    }
 
 }
 

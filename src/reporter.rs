@@ -1,5 +1,5 @@
 use crate::types::*;
-use crate::ExperimentConfiguration;
+use crate::configuration::*;
 use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
