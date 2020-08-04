@@ -1,11 +1,17 @@
 ---
 datasets:
-  - ZipfUniform:
+  - Random:
       seed: [123]
       n: 
         - 1000000
-      exponent: [1]
-      max_start_time: [100000]
+      start_times:
+        - Uniform:
+            low: 1
+            high: 1000
+      durations:
+        - Zipf:
+            n: 1000000
+            beta: 1
 queries:
   - ZipfUniform:
       seed: [23512]

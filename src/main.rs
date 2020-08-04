@@ -117,6 +117,12 @@ enum DataConfiguration {
         exponent: Vec<f64>,
         max_start_time: Vec<u32>,
     },
+    Random {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        start_times: Vec<TimeDistribution>,
+        durations: Vec<TimeDistribution>,
+    },
 }
 
 impl DataConfiguration {
@@ -137,6 +143,16 @@ impl DataConfiguration {
                             *max_start_time,
                         )) as Rc<dyn Dataset>
                     },
+                );
+                Box::new(iter)
+            },
+            Self::Random {
+                seed, n, start_times, durations
+            } => {
+                let iter = iproduct!(seed, n, start_times, durations).map(
+                    |(seed, n, start_times, durations)| {
+                        Rc::new(RandomDataset::new(*seed, *n, *start_times, *durations)) as Rc<dyn Dataset>
+                    }
                 );
                 Box::new(iter)
             }

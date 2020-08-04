@@ -4,8 +4,7 @@ extern crate rand_xoshiro;
 
 use crate::types::*;
 use crate::zipf::ZipfDistribution;
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
+use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use std::collections::BTreeMap;
@@ -73,6 +72,97 @@ impl Stats {
             self.duration_percentiles[&75],
             self.duration_percentiles[&100]
         );
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
+pub enum TimeDistribution {
+    Uniform { low: u32, high: u32 },
+    Zipf { n: usize, beta: f64 },
+}
+
+impl TimeDistribution {
+    fn stream<R: rand::Rng + 'static>(&self, rng: R) -> Box<dyn Iterator<Item = Time> + '_> {
+        match &self {
+            Self::Uniform { low, high } => {
+                let d = Uniform::new(low, high);
+                Box::new(d.sample_iter(rng))
+            }
+            Self::Zipf { n, beta } => {
+                let d =
+                    ZipfDistribution::new(*n, *beta).expect("problem creating zipf distribution");
+                Box::new(d.sample_iter(rng))
+            }
+        }
+    }
+
+    pub fn name(&self) -> String {
+        match &self {
+            Self::Uniform { .. } => String::from("uniform"),
+            Self::Zipf { .. } => String::from("zipf"),
+        }
+    }
+
+    pub fn parameters(&self) -> String {
+        match &self {
+            Self::Uniform { low, high } => format!("{}-{}", low, high),
+            Self::Zipf { n, beta } => format!("{}-{}", n, beta),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RandomDataset {
+    seed: u64,
+    n: usize,
+    start_times: TimeDistribution,
+    durations: TimeDistribution,
+}
+
+impl RandomDataset {
+    pub fn new(
+        seed: u64,
+        n: usize,
+        start_times: TimeDistribution,
+        durations: TimeDistribution,
+    ) -> Self {
+        Self {
+            seed,
+            n,
+            start_times,
+            durations,
+        }
+    }
+}
+
+impl Dataset for RandomDataset {
+    fn name(&self) -> String {
+        format!("random-{}-{}", self.start_times.name(), self.durations.name())
+    }
+
+    fn parameters(&self) -> String {
+        format!("{}-{}_{}_{}", self.seed, self.n, self.start_times.parameters(), self.durations.parameters())
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Vec<Interval> {
+        use rand::RngCore;
+        let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
+        let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let mut data = Vec::new();
+        let mut start_times = self.start_times.stream(rng1);
+        let mut durations = self.durations.stream(rng2);
+        for _ in 0..self.n {
+            let interval = Interval::new(start_times.next().unwrap(), durations.next().unwrap());
+            data.push(interval)
+        }
+        data.sort();
+        data.dedup();
+        data
     }
 }
 
