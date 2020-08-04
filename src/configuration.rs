@@ -1,8 +1,8 @@
 use crate::btree;
 use crate::dataset::*;
+use crate::ebi;
 use crate::grid;
 use crate::grid3d;
-use crate::ebi;
 use crate::interval_tree;
 use crate::naive;
 use crate::period_index;
@@ -97,7 +97,8 @@ impl AlgorithmConfiguration {
                 Box::new(Some(algo).into_iter())
             }
             Self::EBI => {
-                let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(ebi::EBIIndex::default()));
+                let algo: Rc<RefCell<dyn Algorithm>> =
+                    Rc::new(RefCell::new(ebi::EBIIndex::default()));
                 Box::new(Some(algo).into_iter())
             }
         }
@@ -160,6 +161,21 @@ impl DataConfiguration {
 }
 
 #[derive(Serialize, Deserialize)]
+pub enum GeneratorPairConfig {
+    Free,
+    Pair(TimeDistribution, TimeDistribution),
+}
+
+impl GeneratorPairConfig {
+    fn get(&self) -> Option<(TimeDistribution, TimeDistribution)> {
+        match self {
+            Self::Free => None,
+            Self::Pair(t1, t2) => Some((*t1, *t2))
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub enum QueryConfiguration {
     ZipfUniform {
         seed: Vec<u64>,
@@ -171,10 +187,8 @@ pub enum QueryConfiguration {
     Random {
         seed: Vec<u64>,
         n: Vec<usize>,
-        start_times: Vec<TimeDistribution>,
-        durations: Vec<TimeDistribution>,
-        start_durations: Vec<TimeDistribution>,
-        duration_durations: Vec<TimeDistribution>,
+        range: Vec<GeneratorPairConfig>,
+        duration: Vec<GeneratorPairConfig>,
     },
 }
 
@@ -204,31 +218,12 @@ impl QueryConfiguration {
             Self::Random {
                 seed,
                 n,
-                start_times,
-                durations,
-                start_durations,
-                duration_durations,
+                range,
+                duration,
             } => {
-                let iter = iproduct!(
-                    seed,
-                    n,
-                    start_times,
-                    durations,
-                    start_durations,
-                    duration_durations
-                )
-                .map(
-                    |(seed, n, start_times, durations, start_durations, duration_durations)| {
-                        Rc::new(RandomQueryset::new(
-                            *seed,
-                            *n,
-                            *start_times,
-                            *durations,
-                            *start_durations,
-                            *duration_durations,
-                        )) as Rc<dyn Queryset>
-                    },
-                );
+                let iter = iproduct!(seed, n, range, duration).map(|(seed, n, range, duration)| {
+                    Rc::new(RandomQueryset::new(*seed, *n, range.get(), duration.get())) as Rc<dyn Queryset>
+                });
                 Box::new(iter)
             }
         }

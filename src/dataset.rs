@@ -13,7 +13,6 @@ pub trait Dataset: std::fmt::Debug {
     fn parameters(&self) -> String;
     fn get(&self) -> Vec<Interval>;
     fn version(&self) -> u8;
-
 }
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
@@ -46,8 +45,8 @@ impl TimeDistribution {
 
     pub fn parameters(&self) -> String {
         match &self {
-            Self::Uniform { low, high } => format!("{},{}", low, high),
-            Self::Zipf { n, beta } => format!("{},{}", n, beta),
+            Self::Uniform { low, high } => format!("{}:{}", low, high),
+            Self::Zipf { n, beta } => format!("{}:{}", n, beta),
         }
     }
 }
@@ -87,7 +86,7 @@ impl Dataset for RandomDataset {
 
     fn parameters(&self) -> String {
         format!(
-            "{},{}_{}_{}",
+            "{}:{}_{}_{}",
             self.seed,
             self.n,
             self.start_times.parameters(),
@@ -215,7 +214,7 @@ impl Queryset for RandomQueriesZipfAndUniform {
 
     fn parameters(&self) -> String {
         format!(
-            "{},{},{},{},{}",
+            "{}:{}:{}:{}:{}",
             self.seed, self.n, self.exponent, self.max_start_time, self.max_duration_factor
         )
     }
@@ -258,28 +257,22 @@ impl Queryset for RandomQueriesZipfAndUniform {
 pub struct RandomQueryset {
     seed: u64,
     n: usize,
-    start_times: TimeDistribution,
-    durations: TimeDistribution,
-    duration_starts: TimeDistribution,
-    duration_durations: TimeDistribution,
+    intervals: Option<(TimeDistribution, TimeDistribution)>,
+    durations: Option<(TimeDistribution, TimeDistribution)>,
 }
 
 impl RandomQueryset {
     pub fn new(
         seed: u64,
         n: usize,
-        start_times: TimeDistribution,
-        durations: TimeDistribution,
-        duration_starts: TimeDistribution,
-        duration_durations: TimeDistribution
+        intervals: Option<(TimeDistribution, TimeDistribution)>,
+        durations: Option<(TimeDistribution, TimeDistribution)>,
     ) -> Self {
         Self {
             seed,
             n,
-            start_times,
+            intervals,
             durations,
-            duration_starts,
-            duration_durations
         }
     }
 }
@@ -287,28 +280,38 @@ impl RandomQueryset {
 impl Queryset for RandomQueryset {
     fn name(&self) -> String {
         format!(
-            "random-{}-{}-{}-{}",
-            self.start_times.name(),
-            self.durations.name(),
-            self.duration_starts.name(),
-            self.duration_durations.name()
+            "random-{}-{}",
+            self.intervals
+                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
+                .unwrap_or("None".to_owned()),
+            self.durations
+                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
+                .unwrap_or("None".to_owned()),
         )
     }
 
     fn parameters(&self) -> String {
         format!(
-            "{},{}_{}_{}_{}_{}",
+            "{}:{}_{}_{}_{}_{}",
             self.seed,
             self.n,
-            self.start_times.parameters(),
-            self.durations.parameters(),
-            self.duration_starts.parameters(),
-            self.duration_durations.parameters(),
+            self.intervals
+                .map(|it| it.0.parameters())
+                .unwrap_or("NA".to_owned()),
+            self.intervals
+                .map(|it| it.1.parameters())
+                .unwrap_or("NA".to_owned()),
+            self.durations
+                .map(|d| d.0.parameters())
+                .unwrap_or("NA".to_owned()),
+            self.durations
+                .map(|d| d.1.parameters())
+                .unwrap_or("NA".to_owned())
         )
     }
 
     fn version(&self) -> u8 {
-        2
+        3
     }
 
     fn get(&self) -> Vec<Query> {
@@ -320,22 +323,31 @@ impl Queryset for RandomQueryset {
         let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let rng4 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let mut data = BTreeSet::new();
-        let mut start_times = self.start_times.stream(rng1);
-        let mut durations = self.durations.stream(rng2);
-        let mut duration_starts = self.duration_starts.stream(rng3);
-        let mut duration_durations = self.duration_durations.stream(rng4);
-        // for _ in 0..self.n {
+        let mut interval_gen = self
+            .intervals
+            .as_ref()
+            .map(move |(start_times, durations)| {
+                (start_times.stream(rng1), durations.stream(rng2))
+            });
+        let mut durations_gen = self
+            .durations
+            .as_ref()
+            .map(move |(start, duration)| (start.stream(rng3), duration.stream(rng4)));
         while data.len() < self.n {
-            let interval = Interval::new(start_times.next().unwrap(), durations.next().unwrap());
-            let duration_range_start = duration_starts.next().unwrap();
-            let duration_range_duration = duration_durations.next().unwrap();
-            let duration_range = DurationRange::new(
-                duration_range_start,
-                duration_range_start + duration_range_duration,
-            );
+            let interval = interval_gen.as_mut().map(|(start, duration)| {
+                Interval::new(start.next().unwrap(), duration.next().unwrap())
+            });
+            let duration_range = durations_gen.as_mut().map(|(start, duration)| {
+                let duration_range_start = start.next().unwrap();
+                let duration_range_duration = duration.next().unwrap();
+                DurationRange::new(
+                    duration_range_start,
+                    duration_range_start + duration_range_duration,
+                )
+            });
             data.insert(Query {
-                range: Some(interval),
-                duration: Some(duration_range),
+                range: interval,
+                duration: duration_range,
             });
         }
         data.into_iter().collect()

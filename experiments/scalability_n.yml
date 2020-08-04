@@ -14,14 +14,16 @@ queries:
   - Random:
       seed: [23512]
       n: [5000]
-      start_times:
-        - Uniform: { low: 1, high: 100000 }
-      durations:
-        - Zipf: { n: 1000000, beta: 1}
-      start_durations:
-        - Uniform: {low: 1, high: 1000}
-      duration_durations:
-        - Uniform: { low: 1, high: 100 }
+      range:
+        - Pair: [
+            Uniform: { low: 1, high: 1000 },
+            Zipf: { n: 1000000, beta: 1 }
+        ]
+      duration:
+        - Pair: [
+            Uniform: { low: 1, high: 100 },
+            Uniform: { low: 1, high: 100 },
+        ]
 
 algorithms:
   - LinearScan
