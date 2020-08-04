@@ -137,11 +137,21 @@ impl RandomDataset {
 
 impl Dataset for RandomDataset {
     fn name(&self) -> String {
-        format!("random-{}-{}", self.start_times.name(), self.durations.name())
+        format!(
+            "random-{}-{}",
+            self.start_times.name(),
+            self.durations.name()
+        )
     }
 
     fn parameters(&self) -> String {
-        format!("{}-{}_{}_{}", self.seed, self.n, self.start_times.parameters(), self.durations.parameters())
+        format!(
+            "{}-{}_{}_{}",
+            self.seed,
+            self.n,
+            self.start_times.parameters(),
+            self.durations.parameters()
+        )
     }
 
     fn version(&self) -> u8 {
@@ -293,6 +303,94 @@ impl Queryset for RandomQueriesZipfAndUniform {
                 range: Some(range),
                 duration: Some(DurationRange::new(d_min as u32, d_max as u32)),
             });
+        }
+        data.sort();
+        data.dedup();
+        data
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RandomQueryset {
+    seed: u64,
+    n: usize,
+    start_times: TimeDistribution,
+    durations: TimeDistribution,
+    duration_starts: TimeDistribution,
+    duration_durations: TimeDistribution,
+}
+
+impl RandomQueryset {
+    pub fn new(
+        seed: u64,
+        n: usize,
+        start_times: TimeDistribution,
+        durations: TimeDistribution,
+        duration_starts: TimeDistribution,
+        duration_durations: TimeDistribution
+    ) -> Self {
+        Self {
+            seed,
+            n,
+            start_times,
+            durations,
+            duration_starts,
+            duration_durations
+        }
+    }
+}
+
+impl Queryset for RandomQueryset {
+    fn name(&self) -> String {
+        format!(
+            "random-{}-{}-{}-{}",
+            self.start_times.name(),
+            self.durations.name(),
+            self.duration_starts.name(),
+            self.duration_durations.name()
+        )
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "{}-{}_{}_{}_{}_{}",
+            self.seed,
+            self.n,
+            self.start_times.parameters(),
+            self.durations.parameters(),
+            self.duration_starts.parameters(),
+            self.duration_durations.parameters(),
+        )
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Vec<Query> {
+        use rand::RngCore;
+        let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
+        let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng4 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let mut data = Vec::new();
+        let mut start_times = self.start_times.stream(rng1);
+        let mut durations = self.durations.stream(rng2);
+        let mut duration_starts = self.duration_starts.stream(rng3);
+        let mut duration_durations = self.duration_durations.stream(rng4);
+        for _ in 0..self.n {
+            let interval = Interval::new(start_times.next().unwrap(), durations.next().unwrap());
+            let duration_range_start = duration_starts.next().unwrap();
+            let duration_range_duration = duration_durations.next().unwrap();
+            let duration_range = DurationRange::new(
+                duration_range_start,
+                duration_range_start + duration_range_duration,
+            );
+            data.push(Query {
+                range: Some(interval),
+                duration: Some(duration_range),
+            })
         }
         data.sort();
         data.dedup();

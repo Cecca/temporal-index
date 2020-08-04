@@ -145,14 +145,18 @@ impl DataConfiguration {
                     },
                 );
                 Box::new(iter)
-            },
+            }
             Self::Random {
-                seed, n, start_times, durations
+                seed,
+                n,
+                start_times,
+                durations,
             } => {
                 let iter = iproduct!(seed, n, start_times, durations).map(
                     |(seed, n, start_times, durations)| {
-                        Rc::new(RandomDataset::new(*seed, *n, *start_times, *durations)) as Rc<dyn Dataset>
-                    }
+                        Rc::new(RandomDataset::new(*seed, *n, *start_times, *durations))
+                            as Rc<dyn Dataset>
+                    },
                 );
                 Box::new(iter)
             }
@@ -168,6 +172,14 @@ enum QueryConfiguration {
         exponent: Vec<f64>,
         max_start_time: Vec<u32>,
         max_duration_factor: Vec<f64>,
+    },
+    Random {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        start_times: Vec<TimeDistribution>,
+        durations: Vec<TimeDistribution>,
+        start_durations: Vec<TimeDistribution>,
+        duration_durations: Vec<TimeDistribution>,
     },
 }
 
@@ -192,6 +204,28 @@ impl QueryConfiguration {
                         )) as Rc<dyn Queryset>
                     },
                 );
+                Box::new(iter)
+            }
+            Self::Random {
+                seed,
+                n,
+                start_times,
+                durations,
+                start_durations,
+                duration_durations,
+            } => {
+                let iter = iproduct!(
+                    seed,
+                    n,
+                    start_times,
+                    durations,
+                    start_durations,
+                    duration_durations
+                )
+                .map(|(seed, n, start_times, durations, start_durations, duration_durations)| {
+                    Rc::new(RandomQueryset::new(*seed, *n, *start_times, *durations, *start_durations, *duration_durations))
+                        as Rc<dyn Queryset>
+                });
                 Box::new(iter)
             }
         }

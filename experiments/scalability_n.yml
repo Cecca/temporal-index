@@ -6,19 +6,23 @@ datasets:
         - 1000000
       start_times:
         - Uniform:
-            low: 1
-            high: 1000
+            { low: 1, high: 1000 }
       durations:
-        - Zipf:
-            n: 1000000
-            beta: 1
+        - Zipf: { n: 1000000, beta: 1 }
+
 queries:
-  - ZipfUniform:
+  - Random:
       seed: [23512]
       n: [5000]
-      exponent: [1]
-      max_start_time: [100000]
-      max_duration_factor: [2]
+      start_times:
+        - Uniform: { low: 1, high: 1000 }
+      durations:
+        - Zipf: { n: 1000000, beta: 1}
+      start_durations:
+        - Uniform: {low: 1, high: 1000}
+      duration_durations:
+        - Uniform: { low: 1, high: 100 }
+
 algorithms:
   - LinearScan
   - BTree
