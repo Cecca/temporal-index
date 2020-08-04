@@ -16,7 +16,7 @@ queries:
       n: [5000]
       range:
         - Pair: [
-            Uniform: { low: 1, high: 1000 },
+            Uniform: { low: 1, high: 100000 },
             Zipf: { n: 1000000, beta: 1 }
         ]
       duration:
