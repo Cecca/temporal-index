@@ -99,6 +99,11 @@ impl Dataset for RandomDataset {
         1
     }
 
+    /// Does not remove the duplicates, because otherwise the distributions
+    /// would not reflect the desired ones. For instance, if we want a ZIPF distribution
+    /// on the durations, but start times are in the range 1..1000, then there are only
+    /// 999 possible intervals of length 1, which make it impossible to have a true ZIPF
+    /// distribution on durations
     fn get(&self) -> Vec<Interval> {
         use rand::RngCore;
         let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
@@ -109,10 +114,8 @@ impl Dataset for RandomDataset {
         let mut durations = self.durations.stream(rng2);
         for _ in 0..self.n {
             let interval = Interval::new(start_times.next().unwrap(), durations.next().unwrap());
-            data.push(interval)
+            data.push(interval);
         }
-        data.sort();
-        data.dedup();
         data
     }
 }
