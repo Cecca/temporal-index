@@ -27,6 +27,7 @@ algorithms:
   - LinearScan
   - BTree
   - IntervalTree
+  - EBI
   - Grid:
       num_buckets: [16, 32, 64, 128]
   - Grid3D:

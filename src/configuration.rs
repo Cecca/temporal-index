@@ -2,6 +2,7 @@ use crate::btree;
 use crate::dataset::*;
 use crate::grid;
 use crate::grid3d;
+use crate::ebi;
 use crate::interval_tree;
 use crate::naive;
 use crate::period_index;
@@ -49,6 +50,7 @@ pub enum AlgorithmConfiguration {
     LinearScan,
     BTree,
     IntervalTree,
+    EBI,
 }
 
 impl AlgorithmConfiguration {
@@ -92,6 +94,10 @@ impl AlgorithmConfiguration {
             Self::IntervalTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(interval_tree::IntervalTree::new()));
+                Box::new(Some(algo).into_iter())
+            }
+            Self::EBI => {
+                let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(ebi::EBIIndex::default()));
                 Box::new(Some(algo).into_iter())
             }
         }

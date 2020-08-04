@@ -14,6 +14,7 @@ mod period_index;
 mod reporter;
 mod types;
 mod zipf;
+mod ebi;
 
 use crate::configuration::*;
 use anyhow::Result;
