@@ -8,18 +8,18 @@ table_main <- function(path) {
 plan <- drake_plan(
   data = table_main(file_in("temporal-index-results.sqlite")) %>% 
     filter(
-      dataset == "zipf-and-uniform",
-      queryset == "zipf-and-uniform",
+      dataset == "random-uniform-zipf",
+      queryset == "random-uniform-zipf-uniform-uniform",
     ) %>%
     collect() %>%
-    separate(dataset_params, into=str_c("dataset_", c("seed", "n", "exponent", "max_time")), convert = T) %>%
-    separate(queryset_params, into=str_c("queryset_", c("seed", "n", "exponent", "max_time")), convert = T) %>%
+    separate(dataset_params, into=str_c("dataset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent")), convert = T) %>%
+    separate(queryset_params, into=str_c("queryset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent", "min_duration", "max_duration")), convert = T) %>%
     mutate(
       time_queries = set_units(time_query_ms, "ms"),
       time_index = set_units(time_index_ms, "ms"),
       total_time = time_index + time_queries,
       algorithm_wpar = interaction(algorithm, algorithm_params),
-      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries),
+      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries)
       qps = queryset_n / set_units(time_queries, "s"),
     ) %>%
     select(-time_query_ms, -time_index_ms)
