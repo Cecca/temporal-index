@@ -25,6 +25,28 @@ plan <- drake_plan(
     select(-time_query_ms, -time_index_ms)
     ,
 
+  data_range_only = table_main(file_in("temporal-index-results.sqlite")) %>% 
+    filter(
+      dataset == "random-uniform-zipf",
+      queryset == "random-uniform-zipf-None",
+    ) %>%
+    collect() %>%
+    separate(dataset_params, into=str_c("dataset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent")), convert = T) %>%
+    separate(queryset_params, into=str_c("queryset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent", "min_duration", "max_duration")), convert = T) %>%
+    mutate(
+      time_queries = set_units(time_query_ms, "ms"),
+      time_index = set_units(time_index_ms, "ms"),
+      total_time = time_index + time_queries,
+      algorithm_wpar = interaction(algorithm, algorithm_params),
+      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries),
+      qps = queryset_n / set_units(time_queries, "s"),
+    ) %>%
+    filter(dataset_n == 1000000,
+           dataset_max_time == 100000,
+           queryset_max_time == 100000) %>%
+    select(-time_query_ms, -time_index_ms)
+    ,
+
   query_stats = tbl(conn, "query_stats") %>%
     collect() %>%
     inner_join(data %>% select(sha, dataset_n, dataset_max_time, algorithm, algorithm_wpar)) %>%
@@ -98,6 +120,32 @@ plan <- drake_plan(
     theme(
       panel.ontop = FALSE,
       # panel.grid.major.x = element_line(color="white", size=.5),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+   ,
+
+  plot_range_only = ggplot(data_range_only, 
+                           aes(x=algorithm_wpar, 
+                               y=qps,
+                               fill=algorithm)) +
+    geom_col() +
+    geom_hline(yintercept=pretty(pull(data_range_only, qps)), col="white", lwd=.5) +
+    geom_text(aes(label=scales::number(drop_units(qps), 
+                                       accuracy=1)),
+              size=3,
+              hjust=0,
+              vjust=0.5,
+              nudge_y=10) +
+    scale_y_unit(breaks=pretty(pull(data_range_only, qps))) +
+    scale_fill_discrete_qualitative() +
+    coord_flip() +
+    theme_tufte() +
+    theme(
+      panel.ontop = FALSE,
       panel.grid.minor.x = element_blank(),
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank(),

@@ -188,3 +188,14 @@ Now the `PeriodIndex` performs better, but still not as well as the three dimens
 
 - Implement the adaptive `PeriodIndex`, to see if it can outperform the three dimensional grid.
 - Add parallelism to the implementations. Both the grids and the period index can benefit from multicore parallelism.
+
+# Range only queries [2020-08-04]
+
+My expectation here is for data structures that explicitly support range queries (all except linear scan and `BTree`) to perform well.
+
+```{r fig.fullwidth=TRUE, fig.widht=10}
+readd(plot_range_only)
+```
+
+The plot above meets the expectations, but the throughput looks a little bit too low.
+Further investigation is needed
