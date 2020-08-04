@@ -19,6 +19,7 @@ use argh::FromArgs;
 use dataset::*;
 use itertools::iproduct;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use types::*;
@@ -222,10 +223,18 @@ impl QueryConfiguration {
                     start_durations,
                     duration_durations
                 )
-                .map(|(seed, n, start_times, durations, start_durations, duration_durations)| {
-                    Rc::new(RandomQueryset::new(*seed, *n, *start_times, *durations, *start_durations, *duration_durations))
-                        as Rc<dyn Queryset>
-                });
+                .map(
+                    |(seed, n, start_times, durations, start_durations, duration_durations)| {
+                        Rc::new(RandomQueryset::new(
+                            *seed,
+                            *n,
+                            *start_times,
+                            *durations,
+                            *start_durations,
+                            *duration_durations,
+                        )) as Rc<dyn Queryset>
+                    },
+                );
                 Box::new(iter)
             }
         }
@@ -266,6 +275,95 @@ impl Configuration {
         }
         Ok(())
     }
+
+    fn for_each_dataset<F: FnMut(Rc<dyn Dataset>) -> Result<()>>(
+        &self,
+        mut action: F,
+    ) -> Result<()> {
+        for dataset in self.datasets.iter().flat_map(|d| d.datasets()) {
+            action(dataset)?;
+        }
+        Ok(())
+    }
+
+    fn for_each_queryset<F: FnMut(Rc<dyn Queryset>) -> Result<()>>(
+        &self,
+        mut action: F,
+    ) -> Result<()> {
+        for queryset in self.queries.iter().flat_map(|q| q.queries()) {
+            action(queryset)?;
+        }
+        Ok(())
+    }
+
+    fn print_histogram(&self, what: String) -> Result<()> {
+        match what.as_ref() {
+            "dataset-start-times" => {
+                self.for_each_dataset(|dataset| {
+                    let h = dataset
+                        .get()
+                        .iter()
+                        .map(|interval| interval.start)
+                        .histogram();
+                    let name = dataset.name();
+                    let version = dataset.version();
+                    let parameters = dataset.parameters();
+                    for (x, cnt) in h {
+                        println!("{}, {}, {}, {}, {}", name, version, parameters, x, cnt);
+                    }
+                    Ok(())
+                })?;
+            }
+            "dataset-end-times" => {
+                self.for_each_dataset(|dataset| {
+                    let h = dataset
+                        .get()
+                        .iter()
+                        .map(|interval| interval.end)
+                        .histogram();
+                    let name = dataset.name();
+                    let version = dataset.version();
+                    let parameters = dataset.parameters();
+                    for (x, cnt) in h {
+                        println!("{}, {}, {}, {}, {}", name, version, parameters, x, cnt);
+                    }
+                    Ok(())
+                })?;
+            }
+            "dataset-durations" => {
+                self.for_each_dataset(|dataset| {
+                    let h = dataset
+                        .get()
+                        .iter()
+                        .map(|interval| interval.duration())
+                        .histogram();
+                    let name = dataset.name();
+                    let version = dataset.version();
+                    let parameters = dataset.parameters();
+                    for (x, cnt) in h {
+                        println!("{}, {}, {}, {}, {}", name, version, parameters, x, cnt);
+                    }
+                    Ok(())
+                })?;
+            }
+            _ => anyhow::bail!("unknown what")
+        }
+        Ok(())
+    }
+}
+
+trait Histogram {
+    fn histogram(self) -> BTreeMap<u32, u32>;
+}
+
+impl<I: IntoIterator<Item = u32>> Histogram for I {
+    fn histogram(self) -> BTreeMap<u32, u32> {
+        let mut hist = BTreeMap::new();
+        for x in self {
+            hist.entry(x).and_modify(|c| *c += 1).or_insert(1);
+        }
+        hist
+    }
 }
 
 #[derive(FromArgs)]
@@ -274,6 +372,10 @@ struct Cmdline {
     #[argh(switch)]
     /// force rerunning the experiments
     rerun: bool,
+
+    #[argh(option)]
+    /// print the histogram of dataset/queryset start/end times, durations and exits
+    histogram: Option<String>,
 
     #[argh(positional)]
     /// the file containing the experiments to run
@@ -291,6 +393,10 @@ fn main() -> Result<()> {
     let conf_file_path = &cmdline.experiment_file;
     let conf_file = std::fs::File::open(conf_file_path)?;
     let configurations: Configuration = serde_yaml::from_reader(conf_file)?;
+
+    if let Some(hist_what) = cmdline.histogram {
+        return configurations.print_histogram(hist_what);
+    }
 
     configurations.for_each(|experiment| {
         info!("{:-<60}", "");
