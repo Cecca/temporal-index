@@ -46,8 +46,8 @@ impl TimeDistribution {
 
     pub fn parameters(&self) -> String {
         match &self {
-            Self::Uniform { low, high } => format!("{}-{}", low, high),
-            Self::Zipf { n, beta } => format!("{}-{}", n, beta),
+            Self::Uniform { low, high } => format!("{},{}", low, high),
+            Self::Zipf { n, beta } => format!("{},{}", n, beta),
         }
     }
 }
@@ -87,7 +87,7 @@ impl Dataset for RandomDataset {
 
     fn parameters(&self) -> String {
         format!(
-            "{}-{}_{}_{}",
+            "{},{}_{}_{}",
             self.seed,
             self.n,
             self.start_times.parameters(),
@@ -96,7 +96,7 @@ impl Dataset for RandomDataset {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     /// Does not remove the duplicates, because otherwise the distributions
@@ -297,7 +297,7 @@ impl Queryset for RandomQueryset {
 
     fn parameters(&self) -> String {
         format!(
-            "{}-{}_{}_{}_{}_{}",
+            "{},{}_{}_{}_{}_{}",
             self.seed,
             self.n,
             self.start_times.parameters(),
@@ -308,7 +308,7 @@ impl Queryset for RandomQueryset {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn get(&self) -> Vec<Query> {
