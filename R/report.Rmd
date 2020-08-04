@@ -114,7 +114,8 @@ being excluded from the interval.
 
     The data structure is parameterized by the number of buckets and the maximum number of levels within each bucket.
 
-# Replicating the conference workload [2020-07-31]
+# Replicating the conference workload [2020-08-04]
+^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.]
 
 First of all, let's try to replicate the results of the 
 conference version of the paper [@DBLP:conf/ssd/BehrendDGSVRK19].
@@ -151,15 +152,16 @@ The `y` axis is labelled with the index name and its parameterization, if any.
 readd(plot_conference)
 ```
 
-The best performing index is the `BTree`, which is the most optimized implementation for duration queries.
+The best performing index is the three dimensional grid, with the `BTree` following.
 
 One interesting feature of the above experiment is that data structures are grouped
 in blocks, irrespective of the parameterization. In order of decreasing performance we have the `BTree`, the three dimensional grid, the period index, the two dimensional grid, the interval tree, and the linear scan.
 This ranking, however, is in my opining severely influenced by the workload choice, and is too much in favor of indices that handle well the duration part of the query, which is the only one exhibiting selectivity in this case.
 
-Compared to the conference version, the `BTree` gets a comparable performance to the Java implementation of the adaptive period index.
+Compared to the conference version, we have that the period index performs rather poorly. This might be due to some missing optimization in my code.
 
 # A different workload [2020-07-31]
+^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.]
 
 To further investigate the behavior of the various indices under a different workload,
 we consider a dataset of one million intervals, with starting times uniformly distributed between
@@ -179,10 +181,8 @@ readd(plot_one_million)
 
 From the figure above, we see that, compared to the conference version, the ranking is quite different, with the parameterization playing some role.
 
-Now the three dimensional grid is by far the best performing algorithm.
-The `BTree` moved down the ranking to a lower position, due to its inability to handle
-the range part of the queries.
-The `PeriodIndex` performs rather well, but still not as well as the three dimensional grid.
+The three dimensional grid is by far the best performing algorithm.
+Now the `PeriodIndex` performs better, but still not as well as the three dimensional grid or the `BTree`
 
 ## Future experiments
 

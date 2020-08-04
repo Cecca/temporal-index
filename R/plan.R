@@ -19,7 +19,7 @@ plan <- drake_plan(
       time_index = set_units(time_index_ms, "ms"),
       total_time = time_index + time_queries,
       algorithm_wpar = interaction(algorithm, algorithm_params),
-      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries)
+      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries),
       qps = queryset_n / set_units(time_queries, "s"),
     ) %>%
     select(-time_query_ms, -time_index_ms)
@@ -51,14 +51,14 @@ plan <- drake_plan(
                                 y=qps,
                                 fill=algorithm)) +
     geom_col() +
-    geom_hline(yintercept=seq(0, 120000, 40000), col="white", lwd=.5) +
+    geom_hline(yintercept=seq(0, 40000, 10000), col="white", lwd=.5) +
     geom_text(aes(label=scales::number(drop_units(qps), 
                                        accuracy=1)),
               size=3,
               hjust=0,
               vjust=0.5,
               nudge_y=200) +
-    scale_y_unit(limits=c(0,125000)) +
+    scale_y_unit(breaks=c(0,1,2,3,4) * 10000) +
     scale_fill_discrete_qualitative() +
     coord_flip() +
     # facet_grid(vars(dataset_max_time), 
