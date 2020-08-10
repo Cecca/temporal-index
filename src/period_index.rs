@@ -166,41 +166,51 @@ impl Bucket {
         assert!(cnt > 0);
     }
 
-    fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
-        let (level_min, level_max) = match query.duration {
-            None => (0, self.cells.len() - 1),
-            Some(duration_range) => {
-                let level_min = self.level_for(duration_range.max);
-                let level_max = self.level_for(duration_range.min);
-                debug_assert!(level_min <= level_max);
-                (level_min, level_max)
-            }
-        };
+    fn query_range_duration<F: FnMut(&Interval)>(&self, range: Interval, duration: DurationRange, action: &mut F) {
+        let level_min = self.level_for(duration.max);
+        let level_max = self.level_for(duration.min);
+        debug_assert!(level_min <= level_max);
 
-        // TODO do the match outside the for loop
         for level in level_min..=level_max {
-            let (start, end) = query
-                .range
-                .map(|r| self.cells_for(level, r))
-                .unwrap_or_else(|| (0, self.cells.len() - 1));
-            match (query.range, query.duration) {
-                (Some(range), Some(duration)) => {
-                    for cell in self.cells[level][start..=end].iter() {
-                        cell.query_range_duration(range, duration, action);
-                    }
-                }
-                (Some(range), None) => {
-                    for cell in self.cells[level][start..=end].iter() {
-                        cell.query_range_only(range, action);
-                    }
-                }
-                (None, Some(duration)) => {
-                    for cell in self.cells[level][start..=end].iter() {
-                        cell.query_duration_only(&duration, action);
-                    }
-                }
-                (None, None) => unimplemented!("enumeration not supportedk"),
+            let (start, end) = self.cells_for(level, range);
+            for cell in self.cells[level][start..=end].iter() {
+                cell.query_range_duration(range, duration, action);
             }
+        }
+    }
+
+    fn query_range<F: FnMut(&Interval)>(&self, range: Interval, action: &mut F) {
+        for level in 0..self.cells.len() {
+            let (start, end) = self.cells_for(level, range);
+            for cell in self.cells[level][start..=end].iter() {
+                cell.query_range_only(range, action);
+            }
+        }
+    }
+
+    fn query_duration<F: FnMut(&Interval)>(&self, duration: DurationRange, action: &mut F) {
+        let level_min = self.level_for(duration.max);
+        let level_max = self.level_for(duration.min);
+
+        for level in 0..self.cells[level_min..=level_max].len() {
+            for cell in self.cells[level].iter() {
+                cell.query_duration_only(&duration, action);
+            }
+        }
+    }
+
+    fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
+        match (query.range, query.duration) {
+            (Some(range), Some(duration)) => {
+                self.query_range_duration(range, duration, action);
+            }
+            (Some(range), None) => {
+                self.query_range(range, action);
+            }
+            (None, Some(duration)) => {
+                self.query_duration(duration, action);
+            }
+            (None, None) => unimplemented!("enumeration not supportedk"),
         }
     }
 }
