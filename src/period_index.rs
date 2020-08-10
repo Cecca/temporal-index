@@ -26,6 +26,9 @@ impl Cell {
             interval.duration()
         );
         debug_assert!(self.time_range.overlaps(&interval));
+        if interval.start == 9839 && interval.end == 9872 {
+            info!("Inserting missing interval");
+        }
         self.intervals.push(interval);
     }
 
@@ -141,8 +144,8 @@ impl Bucket {
         } else {
             ((interval.start - self.time_range.start) / cell_duration) as usize
         };
-        let end = if interval.start < self.time_range.start {
-            0
+        let end = if interval.end > self.time_range.end {
+            self.cells[level].len() - 1
         } else {
             ((interval.end - self.time_range.start) / cell_duration) as usize
         };
@@ -153,16 +156,19 @@ impl Bucket {
         let level = self.level_for(interval.duration());
         let (start, end) = self.cells_for(level, interval);
 
+        let mut cnt = 0;
         for cell in self.cells[level][start..=end].iter_mut() {
             if cell.time_range.overlaps(&interval) {
                 cell.insert(interval);
+                cnt += 1;
             }
         }
+        assert!(cnt > 0);
     }
 
     fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
         let (level_min, level_max) = match query.duration {
-            None => (0, self.cells.len()),
+            None => (0, self.cells.len() - 1),
             Some(duration_range) => {
                 let level_min = self.level_for(duration_range.max);
                 let level_max = self.level_for(duration_range.min);
@@ -171,6 +177,7 @@ impl Bucket {
             }
         };
 
+        // TODO do the match outside the for loop
         for level in level_min..=level_max {
             let (start, end) = query
                 .range
@@ -247,7 +254,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        2
+        3
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -284,6 +291,9 @@ impl Algorithm for PeriodIndex {
 
         for interval in dataset {
             let (start, end) = self.bucket_for(*interval);
+            if interval.start == 9839 && interval.end == 9872 {
+                info!("Inserting in buckets from {} to {}", start, end);
+            }
             let mut cnt = 0;
             assert!(end < self.buckets.len());
             assert!(start <= end);
@@ -293,7 +303,7 @@ impl Algorithm for PeriodIndex {
                     cnt += 1;
                 }
             }
-            debug!(
+            trace!(
                 "Inserted into {} buckets, since it has duration {} and the bucket length is {}",
                 cnt,
                 interval.duration(),
@@ -307,6 +317,14 @@ impl Algorithm for PeriodIndex {
             size / (1024 * 1024),
             self.buckets.len()
         );
+
+        debug!(
+            "bucket starts {:?}",
+            self.buckets
+                .iter()
+                .map(|b| b.time_range.start)
+                .collect::<Vec<Time>>()
+        );
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
@@ -314,16 +332,11 @@ impl Algorithm for PeriodIndex {
             .range
             .map(|r| self.bucket_for(r))
             .unwrap_or_else(|| (0, self.buckets.len() - 1));
+        debug!("Loooking at buckets from {} to {}", start, end);
         for bucket in self.buckets[start..=end].iter() {
-            if query
-                .range
-                .map(|r| r.overlaps(&bucket.time_range))
-                .unwrap_or(true)
-            {
-                bucket.query(query, &mut |interval| {
-                    answer.push(*interval);
-                });
-            }
+            bucket.query(query, &mut |interval| {
+                answer.push(*interval);
+            });
         }
     }
 
@@ -359,27 +372,113 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_same_result_2() {
-    //     let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
-    //     let queries = RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get();
+    #[test]
+    fn test_crash() {
+        use std::collections::BTreeSet;
+        let data = RandomDataset::new(
+            123,
+            10000,
+            TimeDistribution::Uniform {
+                low: 1,
+                high: 100000,
+            },
+            TimeDistribution::Zipf {
+                n: 1000000,
+                beta: 1.0,
+            },
+        )
+        .get();
+        let queries = RandomQueryset::new(
+            23512,
+            5000,
+            Some((
+                TimeDistribution::Uniform {
+                    low: 1,
+                    high: 100000,
+                },
+                TimeDistribution::Zipf {
+                    n: 1000000,
+                    beta: 1.0,
+                },
+            )),
+            None,
+        )
+        .get();
 
-    //     let mut linear_scan = LinearScan::new();
-    //     linear_scan.index(&data);
-    //     let ls_result = linear_scan.run(&queries);
+        let mut linear_scan = LinearScan::new();
+        linear_scan.index(&data);
+        let ls_result = linear_scan.run(&queries);
 
-    //     let mut period_index = PeriodIndex::new(128, 4).unwrap();
-    //     period_index.index(&data);
-    //     let pi_result = period_index.run(&queries);
+        let mut period_index = PeriodIndex::new(128, 4).unwrap();
+        period_index.index(&data);
+        let pi_result = period_index.run(&queries);
 
-    //     for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
-    //     {
-    //         assert_eq!(
-    //             ls_ans.intervals(),
-    //             pi_ans.intervals(),
-    //             "query is {:?}",
-    //             queries[idx]
-    //         );
-    //     }
-    // }
+        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
+        {
+            let ls_ints: BTreeSet<Interval> = ls_ans.intervals().into_iter().collect();
+            let pq_ints: BTreeSet<Interval> = pi_ans.intervals().into_iter().collect();
+            assert_eq!(
+                ls_ints,
+                pq_ints,
+                "query is {:?}\n\nmissing intervals: {:?} over {}, maximum length {:?}",
+                queries[idx],
+                ls_ints.difference(&pq_ints).count(),
+                ls_ints.len(),
+                ls_ints.difference(&pq_ints).map(|int| int.duration()).max()
+            );
+        }
+    }
+
+    #[test]
+    fn test_crash_single() {
+        pretty_env_logger::init();
+        use std::collections::BTreeSet;
+        let mut data = RandomDataset::new(
+            123,
+            10000,
+            TimeDistribution::Uniform {
+                low: 1,
+                high: 10000,
+            },
+            TimeDistribution::Zipf {
+                n: 1000000,
+                beta: 1.0,
+            },
+        )
+        .get();
+        data.sort_unstable();
+        data.dedup();
+        let queries = vec![Query {
+            range: Some(Interval {
+                start: 8,
+                end: 32114,
+            }),
+            duration: None,
+        }];
+
+        // let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
+
+        let mut linear_scan = LinearScan::new();
+        linear_scan.index(&data);
+        let ls_result = linear_scan.run(&queries);
+
+        let mut period_index = PeriodIndex::new(128, 4).unwrap();
+        period_index.index(&data);
+        let pi_result = period_index.run(&queries);
+
+        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
+        {
+            let ls_ints: BTreeSet<Interval> = ls_ans.intervals().iter().copied().collect();
+            let pq_ints: BTreeSet<Interval> = pi_ans.intervals().iter().copied().collect();
+            assert!(
+                ls_ints == pq_ints,
+                "query is {:?}\nmissing intervals: {:?} over {}, maximum length {:?}\nfirst missing interval {:?}",
+                queries[idx],
+                ls_ints.difference(&pq_ints).count(),
+                ls_ints.len(),
+                ls_ints.difference(&pq_ints).map(|int| int.duration()).max(),
+                ls_ints.difference(&pq_ints).map(|int| format!("{:?} {}", int, int.duration())).take(10).collect::<Vec<String>>()
+            );
+        }
+    }
 }

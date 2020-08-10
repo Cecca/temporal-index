@@ -138,4 +138,55 @@ mod test {
             );
         }
     }
+
+    #[test]
+    fn test_same_result_btree3() {
+        let data = RandomDataset::new(
+            123,
+            10000,
+            TimeDistribution::Uniform {
+                low: 1,
+                high: 100000,
+            },
+            TimeDistribution::Zipf {
+                n: 1000000,
+                beta: 1.0,
+            },
+        )
+        .get();
+        let queries = RandomQueryset::new(
+            23512,
+            5000,
+            Some((
+                TimeDistribution::Uniform {
+                    low: 1,
+                    high: 100000,
+                },
+                TimeDistribution::Zipf {
+                    n: 1000000,
+                    beta: 1.0,
+                },
+            )),
+            None,
+        )
+        .get();
+
+        let mut linear_scan = LinearScan::new();
+        linear_scan.index(&data);
+        let ls_result = linear_scan.run(&queries);
+
+        let mut period_index = BTree::new();
+        period_index.index(&data);
+        let pi_result = period_index.run(&queries);
+
+        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
+        {
+            assert_eq!(
+                ls_ans.intervals(),
+                pi_ans.intervals(),
+                "query is {:?}",
+                queries[idx]
+            );
+        }
+    }
 }

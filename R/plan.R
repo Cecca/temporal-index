@@ -10,8 +10,13 @@ plan <- drake_plan(
     filter(
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-uniform-uniform",
+      hostname == "MBP-di-Matteo"
     ) %>%
     collect() %>%
+    mutate(date = parse_datetime(date)) %>%
+    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
+    slice(which.max(date)) %>%
+    ungroup() %>%
     separate(dataset_params, into=str_c("dataset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent")), convert = T) %>%
     separate(queryset_params, into=str_c("queryset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent", "min_duration", "max_duration")), convert = T) %>%
     mutate(
@@ -29,8 +34,13 @@ plan <- drake_plan(
     filter(
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-None",
+      hostname == "MBP-di-Matteo"
     ) %>%
     collect() %>%
+    mutate(date = parse_datetime(date)) %>%
+    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
+    slice(which.max(date)) %>%
+    ungroup() %>%
     separate(dataset_params, into=str_c("dataset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent")), convert = T) %>%
     separate(queryset_params, into=str_c("queryset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent", "min_duration", "max_duration")), convert = T) %>%
     mutate(
