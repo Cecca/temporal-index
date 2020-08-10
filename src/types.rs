@@ -1,4 +1,5 @@
 use deepsize::DeepSizeOf;
+use progress_logger::ProgressLogger;
 
 pub type Time = u32;
 
@@ -117,11 +118,17 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
 
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut result = Vec::with_capacity(queries.len());
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
         for query in queries.iter() {
             let mut query_result = QueryAnswer::builder(0);
             self.query(query, &mut query_result);
-            result.push(query_result.finalize())
+            result.push(query_result.finalize());
+            pl.update(1u64);
         }
+        pl.stop();
         result
     }
 

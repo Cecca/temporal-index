@@ -414,6 +414,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "progress-logger"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fc1b622ea80b70f845b3a977b78f5b1500395b46847b1e728572e4eef2a8385"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -632,6 +641,7 @@ dependencies = [
  "itertools",
  "log",
  "pretty_env_logger",
+ "progress-logger",
  "rand",
  "rand_xoshiro",
  "regex",
