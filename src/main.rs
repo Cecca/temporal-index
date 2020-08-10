@@ -77,7 +77,7 @@ fn main() -> Result<()> {
         let reporter = reporter::Reporter::new(conf_file_path, experiment.clone());
         if !cmdline.rerun {
             if let Some(sha) = reporter.already_run()? {
-                info!("parameter configuration already run: {}, skipping", sha);
+                info!("parameter configuration already run: {}, skipping", &sha[0..6]);
                 return Ok(());
             }
         }
