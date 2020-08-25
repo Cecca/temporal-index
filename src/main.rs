@@ -15,6 +15,8 @@ mod reporter;
 mod types;
 mod zipf;
 mod ebi;
+#[cfg(test)]
+mod test;
 
 use crate::configuration::*;
 use anyhow::Result;

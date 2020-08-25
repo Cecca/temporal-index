@@ -1,5 +1,7 @@
 /target
 
 /*.sqlite
+/*.sqlite.bak*
 .vscode
 .drake
+report.html

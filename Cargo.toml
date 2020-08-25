@@ -24,6 +24,9 @@ serde_yaml = "0.8"
 itertools = "0.9"
 deepsize = "0.1"
 
+[dev-dependencies]
+paste = "1.0"
+
 [build-dependencies]
 vergen = "3"
 
