@@ -166,7 +166,12 @@ impl Bucket {
         assert!(cnt > 0);
     }
 
-    fn query_range_duration<F: FnMut(&Interval)>(&self, range: Interval, duration: DurationRange, action: &mut F) {
+    fn query_range_duration<F: FnMut(&Interval)>(
+        &self,
+        range: Interval,
+        duration: DurationRange,
+        action: &mut F,
+    ) {
         let level_min = self.level_for(duration.max);
         let level_max = self.level_for(duration.min);
         debug_assert!(level_min <= level_max);
@@ -355,140 +360,5 @@ impl Algorithm for PeriodIndex {
         self.anchor_point = 0;
         self.bucket_length.take();
         self.n = 0;
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::dataset::*;
-    use crate::naive::*;
-
-    #[test]
-    fn test_same_result() {
-        let data = RandomDatasetZipfAndUniform::new(123, 10, 1.0, 1000).get();
-        let queries = RandomQueriesZipfAndUniform::new(1734, 10, 1.0, 1000, 0.5).get();
-
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
-
-        let mut period_index = PeriodIndex::new(128, 4).unwrap();
-        period_index.index(&data);
-        let pi_result = period_index.run(&queries);
-
-        for (ls_ans, pi_ans) in ls_result.into_iter().zip(pi_result.into_iter()) {
-            assert_eq!(ls_ans.intervals(), pi_ans.intervals());
-        }
-    }
-
-    #[test]
-    fn test_crash() {
-        use std::collections::BTreeSet;
-        let data = RandomDataset::new(
-            123,
-            10000,
-            TimeDistribution::Uniform {
-                low: 1,
-                high: 100000,
-            },
-            TimeDistribution::Zipf {
-                n: 1000000,
-                beta: 1.0,
-            },
-        )
-        .get();
-        let queries = RandomQueryset::new(
-            23512,
-            5000,
-            Some((
-                TimeDistribution::Uniform {
-                    low: 1,
-                    high: 100000,
-                },
-                TimeDistribution::Zipf {
-                    n: 1000000,
-                    beta: 1.0,
-                },
-            )),
-            None,
-        )
-        .get();
-
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
-
-        let mut period_index = PeriodIndex::new(128, 4).unwrap();
-        period_index.index(&data);
-        let pi_result = period_index.run(&queries);
-
-        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
-        {
-            let ls_ints: BTreeSet<Interval> = ls_ans.intervals().into_iter().collect();
-            let pq_ints: BTreeSet<Interval> = pi_ans.intervals().into_iter().collect();
-            assert_eq!(
-                ls_ints,
-                pq_ints,
-                "query is {:?}\n\nmissing intervals: {:?} over {}, maximum length {:?}",
-                queries[idx],
-                ls_ints.difference(&pq_ints).count(),
-                ls_ints.len(),
-                ls_ints.difference(&pq_ints).map(|int| int.duration()).max()
-            );
-        }
-    }
-
-    #[test]
-    fn test_crash_single() {
-        pretty_env_logger::init();
-        use std::collections::BTreeSet;
-        let mut data = RandomDataset::new(
-            123,
-            10000,
-            TimeDistribution::Uniform {
-                low: 1,
-                high: 10000,
-            },
-            TimeDistribution::Zipf {
-                n: 1000000,
-                beta: 1.0,
-            },
-        )
-        .get();
-        data.sort_unstable();
-        data.dedup();
-        let queries = vec![Query {
-            range: Some(Interval {
-                start: 8,
-                end: 32114,
-            }),
-            duration: None,
-        }];
-
-        // let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
-
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
-
-        let mut period_index = PeriodIndex::new(128, 4).unwrap();
-        period_index.index(&data);
-        let pi_result = period_index.run(&queries);
-
-        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
-        {
-            let ls_ints: BTreeSet<Interval> = ls_ans.intervals().iter().copied().collect();
-            let pq_ints: BTreeSet<Interval> = pi_ans.intervals().iter().copied().collect();
-            assert!(
-                ls_ints == pq_ints,
-                "query is {:?}\nmissing intervals: {:?} over {}, maximum length {:?}\nfirst missing interval {:?}",
-                queries[idx],
-                ls_ints.difference(&pq_ints).count(),
-                ls_ints.len(),
-                ls_ints.difference(&pq_ints).map(|int| int.duration()).max(),
-                ls_ints.difference(&pq_ints).map(|int| format!("{:?} {}", int, int.duration())).take(10).collect::<Vec<String>>()
-            );
-        }
     }
 }

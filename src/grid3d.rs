@@ -112,7 +112,8 @@ impl Algorithm for Grid3D {
         self.clear();
         self.n.replace(dataset.len());
         self.duration_ecdf = Self::ecdf(dataset.iter().map(|i| i.duration()));
-        self.bucket_size.replace(((dataset.len() / self.num_buckets as usize) as f64).ceil() as usize + 1);
+        self.bucket_size
+            .replace(((dataset.len() / self.num_buckets as usize) as f64).ceil() as usize + 1);
         let mut parts = Vec::new();
 
         for _ in 0..self.num_buckets {
@@ -132,7 +133,6 @@ impl Algorithm for Grid3D {
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
-
         match (query.range, query.duration) {
             (Some(_range), Some(duration)) => {
                 let indices = self.index_for_query(duration);
@@ -170,76 +170,5 @@ impl Algorithm for Grid3D {
         self.grid.clear();
         self.duration_ecdf.clear();
         self.n.take();
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::dataset::*;
-    use crate::naive::*;
-
-    #[test]
-    fn test_same_result_grid_small() {
-        let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 100).get();
-        let queries = vec![Query {
-            range: Some(Interval::new(18, 4)),
-            duration: Some(DurationRange::new(1, 1)),
-        }];
-
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
-
-        let mut index = Grid3D::new(4);
-        index.index(&data);
-        println!("{:?}", index);
-        let index_result = index.run(&queries);
-
-        for (ls_ans, i_ans) in ls_result.into_iter().zip(index_result.into_iter()) {
-            assert_eq!(ls_ans.intervals(), i_ans.intervals());
-        }
-    }
-
-    #[test]
-    fn test_same_result() {
-        let data = RandomDatasetZipfAndUniform::new(123, 1000000, 1.0, 1000).get();
-        let queries = RandomQueriesZipfAndUniform::new(1734, 10, 1.0, 1000, 0.5).get();
-
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
-
-        let mut period_index = Grid3D::new(4);
-        period_index.index(&data);
-        let pi_result = period_index.run(&queries);
-
-        for (ls_ans, pi_ans) in ls_result.into_iter().zip(pi_result.into_iter()) {
-            assert_eq!(ls_ans.intervals(), pi_ans.intervals());
-        }
-    }
-
-    #[test]
-    fn test_same_result_2() {
-        let data = RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get();
-        let queries = RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get();
-
-        let mut linear_scan = LinearScan::new();
-        linear_scan.index(&data);
-        let ls_result = linear_scan.run(&queries);
-
-        let mut period_index = Grid3D::new(4);
-        period_index.index(&data);
-        let pi_result = period_index.run(&queries);
-
-        for (idx, (ls_ans, pi_ans)) in ls_result.into_iter().zip(pi_result.into_iter()).enumerate()
-        {
-            assert_eq!(
-                ls_ans.intervals(),
-                pi_ans.intervals(),
-                "query is {:?}",
-                queries[idx]
-            );
-        }
     }
 }

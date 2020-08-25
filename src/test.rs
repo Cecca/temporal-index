@@ -2,6 +2,7 @@ use paste::paste;
 
 use crate::btree::BTree;
 use crate::dataset::*;
+use crate::ebi::EBIIndex;
 use crate::grid::Grid;
 use crate::grid3d::Grid3D;
 use crate::interval_tree::IntervalTree;
@@ -63,6 +64,12 @@ macro_rules! same_result {
             fn [<$name _interval_tree>]() {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(IntervalTree::new()));
+            }
+
+            #[test]
+            fn [<$name _ebi>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(EBIIndex::default()));
             }
         }
     )*
