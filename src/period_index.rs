@@ -202,6 +202,22 @@ impl Bucket {
             }
         }
     }
+
+    fn count_empty_cells(&self) -> usize {
+        self.cells
+            .iter()
+            .map(|level| {
+                level
+                    .iter()
+                    .filter(|cell| cell.intervals.is_empty())
+                    .count()
+            })
+            .sum()
+    }
+
+    fn count_cells(&self) -> usize {
+        self.cells.iter().map(|level| level.len()).sum()
+    }
 }
 
 #[derive(DeepSizeOf)]
@@ -310,11 +326,15 @@ impl Algorithm for PeriodIndex {
             );
         }
         let size = self.deep_size_of();
+        let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
+        let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
         info!(
-            "Allocated for index: {} bytes ({} Mb) - {} buckets",
+            "Allocated for index: {} bytes ({} Mb) - {} buckets ({}/{} empty cells)",
             size,
             size / (1024 * 1024),
-            self.buckets.len()
+            self.buckets.len(),
+            empty_cells,
+            num_cells
         );
 
         debug!(
