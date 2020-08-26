@@ -86,11 +86,11 @@ macro_rules! same_result {
                 run_test_same_result(data, queries, Box::new(IntervalTree::new()));
             }
 
-            #[test]
-            fn [<$name _ebi>]() {
-                let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(EBIIndex::default()));
-            }
+            // #[test]
+            // fn [<$name _ebi>]() {
+            //     let (data, queries) = &$value;
+            //     run_test_same_result(data, queries, Box::new(EBIIndex::default()));
+            // }
         }
     )*
     }
@@ -106,6 +106,20 @@ same_result! {
         RandomQueryset::new(12351, 100,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
+                            ).get(),
+    ),
+    rand_uniform_duration_only: (
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomQueryset::new(12351, 100,
+                            None,
+                            Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
+                            ).get(),
+    ),
+    rand_uniform_overlap_only: (
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomQueryset::new(12351, 100,
+                            Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
+                            None
                             ).get(),
     ),
 }

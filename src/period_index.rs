@@ -196,8 +196,7 @@ impl Bucket {
     fn query_duration<F: FnMut(&Interval)>(&self, duration: DurationRange, action: &mut F) {
         let level_min = self.level_for(duration.max);
         let level_max = self.level_for(duration.min);
-
-        for level in 0..self.cells[level_min..=level_max].len() {
+        for level in level_min..=level_max {
             for cell in self.cells[level].iter() {
                 cell.query_duration_only(&duration, action);
             }
@@ -269,7 +268,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        3
+        4
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -353,6 +352,7 @@ impl Algorithm for PeriodIndex {
         } else {
             end
         };
+        // TODO optimize unpacking of the queries
         for bucket in self.buckets[start..=end].iter() {
             bucket.query(query, &mut |interval| {
                 answer.push(*interval);
