@@ -14,6 +14,7 @@ use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
 fn run_test_same_result(data: &Vec<Interval>, queries: &Vec<Query>, mut algo: Box<dyn Algorithm>) {
+    // pretty_env_logger::init();
     let mut linear_scan = LinearScan::new();
     linear_scan.index(&data);
     let baseline = linear_scan.run(&queries);

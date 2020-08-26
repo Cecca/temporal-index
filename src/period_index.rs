@@ -215,7 +215,7 @@ impl Bucket {
             (None, Some(duration)) => {
                 self.query_duration(duration, action);
             }
-            (None, None) => unimplemented!("enumeration not supportedk"),
+            (None, None) => unimplemented!("enumeration not supported"),
         }
     }
 }
@@ -348,6 +348,11 @@ impl Algorithm for PeriodIndex {
             .map(|r| self.bucket_for(r))
             .unwrap_or_else(|| (0, self.buckets.len() - 1));
         debug!("Loooking at buckets from {} to {}", start, end);
+        let end = if end >= self.buckets.len() {
+            self.buckets.len() - 1
+        } else {
+            end
+        };
         for bucket in self.buckets[start..=end].iter() {
             bucket.query(query, &mut |interval| {
                 answer.push(*interval);
