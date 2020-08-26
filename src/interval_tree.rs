@@ -151,21 +151,17 @@ impl Algorithm for IntervalTree {
                 });
             }
         } else {
-            self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
-                let matches_duration = query
-                    .duration
-                    .as_ref()
-                    .map(|d| d.contains(&i))
-                    .unwrap_or(true);
-                let overlaps = query
-                    .range
-                    .as_ref()
-                    .map(|range| range.overlaps(&i))
-                    .unwrap_or(true);
-                if matches_duration && overlaps {
+            if let Some(duration_range) = query.duration {
+                self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
+                    if duration_range.contains(&i) {
+                        answers.push(i);
+                    }
+                })
+            } else {
+                self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
                     answers.push(i);
-                }
-            })
+                })
+            }
         }
     }
 
