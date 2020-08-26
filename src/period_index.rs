@@ -268,7 +268,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        4
+        5
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -352,11 +352,31 @@ impl Algorithm for PeriodIndex {
         } else {
             end
         };
-        // TODO optimize unpacking of the queries
-        for bucket in self.buckets[start..=end].iter() {
-            bucket.query(query, &mut |interval| {
-                answer.push(*interval);
-            });
+        match (query.range, query.duration) {
+            (Some(range), Some(duration)) => {
+                for bucket in self.buckets[start..=end].iter() {
+                    bucket.query_range_duration(range, duration, &mut |interval| {
+                        answer.push(*interval);
+                    });
+                }
+            }
+            (Some(range), None) => {
+                for bucket in self.buckets[start..=end].iter() {
+                    bucket.query_range(range, &mut |interval| {
+                        answer.push(*interval);
+                    });
+                }
+            }
+            (None, Some(duration)) => {
+                for bucket in self.buckets[start..=end].iter() {
+                    bucket.query_duration(duration, &mut |interval| {
+                        answer.push(*interval);
+                    });
+                }
+            }
+            (None, None) => {
+                unimplemented!("iteration not supported");
+            }
         }
     }
 
