@@ -202,21 +202,6 @@ impl Bucket {
             }
         }
     }
-
-    fn query<F: FnMut(&Interval)>(&self, query: &Query, action: &mut F) {
-        match (query.range, query.duration) {
-            (Some(range), Some(duration)) => {
-                self.query_range_duration(range, duration, action);
-            }
-            (Some(range), None) => {
-                self.query_range(range, action);
-            }
-            (None, Some(duration)) => {
-                self.query_duration(duration, action);
-            }
-            (None, None) => unimplemented!("enumeration not supported"),
-        }
-    }
 }
 
 #[derive(DeepSizeOf)]
