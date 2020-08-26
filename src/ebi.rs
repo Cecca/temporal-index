@@ -2,7 +2,7 @@ use crate::types::*;
 use deepsize::DeepSizeOf;
 use std::collections::BTreeMap;
 
-#[derive(DeepSizeOf)]
+#[derive(DeepSizeOf, Debug)]
 enum Endpoint {
     Start(Interval),
     End(Interval),
@@ -61,6 +61,11 @@ impl Algorithm for EBIIndex {
         }
     }
 
+    // FIXME: there is a bug in the query algorithm: intervals that strictly
+    // contain the query range do not appear in the scan:
+    //
+    //   query (5, 8)
+    //   missed: (2, 12)
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
@@ -74,7 +79,7 @@ impl Algorithm for EBIIndex {
                             }
                             Endpoint::End(interval) => {
                                 if interval.start < range.start
-                                    && range.start < interval.end
+                                    && range.overlaps(interval)
                                     && duration.contains(interval)
                                 {
                                     answers.push(*interval);

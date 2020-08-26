@@ -20,10 +20,10 @@ impl IntervalTree {
             // hence the current node is not the fork node and we have to
             // descend further
             if query.end <= node_ref.middle {
-                node_ref.overlapping_upper(query.start, action);
+                node_ref.overlapping_lower(query.end, action);
                 node = node_ref.left.as_ref();
             } else if node_ref.middle < query.start {
-                node_ref.overlapping_lower(query.end, action);
+                node_ref.overlapping_upper(query.start, action);
                 node = node_ref.right.as_ref();
             } else {
                 debug_assert!(query.contains(node_ref.middle));
@@ -261,27 +261,23 @@ impl Node {
 
     /// Finds the intervals in the upper list such that the given
     /// point is less than the end point of the intervals
-    fn overlapping_upper<F: FnMut(Interval)>(&self, point: Time, action: &mut F) {
+    fn overlapping_upper<F: FnMut(Interval)>(&self, query_start: Time, action: &mut F) {
         self.upper
             .iter()
-            .take_while(|interval| point < interval.end)
+            .take_while(|interval| query_start < interval.end)
             .for_each(|interval| {
-                if interval.contains(point) {
-                    action(*interval);
-                }
+                action(*interval);
             });
     }
 
     /// Finds the intervals in the lower list such that the given point is
     /// strictly greater than the start point of the intervals
-    fn overlapping_lower<F: FnMut(Interval)>(&self, point: Time, action: &mut F) {
+    fn overlapping_lower<F: FnMut(Interval)>(&self, query_end: Time, action: &mut F) {
         self.lower
             .iter()
-            .take_while(|interval| interval.start < point)
+            .take_while(|interval| interval.start < query_end)
             .for_each(|interval| {
-                if interval.contains(point) {
-                    action(*interval);
-                }
+                action(*interval);
             });
     }
 }
