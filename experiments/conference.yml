@@ -1,38 +1,38 @@
 # The purpose of this experiment is to replicate the workload tested in
 # the conference paper.
 ---
-datasets:
-  - Random:
-      seed: [123]
-      n: 
-        - 1000000
-      start_times: 
-        - Uniform: { low: 1, high: 1000 }
-      durations:
-        - Zipf: { n: 1000000, beta: 1 }
-queries:
-  - Random:
-      seed: [23512]
-      n: [5000]
-      range:
-        - Pair: [
-            Uniform: { low: 1, high: 1000 },
-            Zipf: { n: 1000000, beta: 1 }
-        ]
-      duration:
-        - Pair: [
-            Uniform: { low: 1, high: 100 },
-            Uniform: { low: 1, high: 100 },
-        ]
-algorithms:
-  - LinearScan
-  - BTree
-  - IntervalTree
-  - EBI
-  - Grid:
-      num_buckets: [16, 32, 64, 128]
-  - Grid3D:
-      num_buckets: [16, 32, 64, 128]
-  - PeriodIndex:
-      num_buckets: [16, 32, 64, 128]
-      num_levels: [4]
+- datasets:
+    - Random:
+        seed: [123]
+        n: 
+          - 1000000
+        start_times: 
+          - Uniform: { low: 1, high: 1000 }
+        durations:
+          - Zipf: { n: 1000000, beta: 1 }
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 1000 },
+              Zipf: { n: 1000000, beta: 1 }
+          ]
+        duration:
+          - Pair: [
+              Uniform: { low: 1, high: 100 },
+              Uniform: { low: 1, high: 100 },
+          ]
+  algorithms:
+    - LinearScan
+    - BTree
+    - IntervalTree
+    - EBI
+    - Grid:
+        num_buckets: [16, 32, 64, 128]
+    - Grid3D:
+        num_buckets: [16, 32, 64, 128]
+    - PeriodIndex:
+        num_buckets: [16, 32, 64, 128]
+        num_levels: [4]
