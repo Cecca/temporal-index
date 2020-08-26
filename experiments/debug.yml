@@ -1,18 +1,18 @@
 ---
-datasets:
+- datasets:
   - ZipfUniform:
       seed: [123]
       n: [1000000]
       exponent: [1]
       max_start_time: [1000]
-queries:
+  queries:
   - ZipfUniform:
       seed: [23512]
       n: [5000]
       exponent: [1]
       max_start_time: [1000]
       max_duration_factor: [2]
-algorithms:
+  algorithms:
   - BTree
   - Grid:
       num_buckets: [128]
