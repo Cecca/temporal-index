@@ -109,7 +109,7 @@ impl Algorithm for IntervalTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        1
+        2
     }
     fn index(&mut self, dataset: &[Interval]) {
         let mut intervals: Vec<Interval> = dataset.iter().copied().collect();
@@ -127,23 +127,29 @@ impl Algorithm for IntervalTree {
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         if let Some(range) = query.range {
-            self.query(range, &mut |i| {
-                debug_assert!(
-                    i.overlaps(&range),
-                    "interval: {:?}, query range: {:?}",
-                    i,
-                    range
-                );
-                // TODO: do the unwrapping once and for all
-                let matches_duration = query
-                    .duration
-                    .as_ref()
-                    .map(|d| d.contains(&i))
-                    .unwrap_or(true);
-                if matches_duration {
+            if let Some(duration_range) = query.duration {
+                self.query(range, &mut |i| {
+                    debug_assert!(
+                        i.overlaps(&range),
+                        "interval: {:?}, query range: {:?}",
+                        i,
+                        range
+                    );
+                    if duration_range.contains(&i) {
+                        answers.push(i);
+                    }
+                });
+            } else {
+                self.query(range, &mut |i| {
+                    debug_assert!(
+                        i.overlaps(&range),
+                        "interval: {:?}, query range: {:?}",
+                        i,
+                        range
+                    );
                     answers.push(i);
-                }
-            })
+                });
+            }
         } else {
             self.root.as_ref().unwrap().subtree_intervals(&mut |i| {
                 let matches_duration = query
