@@ -23,6 +23,7 @@ use crate::configuration::*;
 use anyhow::Result;
 use argh::FromArgs;
 use std::path::PathBuf;
+use sysinfo::{System, SystemExt};
 
 #[derive(FromArgs)]
 /// run experiments on temporal indices
@@ -40,9 +41,30 @@ struct Cmdline {
     experiment_file: PathBuf,
 }
 
+fn log_memory(system: &mut System) {
+    system.refresh_memory();
+    let swap = system.get_used_swap();
+    if swap > 0 {
+        warn!(
+            "memory used: {} kB, free: {} kB, swap: {} kB",
+            system.get_used_memory(),
+            system.get_free_memory(),
+            system.get_used_swap()
+        );
+    } else {
+        info!(
+            "memory used: {} kB, free: {} kB, swap: {} kB",
+            system.get_used_memory(),
+            system.get_free_memory(),
+            system.get_used_swap()
+        );
+    }
+}
+
 fn main() -> Result<()> {
     use std::time::*;
 
+    let mut system = System::new();
     pretty_env_logger::init();
     let cmdline: Cmdline = argh::from_env();
 
@@ -61,6 +83,7 @@ fn main() -> Result<()> {
 
     for configurations in configurations {
         configurations.for_each(|experiment| {
+            log_memory(&mut system);
             info!("{:-<60}", "");
             info!(
                 "{:>20} (v{}) {}",
