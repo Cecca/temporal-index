@@ -29,6 +29,7 @@
   algorithms:
     - LinearScan
     - BTree
+    - NestedBTree
     - IntervalTree
     - Grid:
         num_buckets: [16, 32, 64, 128]
@@ -72,6 +73,7 @@
   algorithms:
     - LinearScan
     - BTree
+    - NestedBTree
     - IntervalTree
     - Grid:
         num_buckets: [16, 32, 64, 128]
