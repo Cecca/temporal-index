@@ -224,6 +224,7 @@ impl Bucket {
 pub struct PeriodIndex {
     num_buckets: usize,
     num_levels: u32,
+    configured_num_levels: u32,
     anchor_point: Time,
     bucket_length: Option<Time>,
     n: usize,
@@ -241,6 +242,7 @@ impl PeriodIndex {
         Ok(Self {
             num_buckets,
             num_levels,
+            configured_num_levels: num_levels,
             anchor_point: 0,
             bucket_length: None,
             n: 0,
@@ -265,11 +267,11 @@ impl Algorithm for PeriodIndex {
     }
 
     fn parameters(&self) -> String {
-        format!("{},{}", self.num_buckets, self.num_levels)
+        format!("{},{}", self.num_buckets, self.configured_num_levels)
     }
 
     fn version(&self) -> u8 {
-        5
+        6
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -287,9 +289,11 @@ impl Algorithm for PeriodIndex {
         debug!("Anchor {}, endtime {}", anchor, endtime);
         self.bucket_length.replace(bucket_length);
 
-        if self.num_levels > ((bucket_length as f64).log2().floor() as u32) {
+        if self.configured_num_levels > ((bucket_length as f64).log2().floor() as u32) {
             warn!("the parameters `num_levels` is larger than the actual number of levels, not using it.");
             self.num_levels = (bucket_length as f64).log2().floor() as u32;
+        } else {
+            self.num_levels = self.configured_num_levels;
         }
 
         self.buckets.clear();

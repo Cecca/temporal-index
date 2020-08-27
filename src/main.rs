@@ -65,7 +65,9 @@ fn main() -> Result<()> {
     use std::time::*;
 
     let mut system = System::new();
-    pretty_env_logger::init();
+    pretty_env_logger::formatted_builder()
+        .filter_level(log::LevelFilter::Info)
+        .try_init()?;
     let cmdline: Cmdline = argh::from_env();
 
     reporter::db_setup()?;
