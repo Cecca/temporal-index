@@ -51,6 +51,7 @@ pub enum AlgorithmConfiguration {
     BTree,
     IntervalTree,
     EBI,
+    NestedBTree,
 }
 
 impl AlgorithmConfiguration {
@@ -89,6 +90,11 @@ impl AlgorithmConfiguration {
             }
             Self::BTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(btree::BTree::new()));
+                Box::new(Some(algo).into_iter())
+            }
+            Self::NestedBTree => {
+                let algo: Rc<RefCell<dyn Algorithm>> =
+                    Rc::new(RefCell::new(crate::nested_btree::NestedBTree::default()));
                 Box::new(Some(algo).into_iter())
             }
             Self::IntervalTree => {
@@ -170,7 +176,7 @@ impl GeneratorPairConfig {
     fn get(&self) -> Option<(TimeDistribution, TimeDistribution)> {
         match self {
             Self::Free => None,
-            Self::Pair(t1, t2) => Some((*t1, *t2))
+            Self::Pair(t1, t2) => Some((*t1, *t2)),
         }
     }
 }
@@ -222,7 +228,8 @@ impl QueryConfiguration {
                 duration,
             } => {
                 let iter = iproduct!(seed, n, range, duration).map(|(seed, n, range, duration)| {
-                    Rc::new(RandomQueryset::new(*seed, *n, range.get(), duration.get())) as Rc<dyn Queryset>
+                    Rc::new(RandomQueryset::new(*seed, *n, range.get(), duration.get()))
+                        as Rc<dyn Queryset>
                 });
                 Box::new(iter)
             }

@@ -7,6 +7,7 @@ use crate::grid::Grid;
 use crate::grid3d::Grid3D;
 use crate::interval_tree::IntervalTree;
 use crate::naive::LinearScan;
+use crate::nested_btree::NestedBTree;
 use crate::period_index::PeriodIndex;
 use crate::types::*;
 use itertools::Itertools;
@@ -86,6 +87,12 @@ macro_rules! same_result {
             fn [<$name _interval_tree>]() {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(IntervalTree::new()));
+            }
+
+            #[test]
+            fn [<$name _nested_btree>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(NestedBTree::default()));
             }
 
             // #[test]

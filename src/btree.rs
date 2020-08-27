@@ -48,6 +48,7 @@ impl Algorithm for BTree {
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         if let Some(duration_range) = query.duration {
+            // TODO Optimize unwrapping
             for (_duration, intervals) in self.data.range(duration_range.min..=duration_range.max) {
                 for interval in intervals {
                     debug_assert!(duration_range.contains(interval));
