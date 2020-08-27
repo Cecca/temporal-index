@@ -28,7 +28,7 @@ impl Algorithm for BTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        1
+        2
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.data.clear();
@@ -47,30 +47,37 @@ impl Algorithm for BTree {
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
-        if let Some(duration_range) = query.duration {
-            // TODO Optimize unwrapping
-            for (_duration, intervals) in self.data.range(duration_range.min..=duration_range.max) {
-                for interval in intervals {
-                    debug_assert!(duration_range.contains(interval));
-                    let overlaps = query
-                        .range
-                        .as_ref()
-                        .map(|range| range.overlaps(interval))
-                        .unwrap_or(true);
-                    if overlaps {
+        match (query.range, query.duration) {
+            (Some(range), Some(duration)) => {
+                for (_duration, intervals) in self.data.range(duration.min..=duration.max) {
+                    for interval in intervals {
+                        debug_assert!(duration.contains(interval));
+                        if range.overlaps(interval) {
+                            answers.push(*interval);
+                        }
+                    }
+                }
+            }
+            (Some(range), None) => {
+                for (_duration, intervals) in self.data.iter() {
+                    for interval in intervals {
+                        if range.overlaps(interval) {
+                            answers.push(*interval);
+                        }
+                    }
+                }
+            }
+            (None, Some(duration)) => {
+                for (_duration, intervals) in self.data.range(duration.min..=duration.max) {
+                    for interval in intervals {
+                        debug_assert!(duration.contains(interval));
                         answers.push(*interval);
                     }
                 }
             }
-        } else {
-            for (_duration, intervals) in self.data.iter() {
-                for interval in intervals {
-                    let overlaps = query
-                        .range
-                        .as_ref()
-                        .map(|range| range.overlaps(interval))
-                        .unwrap_or(true);
-                    if overlaps {
+            (None, None) => {
+                for (_duration, intervals) in self.data.iter() {
+                    for interval in intervals {
                         answers.push(*interval);
                     }
                 }
