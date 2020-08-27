@@ -20,10 +20,10 @@ fn run_test_same_result(data: &Vec<Interval>, queries: &Vec<Query>, mut algo: Bo
         .try_init();
     let mut linear_scan = LinearScan::new();
     linear_scan.index(&data);
-    let baseline = linear_scan.run(&queries);
+    let baseline = linear_scan.run_recording(&queries);
 
     algo.index(&data);
-    let algo_results = algo.run(&queries);
+    let algo_results = algo.run_recording(&queries);
 
     for (idx, (ls_ans, algo_ans)) in algo_results
         .into_iter()

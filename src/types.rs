@@ -62,7 +62,8 @@ pub struct Query {
 #[derive(Debug)]
 pub struct QueryAnswer {
     elapsed: std::time::Duration,
-    intervals: Vec<Interval>,
+    intervals: Option<Vec<Interval>>,
+    n_matches: u32,
 }
 
 impl QueryAnswer {
@@ -71,19 +72,24 @@ impl QueryAnswer {
     }
 
     pub fn num_matches(&self) -> u32 {
-        self.intervals.len() as u32
+        self.n_matches
     }
 
-    pub fn builder(expected: usize) -> QueryAnswerBuilder {
+    pub fn builder() -> QueryAnswerBuilder {
         QueryAnswerBuilder {
             start: std::time::Instant::now(),
-            intervals: Vec::with_capacity(expected),
+            intervals: None,
+            n_matches: 0,
         }
     }
 
     #[cfg(test)]
     pub fn intervals(&self) -> Vec<Interval> {
-        let mut res = self.intervals.clone();
+        let mut res = self
+            .intervals
+            .as_ref()
+            .expect("intervals not recorded")
+            .clone();
         res.sort();
         res
     }
@@ -91,18 +97,32 @@ impl QueryAnswer {
 
 pub struct QueryAnswerBuilder {
     start: std::time::Instant,
-    intervals: Vec<Interval>,
+    intervals: Option<Vec<Interval>>,
+    n_matches: u32,
 }
 
 impl QueryAnswerBuilder {
+    #[allow(dead_code)]
+    pub fn record_intervals(self) -> Self {
+        Self {
+            start: std::time::Instant::now(),
+            intervals: Some(Vec::new()),
+            n_matches: 0,
+        }
+    }
+
     pub fn push(&mut self, interval: Interval) {
-        self.intervals.push(interval);
+        if let Some(intervals) = self.intervals.as_mut() {
+            intervals.push(interval);
+        }
+        self.n_matches += 1;
     }
 
     pub fn finalize(self) -> QueryAnswer {
         QueryAnswer {
             elapsed: std::time::Instant::now() - self.start,
             intervals: self.intervals,
+            n_matches: self.n_matches,
         }
     }
 }
@@ -123,7 +143,24 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
             .with_items_name("queries")
             .start();
         for query in queries.iter() {
-            let mut query_result = QueryAnswer::builder(0);
+            let mut query_result = QueryAnswer::builder();
+            self.query(query, &mut query_result);
+            result.push(query_result.finalize());
+            pl.update(1u64);
+        }
+        pl.stop();
+        result
+    }
+
+    /// Run all the queries, and actually record the answered items
+    fn run_recording(&self, queries: &[Query]) -> Vec<QueryAnswer> {
+        let mut result = Vec::with_capacity(queries.len());
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+        for query in queries.iter() {
+            let mut query_result = QueryAnswer::builder().record_intervals();
             self.query(query, &mut query_result);
             result.push(query_result.finalize());
             pl.update(1u64);

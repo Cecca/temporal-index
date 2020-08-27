@@ -28,7 +28,7 @@ impl Algorithm for BTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        2
+        3
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.data.clear();

@@ -271,7 +271,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        6
+        7
     }
 
     fn index(&mut self, dataset: &[Interval]) {

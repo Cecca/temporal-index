@@ -60,7 +60,7 @@ impl Algorithm for NestedBTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        1
+        2
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();

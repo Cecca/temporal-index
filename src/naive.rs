@@ -29,7 +29,7 @@ impl Algorithm for LinearScan {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn index(&mut self, dataset: &[Interval]) {
