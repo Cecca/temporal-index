@@ -30,6 +30,7 @@
     - LinearScan
     - BTree
     - NestedBTree
+    - NestedVecs
     - IntervalTree
     - Grid:
         num_buckets: [16, 32, 64, 128]
@@ -74,6 +75,7 @@
     - LinearScan
     - BTree
     - NestedBTree
+    - NestedVecs
     - IntervalTree
     - Grid:
         num_buckets: [16, 32, 64, 128]
