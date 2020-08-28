@@ -10,7 +10,7 @@ plan <- drake_plan(
     filter(
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-uniform-uniform",
-      hostname == "MBP-di-Matteo"
+      hostname == "ironmaiden"
     ) %>%
     collect() %>%
     mutate(date = parse_datetime(date)) %>%
@@ -34,7 +34,7 @@ plan <- drake_plan(
     filter(
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-None",
-      hostname == "MBP-di-Matteo"
+      hostname == "ironmaiden"
     ) %>%
     collect() %>%
     mutate(date = parse_datetime(date)) %>%

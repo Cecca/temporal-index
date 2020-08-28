@@ -27,4 +27,4 @@
           - Free
 
   algorithms:
-    - NestedBTree
+    - NestedVecs

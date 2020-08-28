@@ -12,6 +12,7 @@ mod grid3d;
 mod interval_tree;
 mod naive;
 mod nested_btree;
+mod nested_vecs;
 mod period_index;
 mod reporter;
 #[cfg(test)]

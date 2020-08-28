@@ -52,6 +52,7 @@ pub enum AlgorithmConfiguration {
     IntervalTree,
     EBI,
     NestedBTree,
+    NestedVecs,
 }
 
 impl AlgorithmConfiguration {
@@ -95,6 +96,11 @@ impl AlgorithmConfiguration {
             Self::NestedBTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(crate::nested_btree::NestedBTree::default()));
+                Box::new(Some(algo).into_iter())
+            }
+            Self::NestedVecs => {
+                let algo: Rc<RefCell<dyn Algorithm>> =
+                    Rc::new(RefCell::new(crate::nested_vecs::NestedVecs::default()));
                 Box::new(Some(algo).into_iter())
             }
             Self::IntervalTree => {

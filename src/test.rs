@@ -8,6 +8,7 @@ use crate::grid3d::Grid3D;
 use crate::interval_tree::IntervalTree;
 use crate::naive::LinearScan;
 use crate::nested_btree::NestedBTree;
+use crate::nested_vecs::NestedVecs;
 use crate::period_index::PeriodIndex;
 use crate::types::*;
 use itertools::Itertools;
@@ -93,6 +94,12 @@ macro_rules! same_result {
             fn [<$name _nested_btree>]() {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(NestedBTree::default()));
+            }
+
+            #[test]
+            fn [<$name _nested_vecs>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(NestedVecs::default()));
             }
 
             // #[test]
