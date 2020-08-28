@@ -233,10 +233,15 @@ impl QueryConfiguration {
                 range,
                 duration,
             } => {
-                let iter = iproduct!(seed, n, range, duration).map(|(seed, n, range, duration)| {
-                    Rc::new(RandomQueryset::new(*seed, *n, range.get(), duration.get()))
-                        as Rc<dyn Queryset>
-                });
+                let iter = iproduct!(seed, n, range, duration).flat_map(
+                    |(seed, n, range, duration)| match (range.get(), duration.get()) {
+                        (None, None) => None,
+                        (range, duration) => {
+                            Some(Rc::new(RandomQueryset::new(*seed, *n, range, duration))
+                                as Rc<dyn Queryset>)
+                        }
+                    },
+                );
                 Box::new(iter)
             }
         }

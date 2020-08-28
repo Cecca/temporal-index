@@ -57,6 +57,33 @@ plan <- drake_plan(
     select(-time_query_ms, -time_index_ms)
     ,
 
+  data_duration_only = table_main(file_in("temporal-index-results.sqlite")) %>% 
+    filter(
+      dataset == "random-uniform-zipf",
+      queryset == "random-uniform-None-uniform",
+      hostname == "ironmaiden"
+    ) %>%
+    collect() %>%
+    mutate(date = parse_datetime(date)) %>%
+    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
+    slice(which.max(date)) %>%
+    ungroup() %>%
+    separate(dataset_params, into=str_c("dataset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent")), convert = T) %>%
+    separate(queryset_params, into=str_c("queryset_", c("seed", "n", "min_time", "max_time", "zipf_n", "exponent", "min_duration", "max_duration")), convert = T) %>%
+    mutate(
+      time_queries = set_units(time_query_ms, "ms"),
+      time_index = set_units(time_index_ms, "ms"),
+      total_time = time_index + time_queries,
+      algorithm_wpar = interaction(algorithm, algorithm_params),
+      algorithm_wpar = fct_reorder(algorithm_wpar, time_queries),
+      qps = queryset_n / set_units(time_queries, "s"),
+    ) %>%
+    filter(dataset_n == 1000000,
+           dataset_max_time == 100000,
+           queryset_max_time == 100000) %>%
+    select(-time_query_ms, -time_index_ms)
+    ,
+
   query_stats = tbl(conn, "query_stats") %>%
     collect() %>%
     inner_join(data %>% select(sha, dataset_n, dataset_max_time, algorithm, algorithm_wpar)) %>%
