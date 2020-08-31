@@ -109,7 +109,7 @@ impl Algorithm for IntervalTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        3
+        4
     }
     fn index(&mut self, dataset: &[Interval]) {
         let mut intervals: Vec<Interval> = dataset.iter().copied().collect();

@@ -67,8 +67,8 @@ pub struct QueryAnswer {
 }
 
 impl QueryAnswer {
-    pub fn elapsed_millis(&self) -> i64 {
-        self.elapsed.as_millis() as i64
+    pub fn elapsed_nanos(&self) -> i64 {
+        self.elapsed.as_nanos() as i64
     }
 
     pub fn num_matches(&self) -> u32 {

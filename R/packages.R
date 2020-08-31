@@ -8,4 +8,5 @@ suppressPackageStartupMessages({
     library(ggthemes)
     library(colorspace)
     library(assertthat)
+    library(ggridges)
 })

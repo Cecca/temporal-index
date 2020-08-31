@@ -43,7 +43,7 @@ impl Algorithm for EBIIndex {
         String::from("")
     }
     fn version(&self) -> u8 {
-        2
+        3
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();

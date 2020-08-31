@@ -106,7 +106,7 @@ impl Algorithm for Grid3D {
         format!("{}", self.num_buckets)
     }
     fn version(&self) -> u8 {
-        3
+        4
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();

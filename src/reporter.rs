@@ -1,5 +1,5 @@
-use crate::types::*;
 use crate::configuration::*;
+use crate::types::*;
 use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
@@ -130,18 +130,17 @@ impl Reporter {
             .context("error inserting into main table")?;
 
             let mut stmt = tx.prepare(
-                "INSERT INTO query_stats (sha, query_index, query_time_ms, query_count)
+                "INSERT INTO query_stats (sha, query_index, query_time_ns, query_count)
             VALUES (?1, ?2, ?3, ?4)",
             )?;
             for (i, ans) in answers.into_iter().enumerate() {
                 stmt.execute(params![
                     sha,
                     i as u32,
-                    ans.elapsed_millis(),
+                    ans.elapsed_nanos(),
                     ans.num_matches()
                 ])?;
             }
-
         }
 
         tx.commit()?;
@@ -306,7 +305,23 @@ pub fn db_setup() -> Result<()> {
 
         bump(&conn, 3)?;
     }
+    if version < 4 {
+        // Change the resolution of the clock to nanoseconds, dropping all the old
+        // results, which don't have a high enough resolution
+        conn.execute("DROP TABLE query_stats", NO_PARAMS)?;
+        conn.execute(
+            "CREATE TABLE query_stats (
+                sha               TEXT NOT NULL,
+                query_index       INT,
+                query_time_ns     INT64,
+                query_count       INT64,
+                FOREIGN KEY (sha) REFERENCES raw(sha)
+            )",
+            NO_PARAMS,
+        )?;
 
+        bump(&conn, 4)?;
+    }
 
     info!("database schema up tp date");
     Ok(())

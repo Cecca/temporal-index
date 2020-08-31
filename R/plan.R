@@ -5,6 +5,20 @@ table_main <- function(connection, path) {
   tbl(connection, "main")
 }
 
+table_query_stats <- function(connection, path, dataset_val, dataset_params_val, queryset_val, queryset_params_val) {
+  install_symbolic_unit("query")
+  stats <- tbl(connection, "query_stats")
+  main <- table_main(connection, path) %>%
+    select(sha, dataset, dataset_params, queryset, queryset_params, algorithm, algorithm_params) %>%
+    filter(dataset == dataset_val, dataset_params == dataset_params_val, 
+           queryset == queryset_val, queryset_params == queryset_params_val)
+  inner_join(main, stats) %>%
+    collect() %>%
+    mutate(query_time = set_units(query_time_ms, "ns"),
+           normalized_query_time = query_time / set_units(query_count, "query")) %>%
+    select(-query_time_ms)
+}
+
 plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
     filter(
@@ -28,12 +42,13 @@ plan <- drake_plan(
     select(-time_query_ms, -time_index_ms)
     ,
 
-  query_stats = tbl(conn, "query_stats") %>%
-    collect() %>%
-    inner_join(data %>% select(sha, dataset_n, dataset_max_time, algorithm, algorithm_wpar)) %>%
-    mutate(query_time = set_units(query_time_ms, "ms")) %>%
-    select(-query_time_ms)
-  ,
+  query_stats_both = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
+                                       dataset_val = "random-uniform-zipf",
+                                       dataset_params_val = "123:1000000_1:100000_1000000:1",
+                                       queryset_val = "random-uniform-zipf-uniform-uniform",
+                                       queryset_params_val = "23512:5000_1:100000_1000000:1_1:100_1:100"),
+
+  plot_distribution_both = query_stats_both %>% distribution_latency(),
 
   plot_one_million = data %>%
     filter(
@@ -73,19 +88,6 @@ plan <- drake_plan(
     ) %>%
     barchart_qps(),
 
-  query_plot = query_stats %>%
-    mutate(query_time = set_units(query_time, "us")) %>%
-    filter(query_count > 0) %>%
-    ggplot(aes(x=algorithm_wpar, y=query_time / query_count)) +
-    facet_grid(vars(dataset_max_time), 
-               vars(dataset_n), 
-               scales="free") +
-    # geom_point() +
-    geom_tufteboxplot() +
-    scale_y_unit() +
-    coord_flip() +
-    theme_bw()
-  ,
 
   report = rmarkdown::render(
     knitr_in("R/report.Rmd"),

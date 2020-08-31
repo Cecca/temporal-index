@@ -33,5 +33,22 @@ barchart_qps <- function(dataset) {
         )
 }
 
+distribution_latency <- function(dataset) {
+  # Assert that we are dealing with a single data and query configuration
+  assert_that(distinct(dataset, dataset) %>% nrow() == 1)
+  assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
+  assert_that(distinct(dataset, queryset) %>% nrow() == 1)
+  assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
+  
+  dataset %>%
+    mutate(algo_wpar = str_c(algorithm, algorithm_params, sep=".")) %>%
+    mutate(normalized_query_time = drop_units(normalized_query_time)) %>%
+    filter(query_count > 0) %>%
+    ggplot(aes(x=normalized_query_time, y=algo_wpar)) +
+    geom_density_ridges() + 
+    scale_x_log10()
+
+}
+
 
 
