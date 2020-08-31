@@ -133,7 +133,7 @@ with start time between 0 and 1000, with durations distributed according to a ZI
 with exponent 1.
 As a query workload, we draw intervals from the same distribution, with query durations
 ranging up to twice the length of the intervals.
-In particular, we consider one million intervals and 5000 queries.^[The experiments have beed run on the host `r readd(data_conference) %>% distinct(hostname) %>% pull()`]
+In particular, we consider one million intervals and 5000 queries.^[The experiments have beed run on the host `ironmaiden`]
 
 Before looking at the results, an observation is in order.
 With one million intervals with starting times distributed uniformly at random
@@ -165,10 +165,10 @@ Compared to the conference version, we have that the period index performs rathe
 
 To further investigate the behavior of the various indices under a different workload,
 we consider a dataset of one million intervals, with starting times uniformly distributed between
-0 and `r readd(data_one_million) %>% distinct(dataset_max_time) %>% pull()`.
+0 and 100000.
 Therefore we expect only 10 intervals to start at the same time, on average.
 Durations are distributed according to a zipf law with exponent 1.
-^[The experiments have beed run on the host `r readd(data_one_million) %>% distinct(hostname) %>% pull()`]
+^[The experiments have beed run on the host `ironmaiden`]
 Query intervals have the same characteristics, and the duration part of the query
 goes up to twice the duration of the interval.
 
@@ -199,3 +199,11 @@ readd(plot_range_only)
 
 The plot above meets the expectations, but the throughput looks a little bit too low.
 Further investigation is needed
+
+# Duration only queries [2020-08-29]
+
+My expectations here are for `BTree` to perform the best.
+
+```{r fig.fullwidth=TRUE, fig.widht=10}
+readd(plot_duration_only)
+```
