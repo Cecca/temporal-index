@@ -91,12 +91,12 @@
     - Random:
         seed: [123]
         n: 
-          - 1000000000
+          - 100000000
         start_times:
           - Uniform:
-              { low: 1, high: 1000000000 }
+              { low: 1, high: 100000000 }
         durations:
-          - Zipf: { n: 1000000000, beta: 1 }
+          - Zipf: { n: 100000000, beta: 1 }
 
   queries:
     - Random:
@@ -104,8 +104,8 @@
         n: [5000]
         range:
           - Pair: [
-              Uniform: { low: 1, high: 1000000000 },
-              Zipf: { n: 1000000000, beta: 1 }
+              Uniform: { low: 1, high: 100000000 },
+              Zipf: { n: 100000000, beta: 1 }
           ]
           - Free
         duration:
