@@ -121,11 +121,17 @@ impl Algorithm for Grid3D {
             parts.push(Vec::new());
         }
 
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(dataset.len() as u64)
+            .start();
         // TODO Instead of copying data, do it with sorting and slicing.
         for &interval in dataset {
             let idx = self.index_for(interval.duration());
             parts[idx].push(interval);
+            pl.update_light(1u64);
         }
+        pl.stop();
 
         for i in 0..parts.len() {
             self.grid[i].index(&parts[i]);

@@ -64,6 +64,10 @@ impl Algorithm for NestedBTree {
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(dataset.len() as u64)
+            .start();
         for interval in dataset {
             self.inner
                 .entry(interval.duration())
@@ -71,7 +75,9 @@ impl Algorithm for NestedBTree {
                 .entry(interval.start)
                 .and_modify(|c| *c += 1)
                 .or_insert(1);
+            pl.update_light(1u64);
         }
+        pl.stop();
         let size = self.deep_size_of();
         info!(
             "Allocated for index: {} bytes ({} Mb)",

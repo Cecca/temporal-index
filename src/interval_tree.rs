@@ -196,6 +196,10 @@ impl Node {
         let mut lower = Vec::new();
         let mut to_left = Vec::new();
         let mut to_right = Vec::new();
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(intervals.len() as u64)
+            .start();
         for &interval in intervals.into_iter() {
             // The end point is not part of the interval, hence we have to
             // put the interval in the left subtree it if is equal to the
@@ -214,7 +218,9 @@ impl Node {
                 upper.push(interval);
                 lower.push(interval);
             }
+            pl.update_light(1u64);
         }
+        pl.stop();
         lower.sort_by_key(|i| i.start);
         upper.sort_by_key(|i| -(i.end as i32));
 

@@ -135,10 +135,16 @@ impl Algorithm for Grid {
             self.grid.push(Vec::new());
         }
 
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(dataset.len() as u64)
+            .start();
         for &interval in dataset {
             let idx = self.index_for(interval);
             self.grid[row_major(idx, self.num_buckets)].push(interval);
+            pl.update_light(1u64);
         }
+        pl.stop();
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {

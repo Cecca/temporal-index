@@ -32,12 +32,18 @@ impl Algorithm for BTree {
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.data.clear();
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(dataset.len() as u64)
+            .start();
         for interval in dataset {
             self.data
                 .entry(interval.duration())
                 .or_insert_with(|| Vec::new())
                 .push(*interval);
+            pl.update_light(1u64);
         }
+        pl.stop();
         let size = self.deep_size_of();
         info!(
             "Allocated for index: {} bytes ({} Mb)",

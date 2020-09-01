@@ -308,6 +308,10 @@ impl Algorithm for PeriodIndex {
         }
         debug!("Created {} buckets", self.buckets.len());
 
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(dataset.len() as u64)
+            .start();
         for interval in dataset {
             let (start, end) = self.bucket_for(*interval);
             if interval.start == 9839 && interval.end == 9872 {
@@ -328,7 +332,9 @@ impl Algorithm for PeriodIndex {
                 interval.duration(),
                 bucket_length
             );
+            pl.update_light(1u64);
         }
+        pl.stop();
         let size = self.deep_size_of();
         let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
         let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
