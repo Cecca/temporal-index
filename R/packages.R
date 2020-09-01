@@ -9,4 +9,5 @@ suppressPackageStartupMessages({
     library(colorspace)
     library(assertthat)
     library(ggridges)
+    library(cowplot)
 })

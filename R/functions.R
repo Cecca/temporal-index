@@ -5,7 +5,7 @@ barchart_qps <- function(dataset) {
   assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
   assert_that(distinct(dataset, queryset) %>% nrow() == 1)
   assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
-  
+
   breaks <- pretty(pull(dataset, qps))
   dataset %>%
     mutate(algorithm_wpar = fct_reorder(algorithm_wpar, qps)) %>%
@@ -20,7 +20,8 @@ barchart_qps <- function(dataset) {
                 vjust=0.5,
                 nudge_y=10) +
         scale_y_unit(breaks=breaks) +
-        scale_fill_discrete_qualitative() +
+        # scale_fill_discrete_qualitative() +
+        scale_fill_algorithm() +
         coord_flip() +
         theme_tufte() +
         theme(
@@ -33,6 +34,71 @@ barchart_qps <- function(dataset) {
         )
 }
 
+distribution_normalized_latency <- function(dataset) {
+  # Assert that we are dealing with a single data and query configuration
+  assert_that(distinct(dataset, dataset) %>% nrow() == 1)
+  assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
+  assert_that(distinct(dataset, queryset) %>% nrow() == 1)
+  assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
+  
+  plotdata <- dataset %>%
+    mutate(algo_wpar = str_c(algorithm, algorithm_params, sep=".")) %>%
+    mutate(normalized_query_time = drop_units(normalized_query_time)) %>%
+    filter(query_count > 0, algorithm != "linear-scan")
+
+  support_data <- plotdata %>%
+    group_by(algorithm, algo_wpar) %>%
+    summarise(
+      m_normalized_time = median(normalized_query_time),
+      max_normalized_time = max(normalized_query_time),
+      iqr_normalized_time = IQR(normalized_query_time),
+      threshold = m_normalized_time + iqr_normalized_time*.75
+    ) %>%
+    ungroup() %>%
+    group_by(algorithm) %>%
+    slice(which.min(m_normalized_time)) %>%
+    ungroup()
+
+  outliers <- plotdata %>%
+    inner_join(support_data) %>%
+    filter(normalized_query_time > threshold)
+  
+  non_outliers <- plotdata %>%
+    inner_join(support_data) %>%
+    mutate(algorithm = fct_reorder(algorithm, desc(m_normalized_time))) %>%
+    filter(normalized_query_time <= threshold)
+
+  max_val <- non_outliers %>% pull(normalized_query_time) %>% max()
+
+  non_outliers %>%
+    ggplot(aes(x=normalized_query_time, y=algorithm, fill=algorithm)) +
+    geom_density_ridges(scale=.8, size=0.1,
+                        rel_min_height = 0.01) + 
+    geom_point(aes(x=m_normalized_time, y=algorithm),
+               shape=17,
+               size=1,
+               data=support_data) +
+    geom_text(aes(label=scales::number(m_normalized_time), x=m_normalized_time, y=algorithm),
+              nudge_y=-.1,
+              size=3,
+              data=support_data) +
+    geom_text(aes(label=scales::number(max_normalized_time, prefix="→ "), y=algorithm),
+              x=max_val,
+              nudge_y=.2,
+              size=3,
+              hjust=1,
+              data=support_data) +
+    scale_x_continuous(limits=c(0, NA), labels=scales::number_format()) +
+    scale_fill_algorithm() +
+    labs(y="algorithm",
+         x="normalized query time (ns/interval)",
+         title="Distribution of normalized query times") +
+    theme_tufte() +
+    theme(legend.pos="none",
+          panel.grid.major.y=element_line(color="lightgray", size=.2))
+
+}
+
 distribution_latency <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration
   assert_that(distinct(dataset, dataset) %>% nrow() == 1)
@@ -40,15 +106,75 @@ distribution_latency <- function(dataset) {
   assert_that(distinct(dataset, queryset) %>% nrow() == 1)
   assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
   
-  dataset %>%
-    mutate(algo_wpar = str_c(algorithm, algorithm_params, sep=".")) %>%
-    mutate(normalized_query_time = drop_units(normalized_query_time)) %>%
-    filter(query_count > 0) %>%
-    ggplot(aes(x=normalized_query_time, y=algo_wpar)) +
-    geom_density_ridges() + 
-    scale_x_log10()
+  plotdata <- dataset %>%
+    mutate(algo_wpar = str_c(algorithm, algorithm_params, sep="."),
+           query_time = drop_units(query_time)) %>%
+    filter(query_count > 0, algorithm != "linear-scan")
+
+  support_data <- plotdata %>%
+    group_by(algorithm, algo_wpar) %>%
+    summarise(
+      m_time = median(query_time),
+      max_time = max(query_time),
+      threshold = m_time + .75 * IQR(query_time)
+    ) %>%
+    ungroup() %>%
+    group_by(algorithm) %>%
+    slice(which.min(m_time)) %>%
+    ungroup()
+  
+  non_outliers <- plotdata %>%
+    inner_join(support_data) %>%
+    mutate(algorithm = fct_reorder(algorithm, desc(m_time))) %>%
+    filter(query_time <= threshold)
+
+  max_val <- non_outliers %>% pull(query_time) %>% max()
+
+  non_outliers %>%
+    ggplot(aes(x=query_time, y=algorithm, fill=algorithm)) +
+    geom_density_ridges(scale=.8, size=0.1,
+                        rel_min_height = 0.01) +
+    geom_point(aes(x=m_time, y=algorithm),
+               shape=17,
+               size=1,
+               data=support_data) +
+    geom_text(aes(label=scales::number(m_time), x=m_time, y=algorithm),
+              nudge_y=-.1,
+              size=3,
+              data=support_data) +
+    geom_text(aes(label=scales::number(max_time, prefix="→ "), y=algorithm),
+              x=max_val,
+              hjust=1,
+              nudge_y=.2,
+              size=3,
+              data=support_data) +
+    scale_x_continuous(limits=c(0, NA), labels=scales::number_format()) +
+    scale_fill_algorithm() +
+    labs(y="algorithm",
+         x="query time (ns)",
+         title="Distribution of query times") +
+    theme_tufte() +
+    theme(legend.pos="none",
+          panel.grid.major.y=element_line(color="lightgray", size=.2))
 
 }
+
+scale_fill_algorithm <- function() {
+  colors <- RColorBrewer::brewer.pal(n=8, name="Set2")
+  algorithms <- c(
+    "BTree",
+    "period-index",
+    "grid",
+    "grid3D",       
+    "interval-tree", 
+    "linear-scan",  
+    "NestedBTree",  
+    "NestedVecs"
+  )
+  names(colors) <- algorithms
+  scale_fill_manual(values=colors)
+}
+
 
 
 

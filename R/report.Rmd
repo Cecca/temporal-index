@@ -13,6 +13,8 @@ link-citations: yes
 knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 ```
 
+# Questions to be answered
+
 # The algorithms involved
 
 All the data structures are implemented in memory, using Rust `1.44.0-nightly`.
@@ -184,6 +186,14 @@ From the figure above, we see that, compared to the conference version, the rank
 The three dimensional grid is by far the best performing algorithm.
 Now the `PeriodIndex` performs better, but still not as well as the three dimensional grid or the `BTree`
 
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
+plot_grid(
+  readd(plot_latency_both),
+  readd(plot_normalized_latency_both)
+)
+```
+
+
 ## Future experiments
 
 - Implement the adaptive `PeriodIndex`, to see if it can outperform the three dimensional grid.
@@ -200,6 +210,13 @@ readd(plot_range_only)
 The plot above meets the expectations, but the throughput looks a little bit too low.
 Further investigation is needed
 
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
+plot_grid(
+  readd(plot_latency_range),
+  readd(plot_normalized_latency_range)
+)
+```
+
 # Duration only queries [2020-08-29]
 
 My expectations here are for `BTree` to perform the best.
@@ -207,3 +224,11 @@ My expectations here are for `BTree` to perform the best.
 ```{r fig.fullwidth=TRUE, fig.widht=10}
 readd(plot_duration_only)
 ```
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
+plot_grid(
+  readd(plot_latency_duration),
+  readd(plot_normalized_latency_duration)
+)
+```
+
