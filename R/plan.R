@@ -45,17 +45,17 @@ plan <- drake_plan(
 
   query_stats_both = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",
-                                       dataset_params_val = "123:1000000_1:100000_1000000:1",
+                                       dataset_params_val = "123:10000000_1:10000000_10000000:1",
                                        queryset_val = "random-uniform-zipf-uniform-uniform",
-                                       queryset_params_val = "23512:5000_1:100000_1000000:1_1:100_1:100"),
+                                       queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
   query_stats_range = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",
-                                       dataset_params_val = "123:1000000_1:100000_1000000:1",
+                                       dataset_params_val = "123:10000000_1:10000000_10000000:1",
                                        queryset_val = "random-uniform-zipf-None",
-                                       queryset_params_val = "23512:5000_1:100000_1000000:1_NA_NA"),
+                                       queryset_params_val = "23512:5000_1:10000000_10000000:1_NA_NA"),
   query_stats_duration = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",
-                                       dataset_params_val = "123:1000000_1:100000_1000000:1",
+                                       dataset_params_val = "123:10000000_1:10000000_10000000:1",
                                        queryset_val = "random-None-uniform-uniform",
                                        queryset_params_val = "23512:5000_NA_NA_1:100_1:100"),
 
@@ -71,11 +71,10 @@ plan <- drake_plan(
   plot_one_million = data %>%
     filter(
       dataset == "random-uniform-zipf",
-      queryset == "random-uniform-zipf-uniform-uniform"
+      queryset == "random-uniform-zipf-uniform-uniform",
+      dataset_params == "123:10000000_1:10000000_10000000:1",
+      queryset_params == "23512:5000_1:10000000_10000000:1_1:100_1:100"
     ) %>%
-    filter(dataset_n == 1000000,
-           dataset_max_time == 100000,
-           queryset_max_time == 100000) %>%
     mutate(algorithm_wpar = fct_reorder(algorithm_wpar, qps)) %>%
     barchart_qps(),
 
@@ -94,7 +93,9 @@ plan <- drake_plan(
     filter(
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-None",
-      hostname == "ironmaiden"
+      hostname == "ironmaiden",
+      dataset_params == "123:10000000_1:10000000_10000000:1",
+      queryset_params == "23512:5000_1:10000000_10000000:1_NA_NA"
     ) %>%
     barchart_qps(),
 
@@ -102,7 +103,9 @@ plan <- drake_plan(
     filter(
       dataset == "random-uniform-zipf",
       queryset == "random-None-uniform-uniform",
-      hostname == "ironmaiden"
+      hostname == "ironmaiden",
+      dataset_params == "123:10000000_1:10000000_10000000:1",
+      queryset_params == "23512:5000_NA_NA_1:100_1:100"
     ) %>%
     barchart_qps(),
 

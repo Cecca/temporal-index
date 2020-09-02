@@ -13,7 +13,11 @@ link-citations: yes
 knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 ```
 
-# Questions to be answered
+# Research questions
+
+1. What is the best algorithm in terms of throughput, for different query workloads?
+2. How robust are the algorithms to changes in the query workload? I.e., is the query time stable?
+3. How are query times distributed? 
 
 # The algorithms involved
 
@@ -52,6 +56,9 @@ being excluded from the interval.
     This data structure performs well on the _duration_ part of the query, while for
     pure range queries it is equivalent to a linear scan of the dataset.
 
+    Note that this data structure is *not* a `B+-tree`, so iteration over ranges is not
+    super efficient because there are no links between adjacent leaves.
+
 `Grid2D`
 
 :   An adaptive two-dimensional grid, which indexes intervals as if they were
@@ -70,13 +77,8 @@ being excluded from the interval.
                     |.................|
                     |.................|
                     |.................|
-                    |.................|
-                    |.................|
-                    |.................|
-                    |.................|
       +------------------------------+ Query, with
                     |                   swapped endpoints.
-                    |
                     |
                     |
                     +---------------------------------------+
@@ -115,6 +117,32 @@ being excluded from the interval.
     does not come for free.
 
     The data structure is parameterized by the number of buckets and the maximum number of levels within each bucket.
+
+`NestedBTree` and `NestedVecs`
+
+:   Both data structures are based on the same idea: intervals are partitioned by duration, with indexing in
+    place to be able to access the group of intervals with a given duration efficiently. Within each group,
+    intervals are indexed by their start time.^[End times can be omitted, since intervals in the same group
+    all share the same length.]
+    Both indices should allow for efficient range queries.
+
+    Querying works as follows. For a given range of durations to be queried, we select all the groups whose 
+    duration falls within the query range. Then, let $(s, e)$ be the time range use for the overlap part
+    of the query. On group associated with the duration $d$, we get all the start points $x$ such that
+    \[
+      s - d < x < e
+    \]
+
+    The two implementations use different means of answering the range queries. `NestedBTree` uses a `BTree`
+    to map duration to each subgroup. Each subgroup is then indexed with another `BTree on the starting`
+    times.
+    `NestedVecs` instead keeps all the starting times of intervals of the same duration in a sorted array.
+    These arrays are then arranged themselves in an array sorted by the duration of the group.
+    Queries are then answered by means of binary search.
+    This second implementation has the advantage of begin very cache efficient in the iteration within the
+    returned range, but has the drawback of not being implementable in an actual database.
+    We use it to see how fast this approach can potentially go.
+
 
 # Replicating the conference workload [2020-08-04]
 ^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.Furthermore, the change introduced the a separate parameterization of the duration of the query.]]

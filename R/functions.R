@@ -1,10 +1,7 @@
 
 barchart_qps <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration
-  assert_that(distinct(dataset, dataset) %>% nrow() == 1)
-  assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
-  assert_that(distinct(dataset, queryset) %>% nrow() == 1)
-  assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
+  plot_label <- build_plot_label(dataset)
 
   breaks <- pretty(pull(dataset, qps))
   dataset %>%
@@ -23,6 +20,7 @@ barchart_qps <- function(dataset) {
         # scale_fill_discrete_qualitative() +
         scale_fill_algorithm() +
         coord_flip() +
+        labs(caption=plot_label) +
         theme_tufte() +
         theme(
         panel.ontop = FALSE,
@@ -36,10 +34,7 @@ barchart_qps <- function(dataset) {
 
 distribution_normalized_latency <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration
-  assert_that(distinct(dataset, dataset) %>% nrow() == 1)
-  assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
-  assert_that(distinct(dataset, queryset) %>% nrow() == 1)
-  assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
+  plot_label <- build_plot_label(dataset)
   
   plotdata <- dataset %>%
     mutate(algo_wpar = str_c(algorithm, algorithm_params, sep=".")) %>%
@@ -92,7 +87,8 @@ distribution_normalized_latency <- function(dataset) {
     scale_fill_algorithm() +
     labs(y="algorithm",
          x="normalized query time (ns/interval)",
-         title="Distribution of normalized query times") +
+         title="Distribution of normalized query times",
+         caption=plot_label) +
     theme_tufte() +
     theme(legend.pos="none",
           panel.grid.major.y=element_line(color="lightgray", size=.2))
@@ -101,10 +97,7 @@ distribution_normalized_latency <- function(dataset) {
 
 distribution_latency <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration
-  assert_that(distinct(dataset, dataset) %>% nrow() == 1)
-  assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
-  assert_that(distinct(dataset, queryset) %>% nrow() == 1)
-  assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
+  plot_label <- build_plot_label(dataset)
   
   plotdata <- dataset %>%
     mutate(algo_wpar = str_c(algorithm, algorithm_params, sep="."),
@@ -142,7 +135,8 @@ distribution_latency <- function(dataset) {
               nudge_y=-.1,
               size=3,
               data=support_data) +
-    geom_text(aes(label=scales::number(max_time, prefix="→ "), y=algorithm),
+    geom_text(aes(label=scales::number(max_time, prefix="→ "), 
+                  y=algorithm),
               x=max_val,
               hjust=1,
               nudge_y=.2,
@@ -152,7 +146,8 @@ distribution_latency <- function(dataset) {
     scale_fill_algorithm() +
     labs(y="algorithm",
          x="query time (ns)",
-         title="Distribution of query times") +
+         title="Distribution of query times",
+         caption=plot_label) +
     theme_tufte() +
     theme(legend.pos="none",
           panel.grid.major.y=element_line(color="lightgray", size=.2))
@@ -175,6 +170,20 @@ scale_fill_algorithm <- function() {
   scale_fill_manual(values=colors)
 }
 
-
+build_plot_label <- function(dataset) {
+  assert_that(distinct(dataset, dataset) %>% nrow() == 1)
+  assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)
+  assert_that(distinct(dataset, queryset) %>% nrow() == 1)
+  assert_that(distinct(dataset, queryset_params) %>% nrow() == 1)
+  str_c(
+    dataset %>% distinct(dataset) %>% pull(),
+    " ",
+    dataset %>% distinct(dataset_params) %>% pull(),
+    "\n",
+    dataset %>% distinct(queryset) %>% pull(),
+    " ",
+    dataset %>% distinct(queryset_params) %>% pull()
+  )
+}
 
 
