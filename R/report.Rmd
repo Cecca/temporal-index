@@ -13,11 +13,17 @@ link-citations: yes
 knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 ```
 
+# TODO
+
+- [ ] Add parallelism
+- [ ] Implement adaptive period index
+
 # Research questions
 
 1. What is the best algorithm in terms of throughput, for different query workloads?
-2. How robust are the algorithms to changes in the query workload? I.e., is the query time stable?
-3. How are query times distributed? 
+1. How does the throughput change with the size of the dataset?
+1. How robust are the algorithms to changes in the query workload? I.e., is the query time stable?
+1. How are query times distributed? 
 
 # The algorithms involved
 
@@ -144,8 +150,108 @@ being excluded from the interval.
     We use it to see how fast this approach can potentially go.
 
 
-# Replicating the conference workload [2020-08-04]
-^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for.Furthermore, the change introduced the a separate parameterization of the duration of the query.]]
+## Range-duration queries
+
+We consider a dataset of $n=10\,000\,000$ intervals, with starting times uniformly distributed between
+0 and $n$.
+Durations are distributed according to a zipf law with exponent 1.
+^[The experiments have beed run on the host `ironmaiden`]
+
+The aim of this experiment is to test a workload where the overlap of intervals
+plays some role, unlike the workload used in the conference version of the paper (see the appendix).
+
+The following figure reports the throughput of each algorithm. Parameterized algorithms report
+several parameterizations.
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of ten million intervals."}
+readd(plot_one_million)
+```
+
+The `NestedVecs` data structure is by far the best performing, followed by the three dimensional grid.
+`NestedBTree` is quite a lot slower than its vector-based sibiling: using a linked structure apparently
+leaves quite a lot of performance on the table.
+All the other algorithms are in a completely different league, performing pretty similarly to one another
+(at least in terms of order of magnitude) and being one to two orders of magnitude slower than the leading
+group.
+
+In the next figure we consider the distribution of query times of the 5000 queries (left), for the best
+configuration of each algorithm. The algorithms are sorted by increasing median query time, which is reported
+below the little triangle. The number shown beside the small arrow is the $90$-th percentile query time.
+
+To take into account the fact that a query with many results requires some time just to iterate through the 
+output, we also consider the _normalized query time_, which is an _output sensitive_ measure: we divide
+the query time by the size of the output of the given query (right plot).
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
+plot_grid(
+  readd(plot_latency_both),
+  readd(plot_normalized_latency_both)
+)
+```
+
+Looking at both metrics the ranking between the algorithms does not really change.
+The interesting thing is that the ranking changes between this pair of figures and the previous
+one.
+Now `PeriodIndex` ranks second, with a median query time pretty close to the very fast
+`NestedVecs` data structure, whereas in terms of throughput it falls very far behind.
+This difference is explained by looking at the 90-th percentile of the query time, which shows how 
+`PeriodIndex` has and _extremely_ long tail: $10\%$ of the intervals have a query time that is
+two orders of magnitude slower than the median!
+
+
+## Range only queries 
+
+This is the same workload as before, with the duration part of the query omitted.
+My expectation here is for data structures that explicitly support range queries (all except linear scan and `BTree`) to perform well.
+
+```{r fig.fullwidth=TRUE, fig.widht=10}
+readd(plot_range_only)
+```
+
+The plot above meets the expectations, but the throughput is lower.
+The reason is explained by distribution plots below: 
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
+plot_grid(
+  readd(plot_latency_range),
+  readd(plot_normalized_latency_range)
+)
+```
+
+Looking at the normalized query time we see that it is actually slower than with the range-duration 
+workload: the reduced throughput is thus just a consequence of the larger size of the output.
+
+We also observe a phenomenon similar to the one observed in the previous section: the interval tree is
+the fastest to answer queries but its distribution has a very long tail, which hurts the throughput.
+
+What surprises me is the performance of `NestedVecs`, which I expected to be better. Apparently 
+doing several binary searches is detrimental for performance.
+
+## Duration only queries 
+
+Again, we have a similar workload here, but just with the duration part. The expectation now is
+to have `BTree` to perform really well.
+
+```{r fig.fullwidth=TRUE, fig.widht=10}
+readd(plot_duration_only)
+```
+
+The performance of `NestedVecs` is pretty similar.
+Curiously, the period index does not support well this workload.
+
+As for the distribution of query times we have that the top ranked algorithms have a pretty
+concentrated distribution.
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
+plot_grid(
+  readd(plot_latency_duration),
+  readd(plot_normalized_latency_duration)
+)
+```
+
+
+# Appendix
+## {-} Replicating the conference workload [2020-08-04]
 
 First of all, let's try to replicate the results of the 
 conference version of the paper [@DBLP:conf/ssd/BehrendDGSVRK19].
@@ -189,74 +295,3 @@ in blocks, irrespective of the parameterization. In order of decreasing performa
 This ranking, however, is in my opining severely influenced by the workload choice, and is too much in favor of indices that handle well the duration part of the query, which is the only one exhibiting selectivity in this case.
 
 Compared to the conference version, we have that the period index performs rather poorly. This might be due to some missing optimization in my code.
-
-# A different workload [2020-07-31]
-^[First entry on 2020-07-31, updated after changing the generation of datasets to remove deduplication, so that we actually get the distributions we asked for and the number of intervals we asked for. Furthermore, the change introduced the a separate parameterization of the duration of the query.]
-
-To further investigate the behavior of the various indices under a different workload,
-we consider a dataset of one million intervals, with starting times uniformly distributed between
-0 and 100000.
-Therefore we expect only 10 intervals to start at the same time, on average.
-Durations are distributed according to a zipf law with exponent 1.
-^[The experiments have beed run on the host `ironmaiden`]
-Query intervals have the same characteristics, and the duration part of the query
-goes up to twice the duration of the interval.
-
-The aim of this experiment is to test a workload where the overlap of intervals
-plays some role, unlike the workload used in the conference version of the paper.
-
-```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of one million intervals."}
-readd(plot_one_million)
-```
-
-From the figure above, we see that, compared to the conference version, the ranking is quite different, with the parameterization playing some role.
-
-The three dimensional grid is by far the best performing algorithm.
-Now the `PeriodIndex` performs better, but still not as well as the three dimensional grid or the `BTree`
-
-```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-plot_grid(
-  readd(plot_latency_both),
-  readd(plot_normalized_latency_both)
-)
-```
-
-
-## Future experiments
-
-- Implement the adaptive `PeriodIndex`, to see if it can outperform the three dimensional grid.
-- Add parallelism to the implementations. Both the grids and the period index can benefit from multicore parallelism.
-
-# Range only queries [2020-08-04]
-
-My expectation here is for data structures that explicitly support range queries (all except linear scan and `BTree`) to perform well.
-
-```{r fig.fullwidth=TRUE, fig.widht=10}
-readd(plot_range_only)
-```
-
-The plot above meets the expectations, but the throughput looks a little bit too low.
-Further investigation is needed
-
-```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-plot_grid(
-  readd(plot_latency_range),
-  readd(plot_normalized_latency_range)
-)
-```
-
-# Duration only queries [2020-08-29]
-
-My expectations here are for `BTree` to perform the best.
-
-```{r fig.fullwidth=TRUE, fig.widht=10}
-readd(plot_duration_only)
-```
-
-```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-plot_grid(
-  readd(plot_latency_duration),
-  readd(plot_normalized_latency_duration)
-)
-```
-

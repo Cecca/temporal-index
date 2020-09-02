@@ -46,6 +46,7 @@ distribution_normalized_latency <- function(dataset) {
     summarise(
       m_normalized_time = median(normalized_query_time),
       max_normalized_time = max(normalized_query_time),
+      normalized_time_90 = quantile(normalized_query_time, probs=c(.9)),
       iqr_normalized_time = IQR(normalized_query_time),
       threshold = m_normalized_time + iqr_normalized_time*.75
     ) %>%
@@ -77,7 +78,7 @@ distribution_normalized_latency <- function(dataset) {
               nudge_y=-.1,
               size=3,
               data=support_data) +
-    geom_text(aes(label=scales::number(max_normalized_time, prefix="→ "), y=algorithm),
+    geom_text(aes(label=scales::number(normalized_time_90, prefix="→ "), y=algorithm),
               x=max_val,
               nudge_y=.2,
               size=3,
@@ -109,6 +110,7 @@ distribution_latency <- function(dataset) {
     summarise(
       m_time = median(query_time),
       max_time = max(query_time),
+      time_90 = quantile(query_time, probs=c(.9)),
       threshold = m_time + .75 * IQR(query_time)
     ) %>%
     ungroup() %>%
@@ -135,7 +137,7 @@ distribution_latency <- function(dataset) {
               nudge_y=-.1,
               size=3,
               data=support_data) +
-    geom_text(aes(label=scales::number(max_time, prefix="→ "), 
+    geom_text(aes(label=scales::number(time_90, prefix="→ "), 
                   y=algorithm),
               x=max_val,
               hjust=1,
