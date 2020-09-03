@@ -130,15 +130,16 @@ impl Reporter {
             .context("error inserting into main table")?;
 
             let mut stmt = tx.prepare(
-                "INSERT INTO query_stats (sha, query_index, query_time_ns, query_count)
-            VALUES (?1, ?2, ?3, ?4)",
+                "INSERT INTO query_stats (sha, query_index, query_time_ns, query_count, query_examined)
+            VALUES (?1, ?2, ?3, ?4, ?5)",
             )?;
             for (i, ans) in answers.into_iter().enumerate() {
                 stmt.execute(params![
                     sha,
                     i as u32,
                     ans.elapsed_nanos(),
-                    ans.num_matches()
+                    ans.num_matches(),
+                    ans.num_examined(),
                 ])?;
             }
         }
@@ -164,6 +165,7 @@ pub fn get_hostname() -> Result<String> {
 }
 
 fn bump(conn: &Connection, ver: u32) -> Result<()> {
+    info!("Bumping database to version {}", ver);
     conn.pragma_update(None, "user_version", &ver)
         .context("error updating version")
 }
@@ -321,6 +323,23 @@ pub fn db_setup() -> Result<()> {
         )?;
 
         bump(&conn, 4)?;
+    }
+    if version < 5 {
+        // Also record the number of examined intervals
+        conn.execute("DROP TABLE query_stats", NO_PARAMS)?;
+        conn.execute(
+            "CREATE TABLE query_stats (
+                sha               TEXT NOT NULL,
+                query_index       INT,
+                query_time_ns     INT64,
+                query_count       INT64,
+                query_examined    INT64,
+                FOREIGN KEY (sha) REFERENCES raw(sha)
+            )",
+            NO_PARAMS,
+        )?;
+
+        bump(&conn, 5)?;
     }
 
     info!("database schema up tp date");

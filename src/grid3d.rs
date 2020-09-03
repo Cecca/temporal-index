@@ -106,7 +106,7 @@ impl Algorithm for Grid3D {
         format!("{}", self.num_buckets)
     }
     fn version(&self) -> u8 {
-        4
+        5
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
@@ -163,11 +163,14 @@ impl Algorithm for Grid3D {
                 }
             }
             (None, None) => {
+                let mut cnt = 0;
                 for grid in &self.grid {
                     grid.iter().for_each(|interval| {
+                        cnt += 1;
                         answers.push(interval);
                     })
                 }
+                answers.inc_examined(cnt);
             }
         }
     }

@@ -60,7 +60,7 @@ impl Algorithm for NestedBTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        3
+        4
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
@@ -89,6 +89,7 @@ impl Algorithm for NestedBTree {
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
+                let mut cnt = 0;
                 for (&d, tree) in self.inner.range(duration.min..=duration.max) {
                     let r_start = if range.start < d {
                         0
@@ -96,6 +97,7 @@ impl Algorithm for NestedBTree {
                         range.start - d + 1
                     };
                     for (&start, &count) in tree.range(r_start..range.end) {
+                        cnt += count as u32;
                         let interval = Interval::new(start, d);
                         debug_assert!(duration.contains(&interval));
                         debug_assert!(
@@ -111,8 +113,10 @@ impl Algorithm for NestedBTree {
                         }
                     }
                 }
+                answers.inc_examined(cnt);
             }
             (Some(range), None) => {
+                let mut cnt = 0;
                 for (&d, tree) in self.inner.iter() {
                     let start = if range.start < d {
                         0
@@ -120,6 +124,7 @@ impl Algorithm for NestedBTree {
                         range.start - d + 1
                     };
                     for (&start, &count) in tree.range(start..range.end) {
+                        cnt += count as u32;
                         let interval = Interval::new(start, d);
                         debug_assert!(range.overlaps(&interval));
                         for _ in 0..count {
@@ -127,11 +132,14 @@ impl Algorithm for NestedBTree {
                         }
                     }
                 }
+                answers.inc_examined(cnt);
             }
             (None, Some(duration)) => {
+                let mut cnt = 0;
                 for (&d, tree) in self.inner.range(duration.min..=duration.max) {
                     debug_assert!(duration.min <= d && d <= duration.max);
                     tree.iter().for_each(|(&start, &count)| {
+                        cnt += count as u32;
                         let interval = Interval::new(start, d);
                         debug_assert!(duration.contains(&interval));
                         for _ in 0..count {
@@ -139,6 +147,7 @@ impl Algorithm for NestedBTree {
                         }
                     });
                 }
+                answers.inc_examined(cnt);
             }
             (None, None) => todo!(),
         }

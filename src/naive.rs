@@ -29,7 +29,7 @@ impl Algorithm for LinearScan {
     }
 
     fn version(&self) -> u8 {
-        3
+        4
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -59,6 +59,7 @@ impl Algorithm for LinearScan {
                 answer.push(self.dataset[i]);
             }
         }
+        answer.inc_examined(self.dataset.len() as u32);
     }
 
     fn clear(&mut self) {

@@ -17,6 +17,9 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 
 - [ ] Add parallelism
 - [ ] Implement adaptive period index
+- [ ] Count the intervals touched by each query, to have an implementation-independent metric to compare the elements.
+      Then as a performance metric we can consider the number of intervals examined normalized by the output size,
+      with good algorithms having a ratio close to 1.
 
 # Research questions
 

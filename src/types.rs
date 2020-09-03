@@ -63,6 +63,7 @@ pub struct Query {
 pub struct QueryAnswer {
     elapsed: std::time::Duration,
     intervals: Option<Vec<Interval>>,
+    examined: u32,
     n_matches: u32,
 }
 
@@ -75,10 +76,15 @@ impl QueryAnswer {
         self.n_matches
     }
 
+    pub fn num_examined(&self) -> u32 {
+        self.examined
+    }
+
     pub fn builder() -> QueryAnswerBuilder {
         QueryAnswerBuilder {
             start: std::time::Instant::now(),
             intervals: None,
+            examined: 0,
             n_matches: 0,
         }
     }
@@ -98,6 +104,7 @@ impl QueryAnswer {
 pub struct QueryAnswerBuilder {
     start: std::time::Instant,
     intervals: Option<Vec<Interval>>,
+    examined: u32,
     n_matches: u32,
 }
 
@@ -107,8 +114,14 @@ impl QueryAnswerBuilder {
         Self {
             start: std::time::Instant::now(),
             intervals: Some(Vec::new()),
+            examined: 0,
             n_matches: 0,
         }
+    }
+
+    #[inline]
+    pub fn inc_examined(&mut self, cnt: u32) {
+        self.examined += cnt;
     }
 
     pub fn push(&mut self, interval: Interval) {
@@ -119,9 +132,16 @@ impl QueryAnswerBuilder {
     }
 
     pub fn finalize(self) -> QueryAnswer {
+        assert!(
+            self.examined >= self.n_matches,
+            "examined {}, matches {}",
+            self.examined,
+            self.n_matches
+        );
         QueryAnswer {
             elapsed: std::time::Instant::now() - self.start,
             intervals: self.intervals,
+            examined: self.examined,
             n_matches: self.n_matches,
         }
     }

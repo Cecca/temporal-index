@@ -28,7 +28,7 @@ impl Algorithm for BTree {
         String::new()
     }
     fn version(&self) -> u8 {
-        4
+        5
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.data.clear();
@@ -55,38 +55,50 @@ impl Algorithm for BTree {
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
+                let mut cnt = 0;
                 for (_duration, intervals) in self.data.range(duration.min..=duration.max) {
                     for interval in intervals {
+                        cnt += 1;
                         debug_assert!(duration.contains(interval));
                         if range.overlaps(interval) {
                             answers.push(*interval);
                         }
                     }
                 }
+                answers.inc_examined(cnt);
             }
             (Some(range), None) => {
+                let mut cnt = 0;
                 for (_duration, intervals) in self.data.iter() {
                     for interval in intervals {
+                        cnt += 1;
                         if range.overlaps(interval) {
                             answers.push(*interval);
                         }
                     }
                 }
+                answers.inc_examined(cnt);
             }
             (None, Some(duration)) => {
+                let mut cnt = 0;
                 for (_duration, intervals) in self.data.range(duration.min..=duration.max) {
                     for interval in intervals {
+                        cnt += 1;
                         debug_assert!(duration.contains(interval));
                         answers.push(*interval);
                     }
                 }
+                answers.inc_examined(cnt);
             }
             (None, None) => {
+                let mut cnt = 0;
                 for (_duration, intervals) in self.data.iter() {
                     for interval in intervals {
+                        cnt += 1;
                         answers.push(*interval);
                     }
                 }
+                answers.inc_examined(cnt);
             }
         }
     }

@@ -27,4 +27,14 @@
           - Free
 
   algorithms:
+    - BTree
+    - NestedBTree
     - NestedVecs
+    - IntervalTree
+    - Grid:
+        num_buckets: [16]
+    - Grid3D:
+        num_buckets: [16]
+    - PeriodIndex:
+        num_buckets: [16]
+        num_levels: [4]

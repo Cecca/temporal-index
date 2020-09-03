@@ -39,7 +39,7 @@ impl Algorithm for NestedVecs {
         String::new()
     }
     fn version(&self) -> u8 {
-        2
+        3
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
@@ -106,6 +106,7 @@ impl Algorithm for NestedVecs {
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
+                let mut cnt = 0u32;
                 let mut i = self
                     .durations
                     // there are no duplicates, so any match is unique
@@ -124,6 +125,7 @@ impl Algorithm for NestedVecs {
                             .binary_search_by_key(&search_start, |p| p.0)
                             .unwrap_or_else(|i| i);
                         for &(s, c) in &self.start_times[i][j..] {
+                            cnt += c as u32;
                             if s >= range.end {
                                 break;
                             }
@@ -139,8 +141,10 @@ impl Algorithm for NestedVecs {
 
                     i += 1;
                 }
+                answers.inc_examined(cnt);
             }
             (Some(range), None) => {
+                let mut cnt = 0u32;
                 let mut i = 0;
                 while i < self.durations.len() {
                     let d = self.durations[i];
@@ -153,6 +157,7 @@ impl Algorithm for NestedVecs {
                         .binary_search_by_key(&search_start, |p| p.0)
                         .unwrap_or_else(|i| i);
                     for &(s, c) in &self.start_times[i][j..] {
+                        cnt += c as u32;
                         if s >= range.end {
                             break;
                         }
@@ -167,8 +172,10 @@ impl Algorithm for NestedVecs {
 
                     i += 1;
                 }
+                answers.inc_examined(cnt);
             }
             (None, Some(duration)) => {
+                let mut cnt = 0u32;
                 let mut i = self
                     .durations
                     // there are no duplicates, so any match is unique
@@ -179,6 +186,7 @@ impl Algorithm for NestedVecs {
                     let d = self.durations[i];
                     if d >= duration.min {
                         for &(s, c) in &self.start_times[i] {
+                            cnt += c as u32;
                             let interval = Interval::new(s, d);
                             debug_assert!(duration.contains(&interval));
                             for _ in 0..c {
@@ -189,6 +197,7 @@ impl Algorithm for NestedVecs {
 
                     i += 1;
                 }
+                answers.inc_examined(cnt);
             }
             (None, None) => todo!(),
         }

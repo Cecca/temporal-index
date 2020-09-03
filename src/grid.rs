@@ -120,7 +120,7 @@ impl Algorithm for Grid {
         format!("{}", self.num_buckets)
     }
     fn version(&self) -> u8 {
-        4
+        5
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
@@ -150,6 +150,8 @@ impl Algorithm for Grid {
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         let grid_side = self.num_buckets;
 
+        let mut cnt = 0;
+
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
                 let (qi, qj) = self.index_for_query(range);
@@ -158,6 +160,7 @@ impl Algorithm for Grid {
                         self.grid[row_major((i, j), grid_side)]
                             .iter()
                             .for_each(|interval| {
+                                cnt += 1;
                                 let matches_duration = duration.contains(interval);
                                 let overlaps = range.overlaps(interval);
                                 if matches_duration && overlaps {
@@ -173,6 +176,7 @@ impl Algorithm for Grid {
                         self.grid[row_major((i, j), grid_side)]
                             .iter()
                             .for_each(|interval| {
+                                cnt += 1;
                                 let matches_duration = duration.contains(interval);
                                 if matches_duration {
                                     answers.push(*interval);
@@ -188,6 +192,7 @@ impl Algorithm for Grid {
                         self.grid[row_major((i, j), grid_side)]
                             .iter()
                             .for_each(|interval| {
+                                cnt += 1;
                                 let overlaps = range.overlaps(interval);
                                 if overlaps {
                                     answers.push(*interval);
@@ -202,12 +207,15 @@ impl Algorithm for Grid {
                         self.grid[row_major((i, j), grid_side)]
                             .iter()
                             .for_each(|interval| {
+                                cnt += 1;
                                 answers.push(*interval);
                             });
                     }
                 }
             }
         }
+
+        answers.inc_examined(cnt);
     }
 
     fn clear(&mut self) {

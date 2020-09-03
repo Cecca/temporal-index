@@ -37,8 +37,10 @@ impl Cell {
         range: Interval,
         duration: DurationRange,
         action: &mut F,
-    ) {
+    ) -> u32 {
+        let mut cnt = 0;
         for interval in &self.intervals {
+            cnt += 1;
             if duration.contains(interval) && range.overlaps(interval) {
                 // Check that this is the first occurrence, which happens if the cell starts
                 // before the interval. If the interval starts before the cell,
@@ -51,10 +53,13 @@ impl Cell {
                 }
             }
         }
+        cnt
     }
 
-    fn query_range_only<F: FnMut(&Interval)>(&self, range: Interval, action: &mut F) {
+    fn query_range_only<F: FnMut(&Interval)>(&self, range: Interval, action: &mut F) -> u32 {
+        let mut cnt = 0;
         for interval in &self.intervals {
+            cnt += 1;
             if range.overlaps(interval) {
                 // Check that this is the first occurrence, which happens if the cell starts
                 // before the interval. If the interval starts before the cell,
@@ -67,10 +72,17 @@ impl Cell {
                 }
             }
         }
+        cnt
     }
 
-    fn query_duration_only<F: FnMut(&Interval)>(&self, duration: &DurationRange, action: &mut F) {
+    fn query_duration_only<F: FnMut(&Interval)>(
+        &self,
+        duration: &DurationRange,
+        action: &mut F,
+    ) -> u32 {
+        let mut cnt = 0;
         for interval in &self.intervals {
+            cnt += 1;
             if duration.contains(interval) {
                 // Check that this is the first occurrence, which happens if the cell starts
                 // before the interval. If the interval starts before the cell,
@@ -81,6 +93,7 @@ impl Cell {
                 }
             }
         }
+        cnt
     }
 }
 
@@ -171,36 +184,42 @@ impl Bucket {
         range: Interval,
         duration: DurationRange,
         action: &mut F,
-    ) {
+    ) -> u32 {
         let level_min = self.level_for(duration.max);
         let level_max = self.level_for(duration.min);
         debug_assert!(level_min <= level_max);
 
+        let mut cnt = 0;
         for level in level_min..=level_max {
             let (start, end) = self.cells_for(level, range);
             for cell in self.cells[level][start..=end].iter() {
-                cell.query_range_duration(range, duration, action);
+                cnt += cell.query_range_duration(range, duration, action);
             }
         }
+        cnt
     }
 
-    fn query_range<F: FnMut(&Interval)>(&self, range: Interval, action: &mut F) {
+    fn query_range<F: FnMut(&Interval)>(&self, range: Interval, action: &mut F) -> u32 {
+        let mut cnt = 0;
         for level in 0..self.cells.len() {
             let (start, end) = self.cells_for(level, range);
             for cell in self.cells[level][start..=end].iter() {
-                cell.query_range_only(range, action);
+                cnt += cell.query_range_only(range, action);
             }
         }
+        cnt
     }
 
-    fn query_duration<F: FnMut(&Interval)>(&self, duration: DurationRange, action: &mut F) {
+    fn query_duration<F: FnMut(&Interval)>(&self, duration: DurationRange, action: &mut F) -> u32 {
         let level_min = self.level_for(duration.max);
         let level_max = self.level_for(duration.min);
+        let mut cnt = 0;
         for level in level_min..=level_max {
             for cell in self.cells[level].iter() {
-                cell.query_duration_only(&duration, action);
+                cnt += cell.query_duration_only(&duration, action);
             }
         }
+        cnt
     }
 
     fn count_empty_cells(&self) -> usize {
@@ -271,7 +290,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        8
+        9
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -370,23 +389,26 @@ impl Algorithm for PeriodIndex {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
                 for bucket in self.buckets[start..=end].iter() {
-                    bucket.query_range_duration(range, duration, &mut |interval| {
+                    let cnt = bucket.query_range_duration(range, duration, &mut |interval| {
                         answer.push(*interval);
                     });
+                    answer.inc_examined(cnt);
                 }
             }
             (Some(range), None) => {
                 for bucket in self.buckets[start..=end].iter() {
-                    bucket.query_range(range, &mut |interval| {
+                    let cnt = bucket.query_range(range, &mut |interval| {
                         answer.push(*interval);
                     });
+                    answer.inc_examined(cnt);
                 }
             }
             (None, Some(duration)) => {
                 for bucket in self.buckets[start..=end].iter() {
-                    bucket.query_duration(duration, &mut |interval| {
+                    let cnt = bucket.query_duration(duration, &mut |interval| {
                         answer.push(*interval);
                     });
+                    answer.inc_examined(cnt);
                 }
             }
             (None, None) => {
