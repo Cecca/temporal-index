@@ -103,6 +103,7 @@ struct Bucket {
     /// Two dimensional arrangement of cells: each level holds cells
     /// for intervals of different duration
     cells: Vec<Vec<Cell>>,
+    n: u32,
 }
 
 impl Bucket {
@@ -112,7 +113,7 @@ impl Bucket {
         let mut duration_range = DurationRange::new(duration, std::u32::MAX);
         let mut level_count = 0;
         while duration > 0 && level_count < num_levels {
-            debug!("level {}, duration range {:?}", level_count, duration_range);
+            trace!("level {}, duration range {:?}", level_count, duration_range);
             let mut level = Vec::new();
             let mut start = time_range.start;
             while start < time_range.end {
@@ -133,7 +134,11 @@ impl Bucket {
             cell.duration_range.min = 0;
         }
 
-        Self { time_range, cells }
+        Self {
+            time_range,
+            cells,
+            n: 0,
+        }
     }
 
     #[inline]
@@ -176,6 +181,7 @@ impl Bucket {
                 cnt += 1;
             }
         }
+        self.n += 1;
         assert!(cnt > 0);
     }
 
@@ -422,5 +428,159 @@ impl Algorithm for PeriodIndex {
         self.anchor_point = 0;
         self.bucket_length.take();
         self.n = 0;
+    }
+}
+
+#[derive(DeepSizeOf)]
+pub struct PeriodIndexStar {
+    /// Buckets wof different widths, sorted by their end times so that we can
+    /// make binary search for start times on them.
+    buckets: Vec<Bucket>,
+    num_buckets: usize,
+    num_levels: u32,
+    n: usize,
+}
+
+impl PeriodIndexStar {
+    pub fn new(num_buckets: usize, num_levels: u32) -> Result<Self> {
+        Ok(Self {
+            num_buckets,
+            num_levels,
+            n: 0,
+            buckets: Vec::new(),
+        })
+    }
+
+    fn first_bucket_for(&self, interval: &Interval) -> usize {
+        self.buckets
+            // Offset by one because we are comparing start with end times
+            .binary_search_by_key(&interval.start, |b| b.time_range.end - 1)
+            .unwrap_or_else(|i| i)
+    }
+}
+
+impl std::fmt::Debug for PeriodIndexStar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "period-index-*({}, {})",
+            self.num_buckets, self.num_levels
+        )
+    }
+}
+
+impl Algorithm for PeriodIndexStar {
+    fn name(&self) -> String {
+        String::from("period-index-*")
+    }
+
+    fn parameters(&self) -> String {
+        format!("{}-{}", self.num_buckets, self.num_levels)
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn index(&mut self, dataset: &[Interval]) {
+        self.clear();
+
+        let t_max = dataset
+            .iter()
+            .map(|interval| interval.end)
+            .max()
+            .expect("empty dataset");
+
+        let mut chronon_ecdf = vec![0; t_max as usize];
+
+        // compute the distribution function
+        for interval in dataset {
+            for chronon in
+                chronon_ecdf[(interval.start as usize)..(interval.end as usize)].iter_mut()
+            {
+                *chronon += 1u32;
+            }
+        }
+
+        // compute ecdf
+        for i in 1..chronon_ecdf.len() {
+            chronon_ecdf[i] += chronon_ecdf[i - 1];
+        }
+
+        let total = chronon_ecdf[chronon_ecdf.len() - 1];
+        let step = total / self.num_buckets as u32;
+        let mut threshold = step;
+        let mut prev_boundary = 0u32;
+
+        for (i, &count) in chronon_ecdf.iter().enumerate() {
+            if count > threshold {
+                let bucket = Bucket::new(
+                    Interval::new(prev_boundary, i as u32 - prev_boundary),
+                    self.num_levels,
+                );
+                trace!(
+                    "created bucket {:?} (d={})",
+                    bucket.time_range,
+                    bucket.time_range.duration()
+                );
+                prev_boundary = i as u32;
+                threshold += step;
+                self.buckets.push(bucket);
+            }
+        }
+
+        for interval in dataset {
+            let i = self.first_bucket_for(interval);
+            for bucket in self.buckets[i..].iter_mut() {
+                if !bucket.time_range.overlaps(interval) {
+                    break;
+                }
+                bucket.insert(*interval);
+            }
+        }
+    }
+
+    fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        match (query.range, query.duration) {
+            (Some(range), Some(duration)) => {
+                let start = self.first_bucket_for(&range);
+                for bucket in self.buckets[start..].iter() {
+                    if !bucket.time_range.overlaps(&range) {
+                        break;
+                    }
+                    let cnt = bucket.query_range_duration(range, duration, &mut |interval| {
+                        answer.push(*interval);
+                    });
+                    answer.inc_examined(cnt);
+                }
+            }
+            (Some(range), None) => {
+                let start = self.first_bucket_for(&range);
+                for bucket in self.buckets[start..].iter() {
+                    if !bucket.time_range.overlaps(&range) {
+                        break;
+                    }
+                    let cnt = bucket.query_range(range, &mut |interval| {
+                        answer.push(*interval);
+                    });
+                    answer.inc_examined(cnt);
+                }
+            }
+            (None, Some(duration)) => {
+                for bucket in self.buckets.iter() {
+                    let cnt = bucket.query_duration(duration, &mut |interval| {
+                        answer.push(*interval);
+                    });
+                    answer.inc_examined(cnt);
+                }
+            }
+            (None, None) => {
+                unimplemented!("iteration not supported");
+            }
+        }
+    }
+
+    fn clear(&mut self) {
+        self.buckets.clear()
     }
 }

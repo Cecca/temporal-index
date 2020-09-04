@@ -21,6 +21,12 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
       Then as a performance metric we can consider the number of intervals examined normalized by the output size,
       with good algorithms having a ratio close to 1.
 
+## Questions
+
+- [ ] Why don't we make the period index adaptive also on the duration? That way we 
+      can lift the assumption that durations are zipf distributed
+- [ ] Can we do without the replication of intervals?
+
 # Research questions
 
 1. What is the best algorithm in terms of throughput, for different query workloads?

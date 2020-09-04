@@ -28,10 +28,13 @@
           - Free
 
   algorithms:
-    - Grid3D:
-        num_buckets: [16]
-    - Grid:
-        num_buckets: [16]
+    - PeriodIndexStar:
+        num_buckets: [16, 32, 64, 128]
+        num_levels: [4,32]
+    # - Grid3D:
+    #     num_buckets: [16]
+    # - Grid:
+    #     num_buckets: [16]
     # - BTree
     # - NestedBTree
     # - NestedVecs

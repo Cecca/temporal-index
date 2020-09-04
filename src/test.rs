@@ -9,7 +9,7 @@ use crate::interval_tree::IntervalTree;
 use crate::naive::LinearScan;
 use crate::nested_btree::NestedBTree;
 use crate::nested_vecs::NestedVecs;
-use crate::period_index::PeriodIndex;
+use crate::period_index::{PeriodIndex, PeriodIndexStar};
 use crate::types::*;
 use itertools::Itertools;
 use std::collections::BTreeSet;
@@ -18,6 +18,7 @@ use std::iter::FromIterator;
 fn run_test_same_result(data: &Vec<Interval>, queries: &Vec<Query>, mut algo: Box<dyn Algorithm>) {
     let _ = pretty_env_logger::formatted_builder()
         .is_test(true)
+        .filter_level(log::LevelFilter::Debug)
         .try_init();
     let mut linear_scan = LinearScan::new();
     linear_scan.index(&data);
@@ -70,6 +71,12 @@ macro_rules! same_result {
             fn [<$name _period_index>]() {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(PeriodIndex::new(128, 4).unwrap()));
+            }
+
+            #[test]
+            fn [<$name _period_index_star>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(PeriodIndexStar::new(128, 4).unwrap()));
             }
 
             #[test]

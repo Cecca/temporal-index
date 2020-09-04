@@ -39,6 +39,9 @@
     - PeriodIndex:
         num_buckets: [16, 32, 64, 128]
         num_levels: [4]
+    - PeriodIndexStar:
+        num_buckets: [16, 32, 64, 128]
+        num_levels: [4,32]
 
 
 ## ==================================================================
@@ -85,6 +88,9 @@
     - PeriodIndex:
         num_buckets: [16, 32, 64, 128]
         num_levels: [4,32]
+    - PeriodIndexStar:
+        num_buckets: [16, 32, 64, 128]
+        num_levels: [4,32]
 
 # very large and sparse dataset
 - datasets:
@@ -125,6 +131,9 @@
     - Grid3D:
         num_buckets: [16, 32, 64, 128]
     - PeriodIndex:
+        num_buckets: [16, 32, 64, 128]
+        num_levels: [4,32]
+    - PeriodIndexStar:
         num_buckets: [16, 32, 64, 128]
         num_levels: [4,32]
 
