@@ -436,6 +436,8 @@ pub struct PeriodIndexStar {
     /// Buckets wof different widths, sorted by their end times so that we can
     /// make binary search for start times on them.
     buckets: Vec<Bucket>,
+    /// Vector of bucket endpoints to make the search faster, since it fits into a cache line
+    boundaries: Vec<u32>,
     num_buckets: usize,
     num_levels: u32,
     n: usize,
@@ -448,14 +450,21 @@ impl PeriodIndexStar {
             num_levels,
             n: 0,
             buckets: Vec::new(),
+            boundaries: Vec::new(),
         })
     }
 
     fn first_bucket_for(&self, interval: &Interval) -> usize {
-        self.buckets
-            // Offset by one because we are comparing start with end times
-            .binary_search_by_key(&interval.start, |b| b.time_range.end - 1)
-            .unwrap_or_else(|i| i)
+        // on small vectors, linear search is faster than
+        // binary search because of cache effects
+        let mut i = 0;
+        while i < self.boundaries.len() {
+            if self.boundaries[i] > interval.start {
+                return i;
+            }
+            i += 1;
+        }
+        self.boundaries.len() - 1
     }
 }
 
@@ -479,7 +488,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -525,6 +534,7 @@ impl Algorithm for PeriodIndexStar {
                 );
                 prev_boundary = i as u32;
                 threshold += step;
+                self.boundaries.push(bucket.time_range.end);
                 self.buckets.push(bucket);
             }
         }
@@ -581,6 +591,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn clear(&mut self) {
-        self.buckets.clear()
+        self.buckets.clear();
+        self.boundaries.clear();
     }
 }
