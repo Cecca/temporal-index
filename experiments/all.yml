@@ -131,9 +131,9 @@
     - Grid3D:
         num_buckets: [16, 32, 64, 128]
     - PeriodIndex:
-        num_buckets: [16, 32, 64, 128]
+        num_buckets: [1024, 2048, 4096]
         num_levels: [4,32]
     - PeriodIndexStar:
-        num_buckets: [16, 32, 64, 128]
+        num_buckets: [1024, 2048, 4096]
         num_levels: [4,32]
 
