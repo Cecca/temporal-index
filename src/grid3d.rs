@@ -147,15 +147,18 @@ impl Algorithm for Grid3D {
                 }
             }
             (None, Some(duration)) => {
+                let mut cnt = 0;
                 let indices = self.index_for_query(duration);
                 for grid in &self.grid[indices] {
                     grid.iter().for_each(|interval| {
+                        cnt += 1;
                         let matches_duration = duration.contains(&interval);
                         if matches_duration {
                             answers.push(interval);
                         }
                     })
                 }
+                answers.inc_examined(cnt);
             }
             (Some(_range), None) => {
                 for grid in &self.grid {

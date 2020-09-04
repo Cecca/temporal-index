@@ -19,6 +19,7 @@
               Uniform: { low: 1, high: 100000 },
               Zipf: { n: 1000000, beta: 1 }
           ]
+          - Free
         duration:
           - Pair: [
               Uniform: { low: 1, high: 100 },
@@ -27,14 +28,14 @@
           - Free
 
   algorithms:
-    - BTree
-    - NestedBTree
-    - NestedVecs
-    - IntervalTree
-    - Grid:
-        num_buckets: [16]
     - Grid3D:
         num_buckets: [16]
-    - PeriodIndex:
+    - Grid:
         num_buckets: [16]
-        num_levels: [4]
+    # - BTree
+    # - NestedBTree
+    # - NestedVecs
+    # - IntervalTree
+    # - PeriodIndex:
+    #     num_buckets: [16]
+    #     num_levels: [4]
