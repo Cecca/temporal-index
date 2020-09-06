@@ -15,7 +15,8 @@ table_query_stats <- function(connection, path, dataset_val, dataset_params_val,
   inner_join(main, stats) %>%
     collect() %>%
     mutate(query_time = set_units(query_time_ns, "ns"),
-           normalized_query_time = query_time / set_units(query_count, "interval")) %>%
+           normalized_query_time = query_time / set_units(query_count, "interval"),
+           query_overhead = query_examined / query_count) %>%
     select(-query_time_ns)
 }
 
@@ -23,7 +24,8 @@ plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
     filter(
       hostname == "ironmaiden",
-      algorithm != "ebi-index"
+      algorithm != "ebi-index",
+      algorithm != "period-index-*"
     ) %>%
     collect() %>%
     mutate(date = parse_datetime(date)) %>%
@@ -61,12 +63,15 @@ plan <- drake_plan(
 
   plot_latency_both = query_stats_both %>% distribution_latency(),
   plot_normalized_latency_both = query_stats_both %>% distribution_normalized_latency(),
+  plot_overhead_both = query_stats_both %>% distribution_overhead(),
 
   plot_latency_range = query_stats_range %>% distribution_latency(),
   plot_normalized_latency_range = query_stats_range %>% distribution_normalized_latency(),
+  plot_overhead_range = query_stats_range %>% distribution_overhead(),
 
   plot_latency_duration = query_stats_duration %>% distribution_latency(),
   plot_normalized_latency_duration = query_stats_duration %>% distribution_normalized_latency(),
+  plot_overhead_duration = query_stats_duration %>% distribution_overhead(),
 
   plot_one_million = data %>%
     filter(

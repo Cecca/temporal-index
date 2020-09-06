@@ -17,7 +17,8 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 
 - [ ] Add parallelism
 - [ ] Implement adaptive period index
-- [ ] Count the intervals touched by each query, to have an implementation-independent metric to compare the elements.
+- [x] Count the intervals touched by each query, to have an
+      implementation-independent metric to compare the elements.
       Then as a performance metric we can consider the number of intervals examined normalized by the output size,
       with good algorithms having a ratio close to 1.
 
@@ -26,6 +27,7 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 - [ ] Why don't we make the period index adaptive also on the duration? That way we 
       can lift the assumption that durations are zipf distributed
 - [ ] Can we do without the replication of intervals?
+- [ ] There seems to be a tradeoff with the number of buckets: more means fewer intervals analyzed but also more duplication.
 
 # Research questions
 
@@ -207,6 +209,9 @@ This difference is explained by looking at the 90-th percentile of the query tim
 `PeriodIndex` has and _extremely_ long tail: $10\%$ of the intervals have a query time that is
 two orders of magnitude slower than the median!
 
+```{r fig.fullwidth=TRUE, fig.widht=10, fig.height=3, fig.dpi=300, fig.caption="Ratio between number of intervals touched during a query and the output size of the query. Lower (i.e. 1) is better."}
+readd(plot_overhead_both)
+```
 
 ## Range only queries 
 
@@ -236,6 +241,10 @@ the fastest to answer queries but its distribution has a very long tail, which h
 What surprises me is the performance of `NestedVecs`, which I expected to be better. Apparently 
 doing several binary searches is detrimental for performance.
 
+```{r fig.fullwidth=TRUE, fig.widht=10, fig.height=3, fig.dpi=300, fig.caption="Ratio between number of intervals touched during a query and the output size of the query. Lower (i.e. 1) is better."}
+readd(plot_overhead_both)
+```
+
 ## Duration only queries 
 
 Again, we have a similar workload here, but just with the duration part. The expectation now is
@@ -256,6 +265,10 @@ plot_grid(
   readd(plot_latency_duration),
   readd(plot_normalized_latency_duration)
 )
+```
+
+```{r fig.fullwidth=TRUE, fig.widht=10, fig.height=3, fig.dpi=300, fig.caption="Ratio between number of intervals touched during a query and the output size of the query. Lower (i.e. 1) is better."}
+readd(plot_overhead_duration)
 ```
 
 

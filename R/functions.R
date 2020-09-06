@@ -156,6 +156,74 @@ distribution_latency <- function(dataset) {
 
 }
 
+distribution_overhead <- function(dataset) {
+  # Assert that we are dealing with a single data and query configuration
+  plot_label <- build_plot_label(dataset)
+  
+  plotdata <- dataset %>%
+    mutate(algo_wpar = str_c(algorithm, algorithm_params, sep="."),
+           query_time = drop_units(query_time)) %>%
+    filter(query_count > 0, algorithm != "linear-scan")
+
+  support_data <- plotdata %>%
+    group_by(algorithm, algo_wpar) %>%
+    summarise(
+      m_overhead = median(query_overhead),
+      max_overhead = max(query_overhead),
+      overhead_90 = quantile(query_overhead, probs=c(.9)),
+      threshold = m_overhead + .75 * IQR(query_overhead)
+    ) %>%
+    ungroup() %>%
+    group_by(algorithm) %>%
+    slice(which.min(m_overhead)) %>%
+    ungroup()
+
+  plotdata <- plotdata %>%
+    inner_join(support_data) %>%
+    mutate(algorithm = fct_reorder(algorithm, desc(m_overhead)))
+  
+  # non_outliers <- plotdata %>%
+  #   inner_join(support_data) %>%
+  #   mutate(algorithm = fct_reorder(algorithm, desc(m_overhead))) %>%
+  #   filter(query_overhead <= threshold)
+
+  max_val <- plotdata %>% pull(query_overhead) %>% max()
+
+  plotdata %>%
+    ggplot(aes(y=query_overhead, x=algorithm, fill=algorithm)) +
+    # geom_density_ridges(scale=.8, size=0.1,
+    #                     rel_min_height = 0.01) +
+    geom_boxplot(outlier.size=0.1) +
+    # geom_point(aes(x=m_overhead, y=algorithm),
+    #            shape=17,
+    #            size=1,
+    #            data=support_data) +
+    # geom_text(aes(label=scales::number(m_overhead), x=m_overhead, y=algorithm),
+    #           nudge_y=-.1,
+    #           size=3,
+    #           data=support_data) +
+    # geom_text(aes(label=scales::number(query_overhead, prefix="→ "), 
+    #               x=query_overhead,
+    #               y=algorithm),
+    #           data=plotdata %>% group_by(algorithm) %>% summarise(query_overhead=max(query_overhead)),
+    #           hjust=1,
+    #           nudge_y=.2,
+    #           size=3) +
+    scale_y_continuous(limits=c(1, NA), labels=scales::number_format()) +
+    scale_fill_algorithm() +
+    coord_flip() +
+    labs(x="algorithm",
+         y="query overhead",
+         title="Distribution of query overhead",
+         subtitle="Ratio between examined intervals and output intervals, per query",
+         caption=plot_label) +
+    theme_tufte() +
+    theme(legend.pos="none",
+          panel.grid.major.y=element_line(color="lightgray", size=.2))
+
+}
+
+
 scale_fill_algorithm <- function() {
   colors <- RColorBrewer::brewer.pal(n=8, name="Set2")
   algorithms <- c(
