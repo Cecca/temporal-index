@@ -14,6 +14,7 @@ mod naive;
 mod nested_btree;
 mod nested_vecs;
 mod period_index;
+mod period_index_plusplus;
 mod reporter;
 #[cfg(test)]
 mod test;

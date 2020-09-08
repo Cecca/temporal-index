@@ -2,7 +2,6 @@ use paste::paste;
 
 use crate::btree::BTree;
 use crate::dataset::*;
-use crate::ebi::EBIIndex;
 use crate::grid::Grid;
 use crate::grid3d::Grid3D;
 use crate::interval_tree::IntervalTree;
@@ -10,6 +9,7 @@ use crate::naive::LinearScan;
 use crate::nested_btree::NestedBTree;
 use crate::nested_vecs::NestedVecs;
 use crate::period_index::{PeriodIndex, PeriodIndexStar};
+use crate::period_index_plusplus::PeriodIndexPlusPlus;
 use crate::types::*;
 use itertools::Itertools;
 use std::collections::BTreeSet;
@@ -107,6 +107,12 @@ macro_rules! same_result {
             fn [<$name _nested_vecs>]() {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(NestedVecs::default()));
+            }
+
+            #[test]
+            fn [<$name _period_index_plusplus>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(2)));
             }
 
             // #[test]
