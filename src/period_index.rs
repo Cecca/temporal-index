@@ -438,15 +438,15 @@ pub struct PeriodIndexStar {
     buckets: Vec<Bucket>,
     /// Vector of bucket endpoints to make the search faster, since it fits into a cache line
     boundaries: Vec<u32>,
-    intervals_per_bucket: u32,
+    num_buckets: u32,
     num_levels: u32,
     n: usize,
 }
 
 impl PeriodIndexStar {
-    pub fn new(intervals_per_bucket: u32, num_levels: u32) -> Result<Self> {
+    pub fn new(num_buckets: u32, num_levels: u32) -> Result<Self> {
         Ok(Self {
-            intervals_per_bucket,
+            num_buckets,
             num_levels,
             n: 0,
             buckets: Vec::new(),
@@ -473,7 +473,7 @@ impl std::fmt::Debug for PeriodIndexStar {
         write!(
             f,
             "period-index-*({}, {})",
-            self.intervals_per_bucket, self.num_levels
+            self.num_buckets, self.num_levels
         )
     }
 }
@@ -484,123 +484,60 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn parameters(&self) -> String {
-        format!("{}-{}", self.intervals_per_bucket, self.num_levels)
+        format!("{}-{}", self.num_buckets, self.num_levels)
     }
 
     fn version(&self) -> u8 {
-        3
+        4
     }
 
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
 
-        let t_max = dataset
-            .iter()
-            .map(|interval| interval.end)
-            .max()
-            .expect("empty dataset");
+        let start_times_ecdf: Vec<u32> = ecdf(dataset.iter().map(|interval| interval.start));
+        let max_time = dataset.iter().map(|interval| interval.end).max().unwrap();
 
-        let mut distribution = vec![0; t_max as usize];
-
-        let mut pl = progress_logger::ProgressLogger::builder()
-            .with_expected_updates(dataset.len() as u64)
-            .with_items_name("intervals")
-            .start();
-        // compute the distribution function: how many intervals are active
-        // at any given chronon?
-        for interval in dataset {
-            for chronon in
-                distribution[(interval.start as usize)..(interval.end as usize)].iter_mut()
-            {
-                *chronon += 1u32;
-            }
-            pl.update_light(1u64);
-        }
-        pl.stop();
-
-        let mut pl = progress_logger::ProgressLogger::builder()
-            .with_expected_updates(dataset.len() as u64)
-            .with_items_name("chronons")
-            .start();
-        let mut last_break_time = 0u32;
-        let mut current_intervals = 0i32;
-        for (i, &count) in distribution.iter().enumerate() {
-            let delta = count as i32 - current_intervals;
-            current_intervals = current_intervals + delta;
-            if current_intervals > self.intervals_per_bucket {
+        let step = dataset.len() as u32 / self.num_buckets;
+        let mut count_threshold = step;
+        let mut last_time = 0;
+        for (time, &count) in start_times_ecdf.iter().enumerate() {
+            let time = time as u32;
+            if count >= count_threshold {
                 let bucket = Bucket::new(
                     Interval {
-                        start: last_break_time,
-                        end: i as u32,
+                        start: last_time,
+                        end: time,
                     },
                     self.num_levels,
                 );
-                pl.update_light(bucket.time_range.duration() as u64);
-                info!(
-                    "created bucket {:?} (d={}) that will contain {} intervals",
-                    bucket.time_range,
-                    bucket.time_range.duration(),
-                    count
-                );
                 self.boundaries.push(bucket.time_range.end);
                 self.buckets.push(bucket);
-                last_break_time = i as u32;
+                last_time = time;
+                count_threshold += step;
             }
-
-            // if count > self.intervals_per_bucket {
-            //     let bucket = Bucket::new(
-            //         Interval {
-            //             start: last_break_time,
-            //             end: i as u32,
-            //         },
-            //         self.num_levels,
-            //     );
-            //     pl.update_light(bucket.time_range.duration() as u64);
-            //     info!(
-            //         "created bucket {:?} (d={}) that will contain {} intervals",
-            //         bucket.time_range,
-            //         bucket.time_range.duration(),
-            //         count
-            //     );
-            //     self.boundaries.push(bucket.time_range.end);
-            //     self.buckets.push(bucket);
-            //     last_break_time = i as u32;
-            // }
         }
-        // Now push the last bucket
-        // if last_break_time < *distribution.last().unwrap() {
-        //     let bucket = Bucket::new(
-        //         Interval {
-        //             start: last_break_time,
-        //             end: distribution.len() as u32,
-        //         },
-        //         self.num_levels,
-        //     );
-        //     debug!(
-        //         "created bucket {:?} (d={})",
-        //         bucket.time_range,
-        //         bucket.time_range.duration()
-        //     );
-        //     self.boundaries.push(bucket.time_range.end);
-        //     self.buckets.push(bucket);
-        // }
-        pl.stop();
-
-        info!("created {} buckets", self.buckets.len());
+        // push the last bucket
+        let bucket = Bucket::new(
+            Interval {
+                start: last_time,
+                end: max_time,
+            },
+            self.num_levels,
+        );
+        self.boundaries.push(bucket.time_range.end);
+        self.buckets.push(bucket);
 
         let mut pl = progress_logger::ProgressLogger::builder()
-            .with_expected_updates(dataset.len() as u64)
             .with_items_name("intervals")
+            .with_expected_updates(dataset.len() as u64)
             .start();
         for interval in dataset {
-            let i = self.first_bucket_for(interval);
-            for bucket in self.buckets[i..].iter_mut() {
-                if !bucket.time_range.overlaps(interval) {
-                    break;
-                }
-                bucket.insert(*interval);
+            let mut idx = self.first_bucket_for(interval);
+            while idx < self.buckets.len() && self.buckets[idx].time_range.overlaps(interval) {
+                self.buckets[idx].insert(*interval);
+                idx += 1;
             }
-            pl.update(1u64);
+            pl.update_light(1u64);
         }
         pl.stop();
 
@@ -657,4 +594,28 @@ impl Algorithm for PeriodIndexStar {
         self.buckets.clear();
         self.boundaries.clear();
     }
+}
+
+fn ecdf<I: IntoIterator<Item = Time>>(times: I) -> Vec<u32> {
+    let mut ecdf = Vec::new();
+    let mut n = 0;
+    for t in times {
+        if t as usize >= ecdf.len() {
+            ecdf.resize(t as usize + 1, 0);
+        }
+        ecdf[t as usize] += 1u32;
+        n += 1;
+    }
+    let mut cumulative_count = 0u32;
+    for count in ecdf.iter_mut() {
+        cumulative_count += *count;
+        *count = cumulative_count;
+    }
+    assert!(
+        n == cumulative_count,
+        "n is {}, while the cumulative count is {}",
+        n,
+        cumulative_count
+    );
+    ecdf
 }
