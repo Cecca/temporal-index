@@ -168,54 +168,38 @@ distribution_overhead <- function(dataset) {
   support_data <- plotdata %>%
     group_by(algorithm, algo_wpar) %>%
     summarise(
-      m_overhead = median(query_overhead),
-      max_overhead = max(query_overhead),
-      overhead_90 = quantile(query_overhead, probs=c(.9)),
-      threshold = m_overhead + .75 * IQR(query_overhead)
+      m_precision = median(precision),
+      max_precision = max(precision),
+      precision_90 = quantile(precision, probs=c(.9)),
+      threshold = m_precision + .75 * IQR(precision)
     ) %>%
     ungroup() %>%
     group_by(algorithm) %>%
-    slice(which.min(m_overhead)) %>%
+    slice(which.min(m_precision)) %>%
     ungroup()
 
   plotdata <- plotdata %>%
     inner_join(support_data) %>%
-    mutate(algorithm = fct_reorder(algorithm, desc(m_overhead)))
-  
-  # non_outliers <- plotdata %>%
-  #   inner_join(support_data) %>%
-  #   mutate(algorithm = fct_reorder(algorithm, desc(m_overhead))) %>%
-  #   filter(query_overhead <= threshold)
-
-  max_val <- plotdata %>% pull(query_overhead) %>% max()
+    mutate(algorithm = fct_reorder(algorithm, m_precision))
 
   plotdata %>%
-    ggplot(aes(y=query_overhead, x=algorithm, fill=algorithm)) +
-    # geom_density_ridges(scale=.8, size=0.1,
-    #                     rel_min_height = 0.01) +
-    geom_boxplot(outlier.size=0.1) +
-    # geom_point(aes(x=m_overhead, y=algorithm),
-    #            shape=17,
-    #            size=1,
-    #            data=support_data) +
-    # geom_text(aes(label=scales::number(m_overhead), x=m_overhead, y=algorithm),
-    #           nudge_y=-.1,
-    #           size=3,
-    #           data=support_data) +
-    # geom_text(aes(label=scales::number(query_overhead, prefix="→ "), 
-    #               x=query_overhead,
-    #               y=algorithm),
-    #           data=plotdata %>% group_by(algorithm) %>% summarise(query_overhead=max(query_overhead)),
-    #           hjust=1,
-    #           nudge_y=.2,
-    #           size=3) +
-    scale_y_continuous(limits=c(1, NA), labels=scales::number_format()) +
+    ggplot(aes(x=precision, y=algorithm, fill=algorithm)) +
+    geom_density_ridges(scale=.8, size=0.1,
+                        rel_min_height = 0.01) +
+    geom_point(aes(x=m_precision, y=algorithm),
+               shape=17,
+               size=1,
+               data=support_data) +
+    geom_text(aes(label=scales::number(m_precision, accuracy=.001), x=m_precision, y=algorithm),
+              nudge_y=-.5,
+              size=3,
+              data=support_data) +
+    scale_x_continuous(limits=c(0, 1)) +
     scale_fill_algorithm() +
-    coord_flip() +
     labs(x="algorithm",
-         y="query overhead",
-         title="Distribution of query overhead",
-         subtitle="Ratio between examined intervals and output intervals, per query",
+         y="query precision",
+         title="Distribution of query precision",
+         subtitle="Ratio between output intervals and examined intervals, per query",
          caption=plot_label) +
     theme_tufte() +
     theme(legend.pos="none",

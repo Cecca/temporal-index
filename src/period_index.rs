@@ -523,8 +523,11 @@ impl Algorithm for PeriodIndexStar {
             .with_items_name("chronons")
             .start();
         let mut last_break_time = 0u32;
+        let mut current_intervals = 0i32;
         for (i, &count) in distribution.iter().enumerate() {
-            if count > self.intervals_per_bucket {
+            let delta = count as i32 - current_intervals;
+            current_intervals = current_intervals + delta;
+            if current_intervals > self.intervals_per_bucket {
                 let bucket = Bucket::new(
                     Interval {
                         start: last_break_time,
@@ -533,38 +536,61 @@ impl Algorithm for PeriodIndexStar {
                     self.num_levels,
                 );
                 pl.update_light(bucket.time_range.duration() as u64);
-                trace!(
-                    "created bucket {:?} (d={})",
+                info!(
+                    "created bucket {:?} (d={}) that will contain {} intervals",
                     bucket.time_range,
-                    bucket.time_range.duration()
+                    bucket.time_range.duration(),
+                    count
                 );
                 self.boundaries.push(bucket.time_range.end);
                 self.buckets.push(bucket);
                 last_break_time = i as u32;
             }
+
+            // if count > self.intervals_per_bucket {
+            //     let bucket = Bucket::new(
+            //         Interval {
+            //             start: last_break_time,
+            //             end: i as u32,
+            //         },
+            //         self.num_levels,
+            //     );
+            //     pl.update_light(bucket.time_range.duration() as u64);
+            //     info!(
+            //         "created bucket {:?} (d={}) that will contain {} intervals",
+            //         bucket.time_range,
+            //         bucket.time_range.duration(),
+            //         count
+            //     );
+            //     self.boundaries.push(bucket.time_range.end);
+            //     self.buckets.push(bucket);
+            //     last_break_time = i as u32;
+            // }
         }
         // Now push the last bucket
-        if last_break_time < *distribution.last().unwrap() {
-            let bucket = Bucket::new(
-                Interval {
-                    start: last_break_time,
-                    end: distribution.len() as u32,
-                },
-                self.num_levels,
-            );
-            trace!(
-                "created bucket {:?} (d={})",
-                bucket.time_range,
-                bucket.time_range.duration()
-            );
-            self.boundaries.push(bucket.time_range.end);
-            self.buckets.push(bucket);
-        }
+        // if last_break_time < *distribution.last().unwrap() {
+        //     let bucket = Bucket::new(
+        //         Interval {
+        //             start: last_break_time,
+        //             end: distribution.len() as u32,
+        //         },
+        //         self.num_levels,
+        //     );
+        //     debug!(
+        //         "created bucket {:?} (d={})",
+        //         bucket.time_range,
+        //         bucket.time_range.duration()
+        //     );
+        //     self.boundaries.push(bucket.time_range.end);
+        //     self.buckets.push(bucket);
+        // }
         pl.stop();
+
+        info!("created {} buckets", self.buckets.len());
 
         let mut pl = progress_logger::ProgressLogger::builder()
             .with_expected_updates(dataset.len() as u64)
-            .with_items_name("chronons")
+            .with_items_name("intervals")
             .start();
         for interval in dataset {
             let i = self.first_bucket_for(interval);
@@ -574,9 +600,17 @@ impl Algorithm for PeriodIndexStar {
                 }
                 bucket.insert(*interval);
             }
-            pl.update_light(1u64);
+            pl.update(1u64);
         }
         pl.stop();
+
+        let size = self.deep_size_of();
+        info!(
+            "Allocated for index: {} bytes ({} Mb) - {} buckets ",
+            size,
+            size / (1024 * 1024),
+            self.buckets.len()
+        );
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {

@@ -16,7 +16,7 @@ table_query_stats <- function(connection, path, dataset_val, dataset_params_val,
     collect() %>%
     mutate(query_time = set_units(query_time_ns, "ns"),
            normalized_query_time = query_time / set_units(query_count, "interval"),
-           query_overhead = query_examined / query_count) %>%
+           precision = query_count / (query_examined)) %>%
     select(-query_time_ns)
 }
 

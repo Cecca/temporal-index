@@ -29,7 +29,7 @@
 
   algorithms:
     - PeriodIndexStar:
-        num_buckets: [16, 32, 64, 128]
+        intervals_per_bucket: [200000]
         num_levels: [4,32]
     # - Grid3D:
     #     num_buckets: [16]
