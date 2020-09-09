@@ -28,9 +28,11 @@
           - Free
 
   algorithms:
-    - PeriodIndexStar:
-        num_buckets: [16]
-        num_levels: [4,32]
+    # - PeriodIndexStar:
+    #     num_buckets: [16]
+    #     num_levels: [4,32]
+    - PeriodIndexPlusPlus:
+        num_buckets: [2]
     # - Grid3D:
     #     num_buckets: [16]
     # - Grid:

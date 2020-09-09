@@ -6,6 +6,7 @@ use crate::grid3d;
 use crate::interval_tree;
 use crate::naive;
 use crate::period_index;
+use crate::period_index_plusplus::*;
 use crate::types::*;
 use anyhow::{Context, Result};
 use itertools::iproduct;
@@ -45,6 +46,9 @@ pub enum AlgorithmConfiguration {
         num_buckets: Vec<u32>,
         num_levels: Vec<u32>,
     },
+    PeriodIndexPlusPlus {
+        num_buckets: Vec<usize>,
+    },
     Grid {
         num_buckets: Vec<usize>,
     },
@@ -71,6 +75,13 @@ impl AlgorithmConfiguration {
                         period_index::PeriodIndex::new(*nb, *nl)
                             .expect("error in configured algorithm"),
                     )) as Rc<RefCell<dyn Algorithm>>
+                });
+                Box::new(iter)
+            }
+            Self::PeriodIndexPlusPlus { num_buckets } => {
+                let iter = iproduct!(num_buckets).map(|nb| {
+                    Rc::new(RefCell::new(PeriodIndexPlusPlus::new(*nb)))
+                        as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
             }

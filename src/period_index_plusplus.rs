@@ -210,11 +210,6 @@ impl<V> SortedRangeIndex<V> {
         if boundaries.last().unwrap() != &(distribution.len() as u32 - 1) {
             boundaries.push(distribution.len() as u32 - 1);
         }
-        println!(
-            "distribution over {} distinct values, boundaries {:?}",
-            distribution.len(),
-            boundaries
-        );
 
         // go over all the items, sorted by key, define the ranges and build the
         // inner values
@@ -224,20 +219,26 @@ impl<V> SortedRangeIndex<V> {
         let mut end_index = 0;
         loop {
             let current_group = Self::index_for(key(&items[start_index]), &boundaries);
-            println!("current group is {}", current_group);
             while end_index < items.len()
                 && Self::index_for(key(&items[end_index]), &boundaries) == current_group
             {
                 end_index += 1;
             }
-            values.push(builder(&items[dbg!(start_index..end_index)]));
+            values.push(builder(&items[start_index..end_index]));
             if end_index >= items.len() {
                 break;
             }
             start_index = end_index;
         }
 
-        assert_eq!(values.len(), boundaries.len());
+        assert_eq!(
+            values.len(),
+            boundaries.len(),
+            "boundaries: {:?},\nnum_buckets: {}, n: {}",
+            boundaries,
+            n_buckets,
+            items.len()
+        );
 
         Self {
             boundaries,
