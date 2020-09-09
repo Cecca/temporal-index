@@ -115,6 +115,12 @@ macro_rules! same_result {
                 run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(2)));
             }
 
+            #[test]
+            fn [<$name _period_index_plusplus_manybucks>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(100000)));
+            }
+
             // #[test]
             // fn [<$name _ebi>]() {
             //     let (data, queries) = &$value;

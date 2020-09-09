@@ -6,7 +6,7 @@ use std::iter::FromIterator;
 pub struct PeriodIndexPlusPlus {
     /// the number of buckets in which each dimension is divided
     num_buckets: usize,
-    index: Option<SortedRangeIndex<SortedRangeIndex<SortedRangeIndex<Vec<Interval>>>>>,
+    index: Option<RangeIndex<RangeIndex<RangeIndex<Vec<Interval>>>>>,
 }
 
 impl PeriodIndexPlusPlus {
@@ -41,19 +41,17 @@ impl Algorithm for PeriodIndexPlusPlus {
         self.clear();
         let n_buckets = self.num_buckets;
 
-        let index = SortedRangeIndex::new(
+        let index = RangeIndex::new(
             n_buckets,
             dataset,
             |interval| interval.duration(),
             |by_duration| {
-                info!("index by start time {:?} elements", by_duration.len());
-                SortedRangeIndex::new(
+                RangeIndex::new(
                     n_buckets,
                     by_duration,
                     |interval| interval.start,
                     |by_start| {
-                        info!("index by end time {:?} elements", by_start.len());
-                        SortedRangeIndex::new(
+                        RangeIndex::new(
                             n_buckets,
                             by_start,
                             |interval| interval.end,
@@ -175,17 +173,65 @@ fn ecdf<I: IntoIterator<Item = Time>>(values: I) -> Vec<u32> {
     ecdf
 }
 
+// Due to Rust's trait object's limitations we cannot use dynamic dispatch, so I
+// am using this enum as an approximation
 #[derive(DeepSizeOf)]
-struct SortedRangeIndex<V> {
+enum RangeIndex<V> {
+    Plain(SortedIndex<V>),
+    Block(SortedBlockIndex<V>),
+}
+
+impl<V> RangeIndex<V> {
+    fn new<D: std::fmt::Debug, I, F, B>(n_buckets: usize, items: I, key: F, builder: B) -> Self
+    where
+        I: IntoIterator<Item = D>,
+        F: Fn(&D) -> Time,
+        B: Fn(&[D]) -> V,
+    {
+        let items = Vec::from_iter(items);
+        if items.len() > n_buckets {
+            Self::Block(SortedBlockIndex::new(n_buckets, items, key, builder))
+        } else {
+            Self::Plain(SortedIndex::new(items, key, builder))
+        }
+    }
+
+    fn for_each<F: FnMut(&V)>(&self, action: F) {
+        match self {
+            Self::Plain(inner) => inner.for_each(action),
+            Self::Block(inner) => inner.for_each(action),
+        }
+    }
+    fn query_between<F: FnMut(&V)>(&self, min: Time, max: Time, action: F) {
+        match self {
+            Self::Plain(inner) => inner.query_between(min, max, action),
+            Self::Block(inner) => inner.query_between(min, max, action),
+        }
+    }
+    fn query_ge<F: FnMut(&V)>(&self, x: Time, action: F) {
+        match self {
+            Self::Plain(inner) => inner.query_ge(x, action),
+            Self::Block(inner) => inner.query_ge(x, action),
+        }
+    }
+    fn query_le<F: FnMut(&V)>(&self, x: Time, action: F) {
+        match self {
+            Self::Plain(inner) => inner.query_le(x, action),
+            Self::Block(inner) => inner.query_le(x, action),
+        }
+    }
+}
+
+#[derive(DeepSizeOf)]
+struct SortedBlockIndex<V> {
     boundaries: Vec<Time>,
     values: Vec<V>,
 }
 
-impl<V> SortedRangeIndex<V> {
+impl<V> SortedBlockIndex<V> {
     /// accepts an iterator over the items, a function to extract the key for each
     /// item, and a function to build a value from all the items associated with a
     /// given item
-    #[allow(dead_code)]
     fn new<D: std::fmt::Debug, I, F, B>(n_buckets: usize, items: I, key: F, builder: B) -> Self
     where
         I: IntoIterator<Item = D>,
@@ -262,6 +308,9 @@ impl<V> SortedRangeIndex<V> {
         self.values.iter().for_each(action);
     }
 
+    // TODO: use also a boolean parameter in the callback to inform the consumer
+    // if the data is safe to use as is, that is if it comes from a ionner block
+    // (true) or a boundary block (false)
     fn query_between<F: FnMut(&V)>(&self, min: Time, max: Time, action: F) {
         let start = Self::index_for(min, &self.boundaries);
         let end = std::cmp::min(
@@ -284,6 +333,85 @@ impl<V> SortedRangeIndex<V> {
     }
 }
 
+#[derive(DeepSizeOf)]
+struct SortedIndex<V> {
+    keys: Vec<Time>,
+    values: Vec<V>,
+}
+
+#[allow(dead_code)]
+impl<V> SortedIndex<V> {
+    /// accepts an iterator over the items, a function to extract the key for each
+    /// item, and a function to build a value from all the items associated with a
+    /// given key
+    fn new<D: std::fmt::Debug, I, F, B>(items: I, key: F, builder: B) -> Self
+    where
+        I: IntoIterator<Item = D>,
+        F: Fn(&D) -> Time,
+        B: Fn(&[D]) -> V,
+    {
+        let mut items = Vec::from_iter(items);
+        items.sort_unstable_by_key(|x| key(x));
+        let mut keys = Vec::from_iter(items.iter().map(|x| key(x)));
+        keys.dedup();
+
+        let mut values = Vec::new();
+        let mut start_index = 0;
+        let mut end_index = 0;
+        loop {
+            let current_key = key(&items[start_index]);
+            while end_index < items.len() && key(&items[end_index]) == current_key {
+                end_index += 1;
+            }
+            values.push(builder(&items[start_index..end_index]));
+            if end_index >= items.len() {
+                break;
+            }
+            start_index = end_index;
+        }
+
+        assert_eq!(keys.len(), values.len());
+
+        Self { keys, values }
+    }
+
+    // get the first position >= to the search key
+    fn index_for(&self, key: Time) -> usize {
+        // a linear search should be OK with small size indices
+        // assert!(self.keys.len() < 100, "optimize with binary search");
+        let mut i = 0;
+        while i < self.keys.len() && self.keys[i] < key {
+            i += 1;
+        }
+        i
+    }
+
+    fn for_each<F: FnMut(&V)>(&self, action: F) {
+        self.values.iter().for_each(action);
+    }
+
+    // TODO: use also a boolean parameter in the callback to inform the consumer
+    // if the data is safe to use as is, that is if it comes from a ionner block
+    // (true) or a boundary block (false)
+    fn query_between<F: FnMut(&V)>(&self, min: Time, max: Time, action: F) {
+        let start = self.index_for(min);
+        let end = std::cmp::min(self.index_for(max), self.values.len() - 1);
+        debug_assert!(end < self.values.len());
+        self.values[start..=end].iter().for_each(action);
+    }
+
+    fn query_ge<F: FnMut(&V)>(&self, x: Time, action: F) {
+        let start = self.index_for(x);
+        self.values[start..].iter().for_each(action);
+    }
+
+    fn query_le<F: FnMut(&V)>(&self, x: Time, action: F) {
+        let end = std::cmp::min(self.index_for(x), self.values.len() - 1);
+        debug_assert!(end < self.values.len());
+        self.values[..=end].iter().for_each(action);
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -298,7 +426,7 @@ mod test {
             Interval { start: 12, end: 22 },
             Interval { start: 4, end: 8 },
         ];
-        let index = SortedRangeIndex::new(2, intervals, |x| x.start, |xs| Vec::from(xs));
+        let index = SortedBlockIndex::new(2, intervals, |x| x.start, |xs| Vec::from(xs));
         assert_eq!(
             index.values,
             vec![
@@ -326,7 +454,7 @@ mod test {
             Interval { start: 12, end: 22 },
             Interval { start: 4, end: 8 },
         ];
-        let index = SortedRangeIndex::new(2, intervals, |x| x.end, |xs| Vec::from(xs));
+        let index = SortedBlockIndex::new(2, intervals, |x| x.end, |xs| Vec::from(xs));
         assert_eq!(
             index.values,
             vec![
@@ -360,7 +488,7 @@ mod test {
             "{:?}",
             Vec::from_iter(intervals.iter().map(|x| x.duration()))
         );
-        let index = SortedRangeIndex::new(2, intervals, |x| x.duration(), |xs| Vec::from(xs));
+        let index = SortedBlockIndex::new(2, intervals, |x| x.duration(), |xs| Vec::from(xs));
         assert_eq!(
             index.values,
             vec![
