@@ -34,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -243,13 +243,13 @@ impl<V> SortedBlockIndex<V> {
 
         let mut boundaries = Vec::new();
 
-        let step = items.len() as u32 / n_buckets as u32;
+        let step = (items.len() as u32 / n_buckets as u32) + 1;
         let mut count_threshold = step;
         for (k, &count) in distribution.iter().enumerate() {
             let time = k as u32;
             if count > count_threshold {
                 boundaries.push(time);
-                count_threshold += step;
+                count_threshold = count + step;
             }
         }
         // push the last boundary
@@ -280,8 +280,7 @@ impl<V> SortedBlockIndex<V> {
         assert_eq!(
             values.len(),
             boundaries.len(),
-            "boundaries: {:?},\nnum_buckets: {}, n: {}",
-            boundaries,
+            "num_buckets: {}, n: {}",
             n_buckets,
             items.len()
         );

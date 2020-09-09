@@ -32,7 +32,7 @@
     #     num_buckets: [16]
     #     num_levels: [4,32]
     - PeriodIndexPlusPlus:
-        num_buckets: [2]
+        num_buckets: [10]
     # - Grid3D:
     #     num_buckets: [16]
     # - Grid:
