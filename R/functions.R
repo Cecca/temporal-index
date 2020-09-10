@@ -244,4 +244,35 @@ build_plot_label <- function(dataset) {
   )
 }
 
+get_histograms <- function(what, conf_file) {
+  tmp_file <- "/tmp/histogram.csv"
+  cmd <- str_c("target/release/temporal-index --histogram", 
+               what, 
+               conf_file, 
+               ">",
+               tmp_file,
+               sep=" ")
+  system(cmd) 
+  data <- read_csv(tmp_file, col_names=c("name", "version", "parameters", "value", "count"))
+  file.remove(tmp_file)
+  data
+}
+
+plot_histogram <- function(plotdata, xlab) {
+  ggplot(plotdata, aes(x=value, weight=count)) +
+    geom_histogram(fill="lightgray") +
+    labs(x=xlab) +
+    theme_tufte()
+}
+
+plot_point_distribution <- function(plotdata, xlab) {
+  plotdata <- plotdata %>% filter(count > 1)
+  ggplot(plotdata, aes(x=value, y=count)) +
+    geom_point() +
+    geom_rangeframe() +
+    labs(x=xlab) +
+    scale_x_log10() +
+    scale_y_log10() +
+    theme_tufte()
+}
 

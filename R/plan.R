@@ -114,6 +114,13 @@ plan <- drake_plan(
     ) %>%
     barchart_qps(),
 
+  distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%
+    filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
+  distribution_duration = get_histograms("dataset-durations", "experiments/all.yml") %>%
+    filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
+
+  plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
+  plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
 
   report = rmarkdown::render(
     knitr_in("R/report.Rmd"),
