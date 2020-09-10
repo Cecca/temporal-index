@@ -14,7 +14,7 @@ table_query_stats <- function(connection, path, dataset_val, dataset_params_val,
            queryset == queryset_val, queryset_params == queryset_params_val)
   inner_join(main, stats) %>%
     collect() %>%
-    mutate(query_time = set_units(query_time_ns, "ns"),
+    mutate(query_time = set_units(as.numeric(query_time_ns), "ns"),
            normalized_query_time = query_time / set_units(query_count, "interval"),
            precision = query_count / (query_examined)) %>%
     select(-query_time_ns)

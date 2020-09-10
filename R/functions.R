@@ -210,9 +210,12 @@ distribution_overhead <- function(dataset) {
 
 scale_fill_algorithm <- function() {
   colors <- RColorBrewer::brewer.pal(n=8, name="Set2")
+  colors <- ggthemes::tableau_color_pal(type="regular")
   algorithms <- c(
     "BTree",
     "period-index",
+    "period-index-*",
+    "period-index++",
     "grid",
     "grid3D",       
     "interval-tree", 
@@ -220,6 +223,7 @@ scale_fill_algorithm <- function() {
     "NestedBTree",  
     "NestedVecs"
   )
+  colors <- colors(length(algorithms))
   names(colors) <- algorithms
   scale_fill_manual(values=colors)
 }

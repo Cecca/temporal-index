@@ -94,7 +94,7 @@
         num_buckets: [16, 32, 64, 128]
         num_levels: [4,32]
     - PeriodIndexPlusPlus:
-        num_buckets: [10, 100]
+        num_buckets: [10, 100, 1000]
 
 # very large and sparse dataset
 - datasets:
@@ -141,5 +141,5 @@
         num_buckets: [1024, 2048, 4096]
         num_levels: [4,32]
     - PeriodIndexPlusPlus:
-        num_buckets: [10, 100]
+        num_buckets: [10, 100, 1000]
 
