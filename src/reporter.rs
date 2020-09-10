@@ -150,6 +150,25 @@ impl Reporter {
             .context("error inserting into the database")?;
         Ok(())
     }
+
+    pub fn report_period_index_buckets<I: IntoIterator<Item = (usize, usize)>>(
+        &self,
+        bucket_info: I,
+    ) -> Result<()> {
+        let sha = self.sha();
+        let dbpath = Self::get_db_path();
+        let conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let mut stmt = conn.prepare(
+            "INSERT INTO period_index_buckets (sha, bucket_index, count)
+            VALUES (?1, ?2, ?3)",
+        )?;
+        for (index, count) in bucket_info.into_iter() {
+            info!("bucket {} with {} intervals", index, count);
+            stmt.execute(params![sha.clone(), index as u32, count as u32])?;
+        }
+
+        Ok(())
+    }
 }
 
 pub fn get_hostname() -> Result<String> {
@@ -340,6 +359,17 @@ pub fn db_setup() -> Result<()> {
         )?;
 
         bump(&conn, 5)?;
+    }
+    if version < 6 {
+        conn.execute(
+            "CREATE TABLE period_index_buckets (
+            sha             TEXT NOT NULL,
+            bucket_index    INT,
+            count           INT64 
+        )",
+            NO_PARAMS,
+        )?;
+        bump(&conn, 6)?;
     }
 
     info!("database schema up tp date");

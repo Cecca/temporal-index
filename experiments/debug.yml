@@ -31,8 +31,8 @@
     # - PeriodIndexStar:
     #     num_buckets: [16]
     #     num_levels: [4,32]
-    - PeriodIndexPlusPlus:
-        num_buckets: [10]
+    # - PeriodIndexPlusPlus:
+    #     num_buckets: [10]
     # - Grid3D:
     #     num_buckets: [16]
     # - Grid:
@@ -41,6 +41,6 @@
     # - NestedBTree
     # - NestedVecs
     # - IntervalTree
-    # - PeriodIndex:
-    #     num_buckets: [16]
-    #     num_levels: [4]
+    - PeriodIndex:
+        num_buckets: [16]
+        num_levels: [4]

@@ -243,6 +243,13 @@ impl Bucket {
     fn count_cells(&self) -> usize {
         self.cells.iter().map(|level| level.len()).sum()
     }
+
+    fn count_intervals(&self) -> usize {
+        self.cells
+            .iter()
+            .map(|level| level.iter().map(|cs| cs.intervals.len()).sum::<usize>())
+            .sum()
+    }
 }
 
 #[derive(DeepSizeOf)]
@@ -296,7 +303,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        9
+        10
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -429,6 +436,15 @@ impl Algorithm for PeriodIndex {
         self.bucket_length.take();
         self.n = 0;
     }
+
+    fn reporter_hook(&self, reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
+        let bucket_info = self
+            .buckets
+            .iter()
+            .enumerate()
+            .map(|(index, bucket)| (index, bucket.count_intervals()));
+        reporter.report_period_index_buckets(bucket_info)
+    }
 }
 
 #[derive(DeepSizeOf)]
@@ -488,7 +504,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn version(&self) -> u8 {
-        4
+        5
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -593,6 +609,15 @@ impl Algorithm for PeriodIndexStar {
     fn clear(&mut self) {
         self.buckets.clear();
         self.boundaries.clear();
+    }
+
+    fn reporter_hook(&self, reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
+        let bucket_info = self
+            .buckets
+            .iter()
+            .enumerate()
+            .map(|(index, bucket)| (index, bucket.count_intervals()));
+        reporter.report_period_index_buckets(bucket_info)
     }
 }
 

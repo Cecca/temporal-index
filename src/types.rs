@@ -192,6 +192,11 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
     fn index_size(&self) -> usize {
         self.deep_size_of()
     }
+
+    fn reporter_hook(&self, _reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
+        // do nothing by default
+        Ok(())
+    }
 }
 
 #[cfg(test)]
