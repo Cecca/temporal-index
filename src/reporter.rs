@@ -163,7 +163,6 @@ impl Reporter {
             VALUES (?1, ?2, ?3)",
         )?;
         for (index, count) in bucket_info.into_iter() {
-            info!("bucket {} with {} intervals", index, count);
             stmt.execute(params![sha.clone(), index as u32, count as u32])?;
         }
 
