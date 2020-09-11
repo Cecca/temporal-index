@@ -20,6 +20,22 @@ table_query_stats <- function(connection, path, dataset_val, dataset_params_val,
     select(-query_time_ns)
 }
 
+table_period_index_buckets <- function(connection, path, dataset_val, dataset_params_val, queryset_val, queryset_params_val) {
+  main <- table_main(connection, path) %>%
+    select(sha, dataset, dataset_params, queryset, queryset_params, algorithm, algorithm_params) %>%
+    filter(dataset == dataset_val, dataset_params == dataset_params_val, 
+           queryset == queryset_val, queryset_params == queryset_params_val,
+           algorithm %LIKE% "period-index%")
+  print(main %>% select(sha) %>% arrange(sha))
+  bucket_info <- tbl(connection, "period_index_buckets")
+  print(bucket_info %>% distinct(sha) %>% arrange(sha))
+  p <- inner_join(main, bucket_info) %>%
+    collect()
+  print(p)
+  p
+}
+
+
 plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
     filter(
@@ -72,6 +88,12 @@ plan <- drake_plan(
   plot_latency_duration = query_stats_duration %>% distribution_latency(),
   plot_normalized_latency_duration = query_stats_duration %>% distribution_normalized_latency(),
   plot_overhead_duration = query_stats_duration %>% distribution_overhead(),
+
+  period_index_buckets = table_period_index_buckets(conn, file_in("temporal-index-results.sqlite"),
+                                                    dataset_val = "random-uniform-zipf",
+                                                    dataset_params_val = "123:10000000_1:10000000_10000000:1",
+                                                    queryset_val = "random-uniform-zipf-uniform-uniform",
+                                                    queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
 
   plot_one_million = data %>%
     filter(

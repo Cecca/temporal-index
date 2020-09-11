@@ -19,13 +19,13 @@
               Uniform: { low: 1, high: 100000 },
               Zipf: { n: 1000000, beta: 1 }
           ]
-          - Free
+          # - Free
         duration:
           - Pair: [
               Uniform: { low: 1, high: 100 },
               Uniform: { low: 1, high: 100 },
           ]
-          - Free
+          # - Free
 
   algorithms:
     # - PeriodIndexStar:

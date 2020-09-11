@@ -108,7 +108,7 @@ fn main() -> Result<()> {
                 experiment.algorithm.borrow().parameters()
             );
 
-            let reporter = reporter::Reporter::new(conf_file_path, experiment.clone());
+            let reporter = reporter::Reporter::new(conf_file_path, experiment.clone())?;
             if !cmdline.rerun {
                 if let Some(sha) = reporter.already_run()? {
                     info!(
@@ -135,7 +135,7 @@ fn main() -> Result<()> {
                 let end = Instant::now();
                 let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
-                algorithm.reporter_hook(&reporter);
+                algorithm.reporter_hook(&reporter)?;
                 // Clear up the index to free resources
                 algorithm.clear();
                 (

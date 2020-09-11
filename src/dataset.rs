@@ -13,6 +13,15 @@ pub trait Dataset: std::fmt::Debug {
     fn parameters(&self) -> String;
     fn get(&self) -> Vec<Interval>;
     fn version(&self) -> u8;
+
+    fn descr(&self) -> String {
+        format!(
+            "{} ({}) [v{}]",
+            self.name(),
+            self.parameters(),
+            self.version()
+        )
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
@@ -178,6 +187,15 @@ pub trait Queryset: std::fmt::Debug {
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
     fn get(&self) -> Vec<Query>;
+
+    fn descr(&self) -> String {
+        format!(
+            "{} ({}) [v{}]",
+            self.name(),
+            self.parameters(),
+            self.version()
+        )
+    }
 }
 
 #[derive(Debug)]

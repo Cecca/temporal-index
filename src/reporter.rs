@@ -11,26 +11,28 @@ pub struct Reporter {
     date: DateTime<Utc>,
     config: ExperimentConfiguration,
     config_file: PathBuf,
+    sha: String,
 }
 
 impl Reporter {
-    pub fn new<P: AsRef<Path>>(config_file: P, config: ExperimentConfiguration) -> Self {
-        Self {
-            date: Utc::now(),
+    pub fn new<P: AsRef<Path>>(config_file: P, config: ExperimentConfiguration) -> Result<Self> {
+        let date = Utc::now();
+        let datestr = date.to_rfc2822();
+        let mut sha = Sha256::new();
+        let hostname = get_hostname()?;
+        sha.update(datestr);
+        sha.update(hostname);
+        sha.update(config.algorithm.borrow().descr());
+        sha.update(config.dataset.descr());
+        sha.update(config.queries.descr());
+
+        let sha = format!("{:x}", sha.finalize());
+        Ok(Self {
+            date,
             config: config,
             config_file: config_file.as_ref().to_owned(),
-        }
-    }
-
-    fn sha(&self) -> String {
-        let datestr = self.date.to_rfc2822();
-        let mut sha = Sha256::new();
-        sha.update(datestr);
-        // I know that the following is implementation-dependent, but I just need
-        // to have a identifier to join different tables created in this run.
-        sha.update(format!("{:?}", self.config));
-
-        format!("{:x}", sha.finalize())
+            sha,
+        })
     }
 
     fn get_db_path() -> std::path::PathBuf {
@@ -83,7 +85,7 @@ impl Reporter {
         index_size_bytes: u32,
         answers: Vec<QueryAnswer>,
     ) -> Result<()> {
-        let sha = self.sha();
+        let sha = self.sha.clone();
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
         let hostname = get_hostname()?;
@@ -155,7 +157,7 @@ impl Reporter {
         &self,
         bucket_info: I,
     ) -> Result<()> {
-        let sha = self.sha();
+        let sha = self.sha.clone();
         let dbpath = Self::get_db_path();
         let conn = Connection::open(dbpath).context("error connecting to the database")?;
         let mut stmt = conn.prepare(

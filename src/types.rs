@@ -156,6 +156,15 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
     /// Clears the index, freeing up space
     fn clear(&mut self);
 
+    fn descr(&self) -> String {
+        format!(
+            "{} ({}) [v{}]",
+            self.name(),
+            self.parameters(),
+            self.version()
+        )
+    }
+
     fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut result = Vec::with_capacity(queries.len());
         let mut pl = ProgressLogger::builder()
