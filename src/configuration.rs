@@ -331,6 +331,42 @@ impl Configuration {
         Ok(())
     }
 
+    pub fn dump(&self, what: String) -> Result<()> {
+        match what.as_ref() {
+            "dataset" => {
+                self.for_each_dataset(|dataset| {
+                    let intervals = dataset.get();
+                    let name = dataset.name();
+                    let version = dataset.version();
+                    let parameters = dataset.parameters();
+                    for interval in intervals {
+                        println!(
+                            "{}, {}, {}, {}, {}",
+                            name, version, parameters, interval.start, interval.end
+                        );
+                    }
+                    Ok(())
+                })
+            }
+            "queries" => {
+                self.for_each_queryset(|queryset| {
+                    let queries = queryset.get();
+                    let name = queryset.name();
+                    let version = queryset.version();
+                    let parameters = queryset.parameters();
+                    let na_pair = String::from("NA, NA");
+                    for query in queries {
+                        let r_str = query.range.map(|i| format!("{}, {}", i.start, i.end)).unwrap_or(na_pair.clone());
+                        let d_str = query.duration.map(|d| format!("{}, {}", d.min, d.max)).unwrap_or(na_pair.clone());
+                        println!("{}, {}, {}, {}, {}", name, version, parameters, r_str, d_str);
+                    }
+                    Ok(())
+                })
+            }
+            _ => anyhow::bail!("Unknown parameter {}", what)
+        }
+    }
+
     pub fn print_histogram(&self, what: String) -> Result<()> {
         match what.as_ref() {
             "dataset-start-times" => {

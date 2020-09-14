@@ -38,6 +38,10 @@ struct Cmdline {
     /// print the histogram of dataset/queryset start/end times, durations and exits
     histogram: Option<String>,
 
+    #[argh(option)]
+    /// print the actual intervals in the dataset, or the queries
+    dump: Option<String>,
+
     #[argh(positional)]
     /// the file containing the experiments to run
     experiment_file: PathBuf,
@@ -81,6 +85,11 @@ fn main() -> Result<()> {
     if let Some(hist_what) = cmdline.histogram {
         for configuration in configurations {
             configuration.print_histogram(hist_what.clone())?;
+        }
+        return Ok(());
+    } else if let Some(dump_what) = cmdline.dump {
+        for configuration in configurations {
+            configuration.dump(dump_what.clone())?;
         }
         return Ok(());
     }

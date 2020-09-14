@@ -31,6 +31,18 @@ The three points below have been addressed by PeriodIndex++.
 - [x] Can we do without the replication of intervals?
 - [x] There seems to be a tradeoff with the number of buckets: more means fewer intervals analyzed but also more duplication.
 
+## Observations
+
+In the last couple of years there has been a huge volume of work on "learned
+indices". It remains unclear the scope in which these outperform traditional
+indices. In particular, a very recent paper on Arxiv [@Marcus2020BenchmarkingLI], which has a co-author one
+of the original proponents of learned indices, claims that such structures work
+well in "read-only in-memory workloads over a dense array". To me, this seems
+like a pretty narrow scope. 
+
+- [ ] The question is thus: can we make a learned index
+that works well in the more general case? That that can be updated efficiently?
+
 # Research questions
 
 1. What is the best algorithm in terms of throughput, for different query workloads?
