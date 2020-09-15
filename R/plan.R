@@ -35,7 +35,6 @@ table_period_index_buckets <- function(connection, path, dataset_val, dataset_pa
   p
 }
 
-
 plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
     filter(
@@ -143,6 +142,12 @@ plan <- drake_plan(
 
   plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
   plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
+
+  queries = get_dump("queries", "experiments/all.yml") %>%
+    filter(parameters == "23512:5000_1:10000000_10000000:1_1:10000_1:10000", name == "random-uniform-zipf-uniform-uniform"),
+  dataset_intervals = get_dump("dataset", "experiments/all.yml") %>%
+    filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
+  plot_dataset_intervals = draw_dataset(dataset_intervals),
 
   report = rmarkdown::render(
     knitr_in("R/report.Rmd"),

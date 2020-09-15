@@ -1,3 +1,66 @@
+get_dump <- function(what, conf_file) {
+  tmp_file <- "/tmp/dump.csv"
+  cmd <- str_c("target/release/temporal-index --dump", 
+               what, 
+               conf_file, 
+               ">",
+               tmp_file,
+               sep=" ")
+  system(cmd) 
+  if (what == "dataset") {
+    names <- c("name", "version", "parameters", "start", "end")
+  } else {
+    names <- c("name", "version", "parameters", "start", "end", "min_d", "max_d")
+  }
+  data <- read_csv(tmp_file, col_names=names)
+  file.remove(tmp_file)
+  data
+}
+
+draw_dataset <- function(intervals) {
+  assert_that(distinct(intervals, name) %>% nrow() == 1)
+  assert_that(distinct(intervals, parameters) %>% nrow() == 1)
+
+  ggplot(intervals, aes(start, end)) +
+    geom_point(shape=46, alpha=.01) +
+    geom_rangeframe() +
+    theme_tufte()
+}
+
+draw_queries <- function(queries, intervals) {
+  max_end <- intervals %>% summarise(max(end)) %>% pull()
+  extended <- queries %>% 
+    filter(start < max_end) %>%
+    select(start, end, min_d, max_d) %>%
+    transmute(
+      x_1 = end - max_d,
+      y_1 = start,
+      x_2 = end - min_d, 
+      y_2 = start,
+      x_3 = end, 
+      y_3 = start + min_d,
+      x_4 = end,
+      y_4 = start + max_d,
+      group = row_number()
+    ) %>%
+    gather("key", "val", x_1:y_4) %>%
+    separate("key", into=c("dimension", "to_remove"), sep="_") %>%
+    spread(dimension, val) %>%
+    select(-to_remove)
+
+  ggplot() +
+    geom_point(shape=46, alpha=.01) +
+    geom_point(data=extended,
+               mapping=aes(x=x, y=y),
+               color='orange',
+               shape='.') +
+    geom_polygon(mapping=aes(x, y, group=group),
+                 data=extended,
+                 fill='orange',
+                 color="orange",
+                 alpha=0.3)
+    # theme_tufte()
+}
 
 barchart_qps <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration

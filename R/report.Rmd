@@ -11,6 +11,7 @@ link-citations: yes
 
 ```{r setup, echo=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(dev.args = list(png = list(type = "cairo")))
 ```
 
 # TODO
@@ -194,6 +195,10 @@ Note that to allow distributions to have the distributions we want,
 we have to allow duplicate intervals.
 Otherwise, especially for the durations, it is almost impossible to have a lot of 
 small values.
+
+```{r fig.fullwidth=TRUE, fig.width=10, fig.height=10, dpi=300}
+readd(plot_dataset_intervals)
+```
 
 ## Range-duration queries
 
