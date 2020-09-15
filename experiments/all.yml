@@ -120,6 +120,10 @@
           - Free
         duration:
           - Pair: [
+              Uniform: { low: 1, high: 10000 },
+              Uniform: { low: 1, high: 10000 },
+          ]
+          - Pair: [
               Uniform: { low: 1, high: 100 },
               Uniform: { low: 1, high: 100 },
           ]
