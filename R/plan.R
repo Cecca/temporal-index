@@ -1,46 +1,15 @@
 db_file <- here("temporal-index-results.sqlite")
 conn <- dbConnect(RSQLite::SQLite(), db_file)
 
-table_main <- function(connection, path) {
-  tbl(connection, "main")
-}
-
-table_query_stats <- function(connection, path, dataset_val, dataset_params_val, queryset_val, queryset_params_val) {
-  install_symbolic_unit("interval")
-  stats <- tbl(connection, "query_stats")
-  main <- table_main(connection, path) %>%
-    select(sha, dataset, dataset_params, queryset, queryset_params, algorithm, algorithm_params) %>%
-    filter(dataset == dataset_val, dataset_params == dataset_params_val, 
-           queryset == queryset_val, queryset_params == queryset_params_val)
-  inner_join(main, stats) %>%
-    collect() %>%
-    mutate(query_time = set_units(as.numeric(query_time_ns), "ns"),
-           normalized_query_time = query_time / set_units(query_count, "interval"),
-           precision = query_count / (query_examined)) %>%
-    select(-query_time_ns)
-}
-
-table_period_index_buckets <- function(connection, path, dataset_val, dataset_params_val, queryset_val, queryset_params_val) {
-  main <- table_main(connection, path) %>%
-    select(sha, dataset, dataset_params, queryset, queryset_params, algorithm, algorithm_params) %>%
-    filter(dataset == dataset_val, dataset_params == dataset_params_val, 
-           queryset == queryset_val, queryset_params == queryset_params_val,
-           algorithm %LIKE% "period-index%")
-  print(main %>% select(sha) %>% arrange(sha))
-  bucket_info <- tbl(connection, "period_index_buckets")
-  print(bucket_info %>% distinct(sha) %>% arrange(sha))
-  p <- inner_join(main, bucket_info) %>%
-    collect()
-  print(p)
-  p
-}
+install_symbolic_unit("records")
 
 plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
     filter(
       hostname == "ironmaiden",
       algorithm != "ebi-index",
-      algorithm != "period-index-*"
+      algorithm != "period-index-*",
+      algorithm != "linear-scan",
     ) %>%
     collect() %>%
     mutate(date = parse_datetime(date)) %>%
@@ -56,6 +25,8 @@ plan <- drake_plan(
       algorithm_wpar = interaction(algorithm, algorithm_params),
       algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
       qps = queryset_n / set_units(time_queries, "s"),
+      output_throughput = output_throughput_ints_ns %>%
+        set_units("records/ns") %>% set_units("records/s")
     ) %>%
     select(-time_query_ms, -time_index_ms)
     ,
@@ -100,10 +71,10 @@ plan <- drake_plan(
       dataset == "random-uniform-zipf",
       dataset_params == "123:10000000_1:10000000_10000000:1",
       queryset == "random-uniform-zipf-uniform-uniform",
-      # queryset_params %in% workloads 
     ) %>%
     inner_join(workloads) %>%
-    barchart_qps(),
+    barchart_qps() %>%
+    save_png(file_out("imgs/qps_both.png")),
 
   plot_range_only = data %>%
     filter(
@@ -114,7 +85,8 @@ plan <- drake_plan(
       queryset_params == "23512:5000_1:10000000_10000000:1_NA_NA"
     ) %>%
     inner_join(workloads) %>%
-    barchart_qps(),
+    barchart_qps() %>%
+    save_png(file_out("imgs/qps_time_only.png")),
 
   plot_duration_only = data %>%
     filter(
@@ -125,21 +97,55 @@ plan <- drake_plan(
       # queryset_params == "23512:5000_NA_NA_1:100_1:100"
     ) %>%
     inner_join(workloads) %>%
-    barchart_qps(),
+    barchart_qps() %>%
+    save_png(file_out("imgs/qps_duration_only.png")),
 
   distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%
     filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
   distribution_duration = get_histograms("dataset-durations", "experiments/all.yml") %>%
     filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
 
-  plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
-  plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
-
   queries = get_dump("queries", "experiments/all.yml") %>%
     filter(parameters == "23512:5000_1:10000000_10000000:1_1:10000_1:10000", name == "random-uniform-zipf-uniform-uniform"),
   dataset_intervals = get_dump("dataset", "experiments/all.yml") %>%
     filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
   plot_dataset_intervals = draw_dataset(dataset_intervals),
+
+  plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
+  plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
+  plot_distribution = cowplot::plot_grid(
+      plot_distribution_start_time,
+      plot_distribution_duration,
+      plot_dataset_intervals,
+      ncol=3
+    ) %>%
+    save_png("imgs/distribution_plots.png", width=10, height=4),
+
+  overview = {
+    p <- data %>% 
+      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
+      slice(which.max(output_throughput)) %>%
+      mutate(workload_type = case_when(
+        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+        queryset == "random-None-uniform-uniform" ~ "duration",
+        queryset == "random-uniform-zipf-None" ~ "time"
+      )) %>%
+      ggplot(aes(y=fct_reorder(algorithm, output_throughput, median),
+                x=output_throughput,
+                color=workload_type)) + 
+      geom_density_ridges(scale=.9, 
+                          color='gray', 
+                          fill='lightgray', 
+                          alpha=0.6) +
+      geom_point(aes(shape=workload_type),
+                position=position_jitter(height=0.08,
+                                          width=0.0)) +
+      scale_x_unit(limits=c(0,NA)) +
+      theme_tufte() +
+      theme(legend.position='top')
+
+    save_png(p, file_out("imgs/overview.png"))
+  },
 
   report = rmarkdown::render(
     knitr_in("R/report.Rmd"),

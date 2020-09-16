@@ -182,12 +182,8 @@ experiments, which comprises $10\,000\,000$ intervals with start times uniformly
 distributed between 0 and 10 million, and durations distributed according to a Zipf
 law with $\beta=1$.
 
-```{r fig.fullwidth=TRUE, fig.width=10}
-cowplot::plot_grid(
-  readd(plot_distribution_start_time),
-  readd(plot_distribution_duration),
-  labels=c("Start times histogram", "Durations distribution")
-)
+```{r fig.fullwidth=TRUE}
+drake::readd(plot_distribution)
 ```
 
 The plots confirm that we are getting the distributions we ask for.
@@ -196,8 +192,10 @@ we have to allow duplicate intervals.
 Otherwise, especially for the durations, it is almost impossible to have a lot of 
 small values.
 
-```{r fig.fullwidth=TRUE, fig.width=10, fig.height=10, dpi=300}
-#readd(plot_dataset_intervals)
+## An overview of the results
+
+```{r fig.fullwidth=TRUE}
+drake::readd(overview)
 ```
 
 ## Range-duration queries
@@ -233,10 +231,10 @@ output, we also consider the _normalized query time_, which is an _output sensit
 the query time by the size of the output of the given query (right plot).
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-plot_grid(
-  readd(plot_latency_both),
-  readd(plot_normalized_latency_both)
-)
+#plot_grid(
+  #readd(plot_latency_both),
+  #readd(plot_normalized_latency_both)
+#)
 ```
 
 Looking at both metrics the ranking between the algorithms does not really change.
@@ -249,7 +247,7 @@ This difference is explained by looking at the 90-th percentile of the query tim
 two orders of magnitude slower than the median!
 
 ```{r fig.fullwidth=TRUE, fig.widht=10, fig.height=3, fig.dpi=300, fig.caption="Ratio between number of intervals touched during a query and the output size of the query. Lower (i.e. 1) is better."}
-readd(plot_overhead_both)
+#readd(plot_overhead_both)
 ```
 
 ## Range only queries 
@@ -265,10 +263,10 @@ The plot above meets the expectations, but the throughput is lower.
 The reason is explained by distribution plots below: 
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-plot_grid(
-  readd(plot_latency_range),
-  readd(plot_normalized_latency_range)
-)
+#plot_grid(
+  #readd(plot_latency_range),
+  #readd(plot_normalized_latency_range)
+#)
 ```
 
 Looking at the normalized query time we see that it is actually slower than with the range-duration 
@@ -281,7 +279,7 @@ What surprises me is the performance of `NestedVecs`, which I expected to be bet
 doing several binary searches is detrimental for performance.
 
 ```{r fig.fullwidth=TRUE, fig.widht=10, fig.height=3, fig.dpi=300, fig.caption="Ratio between number of intervals touched during a query and the output size of the query. Lower (i.e. 1) is better."}
-readd(plot_overhead_both)
+#readd(plot_overhead_both)
 ```
 
 ## Duration only queries 
@@ -300,14 +298,14 @@ As for the distribution of query times we have that the top ranked algorithms ha
 concentrated distribution.
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-plot_grid(
-  readd(plot_latency_duration),
-  readd(plot_normalized_latency_duration)
-)
+#plot_grid(
+  #readd(plot_latency_duration),
+  #readd(plot_normalized_latency_duration)
+#)
 ```
 
 ```{r fig.fullwidth=TRUE, fig.widht=10, fig.height=3, fig.dpi=300, fig.caption="Ratio between number of intervals touched during a query and the output size of the query. Lower (i.e. 1) is better."}
-readd(plot_overhead_duration)
+#readd(plot_overhead_duration)
 ```
 
 

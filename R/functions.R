@@ -364,3 +364,12 @@ plot_point_distribution <- function(plotdata, xlab) {
     theme_tufte()
 }
 
+save_png <- function(ggobj, filename, width = 10, height = 6) {
+  ggsave(filename, 
+         ggobj,
+         type="cairo",
+         dpi=300,
+         width = width,
+         height = height)
+  knitr::include_graphics(here(filename))
+}
