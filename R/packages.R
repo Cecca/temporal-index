@@ -11,4 +11,5 @@ suppressPackageStartupMessages({
     library(ggridges)
     library(cowplot)
     library(bsselectR)
+    library(tidytext)
 })

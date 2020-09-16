@@ -67,34 +67,45 @@ draw_queries <- function(queries, intervals) {
 
 barchart_qps <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration
-  n_workloads <- distinct(dataset, queryset_params) %>% pull()
+  n_workloads <- (distinct(dataset, queryset_params) %>% pull())[1]
 
-  breaks <- pretty(pull(dataset, qps))
-  p <- dataset %>%
+  # breaks <- pretty(pull(dataset, qps))
+  breaks <- dataset %>%
+    group_by(workload) %>%
+    summarise(breaks = list(pretty(qps))) %>%
+    unnest(breaks) %>%
+    ungroup()
+  print(breaks)
+
+  plotdata <- dataset %>%
     group_by(workload, algorithm) %>%
     slice(which.max(qps)) %>%
-    ungroup() %>%
-    mutate(algorithm = fct_reorder(algorithm, qps)) %>%
-    ggplot(aes(x=algorithm,
-                y=qps,
-                fill=algorithm)) +
-      geom_col() +
-      geom_hline(yintercept=breaks, col="white", lwd=.5) +
-      geom_text(aes(label=scales::number(drop_units(qps), accuracy=1)),
-              size=3,
-              hjust=0,
-              vjust=0.5,
-              nudge_y=10) +
-      scale_y_unit(breaks=breaks) +
-      # scale_fill_discrete_qualitative() +
-      scale_fill_algorithm() +
-      coord_flip()
+    ungroup()
+
+  p <- ggplot(plotdata, aes(x=reorder_within(algorithm, qps, workload),
+                            y=qps,
+                            fill=algorithm)) +
+    geom_col() +
+    geom_hline(mapping=aes(yintercept=breaks),
+               data=breaks,
+               color="white",
+               lwd=.5) +
+    geom_text(aes(label=scales::number(drop_units(qps), accuracy=1)),
+            size=3,
+            hjust=0,
+            vjust=0.5,
+            nudge_y=10) +
+    scale_x_reordered() +
+    scale_y_unit(breaks=scales::pretty_breaks(),
+                 expand = expand_scale(mult = c(0, .1))) +
+    scale_fill_algorithm() +
+    coord_flip()
 
     if (n_workloads == 1) {
       plot_label <- build_plot_label(dataset)
       p <- p + labs(caption=plot_label)
     } else {
-      p <- p + facet_wrap(vars(workload))
+      p <- p + facet_wrap(vars(workload), scales="free")
     }
 
     p +
