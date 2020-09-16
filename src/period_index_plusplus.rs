@@ -6,7 +6,7 @@ use std::iter::FromIterator;
 pub struct PeriodIndexPlusPlus {
     /// the number of buckets in which each dimension is divided
     num_buckets: usize,
-    index: Option<RangeIndex<RangeIndex<Vec<Interval>>>>,
+    index: Option<RangeIndex<RangeIndex<RangeIndex<Vec<Interval>>>>>,
 }
 
 impl PeriodIndexPlusPlus {
@@ -34,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        3
+        4
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -50,7 +50,15 @@ impl Algorithm for PeriodIndexPlusPlus {
                     n_buckets,
                     by_duration,
                     |interval| interval.start,
-                    |by_start| Vec::from_iter(by_start.iter().map(|interval| ***interval)),
+                    |by_start| {
+                        // Vec::from_iter(by_start.iter().map(|interval| ***interval)),
+                        RangeIndex::new(
+                            n_buckets,
+                            by_start,
+                            |interval| interval.end,
+                            |by_end| Vec::from_iter(by_end.iter().map(|interval| ****interval)),
+                        )
+                    },
                 )
             },
         );
@@ -73,15 +81,17 @@ impl Algorithm for PeriodIndexPlusPlus {
                     .as_ref()
                     .expect("index not populated")
                     .query_between(duration.min, duration.max, |by_start| {
-                        by_start.query_le(range.end, |intervals| {
-                            for interval in intervals {
-                                cnt += 1;
-                                let matches_duration = duration.contains(interval);
-                                let overlaps = range.overlaps(interval);
-                                if matches_duration && overlaps {
-                                    answer.push(*interval);
+                        by_start.query_le(range.end, |by_end| {
+                            by_end.query_ge(range.start, |intervals| {
+                                for interval in intervals {
+                                    cnt += 1;
+                                    let matches_duration = duration.contains(interval);
+                                    let overlaps = range.overlaps(interval);
+                                    if matches_duration && overlaps {
+                                        answer.push(*interval);
+                                    }
                                 }
-                            }
+                            })
                         })
                     });
                 answer.inc_examined(cnt);
@@ -92,14 +102,16 @@ impl Algorithm for PeriodIndexPlusPlus {
                     .as_ref()
                     .expect("index not populated")
                     .for_each(|by_start| {
-                        by_start.query_le(range.end, |intervals| {
-                            for interval in intervals {
-                                cnt += 1;
-                                let overlaps = range.overlaps(interval);
-                                if overlaps {
-                                    answer.push(*interval);
+                        by_start.query_le(range.end, |by_end| {
+                            by_end.query_ge(range.start, |intervals| {
+                                for interval in intervals {
+                                    cnt += 1;
+                                    let overlaps = range.overlaps(interval);
+                                    if overlaps {
+                                        answer.push(*interval);
+                                    }
                                 }
-                            }
+                            })
                         })
                     });
                 answer.inc_examined(cnt);
@@ -110,14 +122,16 @@ impl Algorithm for PeriodIndexPlusPlus {
                     .as_ref()
                     .expect("index not populated")
                     .query_between(duration.min, duration.max, |by_start| {
-                        by_start.for_each(|intervals| {
-                            for interval in intervals {
-                                cnt += 1;
-                                let matches_duration = duration.contains(interval);
-                                if matches_duration {
-                                    answer.push(*interval);
+                        by_start.for_each(|by_end| {
+                            by_end.for_each(|intervals| {
+                                for interval in intervals {
+                                    cnt += 1;
+                                    let matches_duration = duration.contains(interval);
+                                    if matches_duration {
+                                        answer.push(*interval);
+                                    }
                                 }
-                            }
+                            })
                         })
                     });
                 answer.inc_examined(cnt);
