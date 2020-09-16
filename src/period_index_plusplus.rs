@@ -34,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        4
+        5
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -297,13 +297,18 @@ impl<V> SortedBlockIndex<V> {
     /// returns the group in which the provided key falls in. Recall that
     /// boundaries are upper boundaries (excluded)
     fn index_for(key: Time, boundaries: &[Time]) -> usize {
-        // TODO we might want to introduce binary search for large bucket counts
-        // boundaries.iter().take_while(|x| key < **x).count()
-        let mut i = 0;
-        while i < boundaries.len() && boundaries[i] < key {
-            i += 1;
+        if boundaries.len() < 128 {
+            let mut i = 0;
+            while i < boundaries.len() && boundaries[i] < key {
+                i += 1;
+            }
+            i
+        } else {
+            match boundaries.binary_search(&key) {
+                Ok(i) => i,
+                Err(i) => i,
+            }
         }
-        i
     }
 
     fn for_each<F: FnMut(&V)>(&self, action: F) {
@@ -380,13 +385,19 @@ impl<V> SortedIndex<V> {
 
     // get the first position >= to the search key
     fn index_for(&self, key: Time) -> usize {
-        // a linear search should be OK with small size indices
-        // assert!(self.keys.len() < 100, "optimize with binary search");
-        let mut i = 0;
-        while i < self.keys.len() && self.keys[i] < key {
-            i += 1;
+        // a linear search should be OK with few keys
+        if self.keys.len() < 128 {
+            let mut i = 0;
+            while i < self.keys.len() && self.keys[i] < key {
+                i += 1;
+            }
+            i
+        } else {
+            match self.keys.binary_search(&key) {
+                Ok(i) => i,
+                Err(i) => i,
+            }
         }
-        i
     }
 
     fn for_each<F: FnMut(&V)>(&self, action: F) {
