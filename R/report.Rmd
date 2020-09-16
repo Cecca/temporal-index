@@ -197,7 +197,7 @@ Otherwise, especially for the durations, it is almost impossible to have a lot o
 small values.
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.height=10, dpi=300}
-readd(plot_dataset_intervals)
+#readd(plot_dataset_intervals)
 ```
 
 ## Range-duration queries
@@ -214,7 +214,7 @@ The following figure reports the throughput of each algorithm. Parameterized alg
 several parameterizations.
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of ten million intervals."}
-readd(plot_one_million)
+readd(plot_both)
 ```
 
 The `NestedVecs` data structure is by far the best performing, followed by the three dimensional grid.
@@ -346,7 +346,7 @@ The figure below reports the throughput (higher is better) and confirms this exp
 The `y` axis is labelled with the index name and its parameterization, if any.
 
 ```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of one million intervals. The workload is similar to the one used in the conference version of the paper."}
-readd(plot_conference)
+#readd(plot_conference)
 ```
 
 The best performing index is the three dimensional grid, with the `BTree` following.

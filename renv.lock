@@ -135,6 +135,18 @@
       "Repository": "CRAN",
       "Hash": "065e275fddb15dc398c02dccba7c2922"
     },
+    "bsselectR": {
+      "Package": "bsselectR",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "walkerke",
+      "RemoteRepo": "bsselectR",
+      "RemoteRef": "master",
+      "RemoteSha": "c196e8f6e8e4f1907db893737e5949fb099d4cce",
+      "Hash": "e192f811f15afcfdc480357d215a8740"
+    },
     "callr": {
       "Package": "callr",
       "Version": "3.3.1",
@@ -358,6 +370,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "74aa264d2e3b6214529cd33a5850a07f"
+    },
+    "htmlwidgets": {
+      "Package": "htmlwidgets",
+      "Version": "1.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "41bace23583fbc25089edae324de2dc3"
     },
     "httr": {
       "Package": "httr",

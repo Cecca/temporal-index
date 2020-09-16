@@ -94,45 +94,37 @@ plan <- drake_plan(
                                                     queryset_val = "random-uniform-zipf-uniform-uniform",
                                                     queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
 
-  plot_one_million = data %>%
+  plot_both = data %>%
     filter(
+      hostname == "ironmaiden",
       dataset == "random-uniform-zipf",
-      queryset == "random-uniform-zipf-uniform-uniform",
       dataset_params == "123:10000000_1:10000000_10000000:1",
-      queryset_params == "23512:5000_1:10000000_10000000:1_1:100_1:100"
+      queryset == "random-uniform-zipf-uniform-uniform",
+      # queryset_params %in% workloads 
     ) %>%
-    mutate(algorithm_wpar = fct_reorder(algorithm_wpar, qps)) %>%
-    barchart_qps(),
-
-  plot_conference = data %>%
-    filter(
-      dataset == "random-uniform-zipf",
-      queryset == "random-uniform-zipf-uniform-uniform"
-    ) %>%
-    filter(dataset_n == 1000000,
-          dataset_max_time == 1000,
-          queryset_max_time == 1000) %>%
-    mutate(algorithm_wpar = fct_reorder(algorithm_wpar, qps)) %>%
+    inner_join(workloads) %>%
     barchart_qps(),
 
   plot_range_only = data %>%
     filter(
+      hostname == "ironmaiden",
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-None",
-      hostname == "ironmaiden",
       dataset_params == "123:10000000_1:10000000_10000000:1",
       queryset_params == "23512:5000_1:10000000_10000000:1_NA_NA"
     ) %>%
+    inner_join(workloads) %>%
     barchart_qps(),
 
   plot_duration_only = data %>%
     filter(
+      hostname == "ironmaiden",
       dataset == "random-uniform-zipf",
       queryset == "random-None-uniform-uniform",
-      hostname == "ironmaiden",
       dataset_params == "123:10000000_1:10000000_10000000:1",
-      queryset_params == "23512:5000_NA_NA_1:100_1:100"
+      # queryset_params == "23512:5000_NA_NA_1:100_1:100"
     ) %>%
+    inner_join(workloads) %>%
     barchart_qps(),
 
   distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%

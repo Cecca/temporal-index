@@ -21,10 +21,13 @@ draw_dataset <- function(intervals) {
   assert_that(distinct(intervals, name) %>% nrow() == 1)
   assert_that(distinct(intervals, parameters) %>% nrow() == 1)
 
-  ggplot(intervals, aes(start, end)) +
-    geom_point(shape=46, alpha=.01) +
-    geom_rangeframe() +
-    theme_tufte()
+  intervals %>%
+    select(start, end) %>%
+    distinct() %>%
+    ggplot(aes(start, end)) +
+      geom_point(shape=46, alpha=.01) +
+      geom_rangeframe() +
+      theme_tufte()
 }
 
 draw_queries <- function(queries, intervals) {
@@ -64,35 +67,46 @@ draw_queries <- function(queries, intervals) {
 
 barchart_qps <- function(dataset) {
   # Assert that we are dealing with a single data and query configuration
-  plot_label <- build_plot_label(dataset)
+  n_workloads <- distinct(dataset, queryset_params) %>% pull()
 
   breaks <- pretty(pull(dataset, qps))
-  dataset %>%
-    mutate(algorithm_wpar = fct_reorder(algorithm_wpar, qps)) %>%
-    ggplot(aes(x=algorithm_wpar,
+  p <- dataset %>%
+    group_by(workload, algorithm) %>%
+    slice(which.max(qps)) %>%
+    ungroup() %>%
+    mutate(algorithm = fct_reorder(algorithm, qps)) %>%
+    ggplot(aes(x=algorithm,
                 y=qps,
                 fill=algorithm)) +
-        geom_col() +
-        geom_hline(yintercept=breaks, col="white", lwd=.5) +
-        geom_text(aes(label=scales::number(drop_units(qps), accuracy=1)),
-                size=3,
-                hjust=0,
-                vjust=0.5,
-                nudge_y=10) +
-        scale_y_unit(breaks=breaks) +
-        # scale_fill_discrete_qualitative() +
-        scale_fill_algorithm() +
-        coord_flip() +
-        labs(caption=plot_label) +
-        theme_tufte() +
-        theme(
+      geom_col() +
+      geom_hline(yintercept=breaks, col="white", lwd=.5) +
+      geom_text(aes(label=scales::number(drop_units(qps), accuracy=1)),
+              size=3,
+              hjust=0,
+              vjust=0.5,
+              nudge_y=10) +
+      scale_y_unit(breaks=breaks) +
+      # scale_fill_discrete_qualitative() +
+      scale_fill_algorithm() +
+      coord_flip()
+
+    if (n_workloads == 1) {
+      plot_label <- build_plot_label(dataset)
+      p <- p + labs(caption=plot_label)
+    } else {
+      p <- p + facet_wrap(vars(workload))
+    }
+
+    p +
+      theme_tufte() +
+      theme(
         panel.ontop = FALSE,
         panel.grid.minor.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.minor.y = element_blank(),
         legend.position = "none",
         axis.title.y = element_blank()
-        )
+      )
 }
 
 distribution_normalized_latency <- function(dataset) {
