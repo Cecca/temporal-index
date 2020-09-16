@@ -119,12 +119,24 @@
           ]
           - Free
         duration:
+          # Long duration low selectivity
           - Pair: [
               Uniform: { low: 1, high: 10000 },
               Uniform: { low: 1, high: 10000 },
           ]
+          # Short duration high selectivity
           - Pair: [
               Uniform: { low: 1, high: 100 },
+              Uniform: { low: 1, high: 100 },
+          ]
+          # Short duration low selectivity
+          - Pair: [
+              Uniform: { low: 1, high: 100 },
+              Uniform: { low: 1, high: 10000 },
+          ]
+          # Long duration high selectivity
+          - Pair: [
+              Uniform: { low: 1, high: 10000 },
               Uniform: { low: 1, high: 100 },
           ]
           - Free
