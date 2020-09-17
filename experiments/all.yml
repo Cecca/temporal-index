@@ -103,8 +103,8 @@
         n: 
           - 10000000
         start_times:
-          - Uniform:
-              { low: 1, high: 10000000 }
+          - Uniform: { low: 1, high: 10000000 }
+          - Clustered: { n: 10, high: 10000000, std_dev: 1000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
 
