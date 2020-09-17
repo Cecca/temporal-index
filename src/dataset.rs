@@ -28,10 +28,15 @@ pub trait Dataset: std::fmt::Debug {
 pub enum TimeDistribution {
     Uniform { low: u32, high: u32 },
     Zipf { n: usize, beta: f64 },
+    Clustered { n: usize, high: u32, std_dev: u32 },
 }
 
 impl TimeDistribution {
-    fn stream<R: rand::Rng + 'static>(&self, rng: R) -> Box<dyn Iterator<Item = Time> + '_> {
+    #[allow(deprecated)]
+    fn stream<R: rand::Rng + Clone + 'static>(
+        &self,
+        rng: R,
+    ) -> Box<dyn Iterator<Item = Time> + '_> {
         match &self {
             Self::Uniform { low, high } => {
                 let d = Uniform::new(low, high);
@@ -42,6 +47,24 @@ impl TimeDistribution {
                     ZipfDistribution::new(*n, *beta).expect("problem creating zipf distribution");
                 Box::new(d.sample_iter(rng))
             }
+            Self::Clustered { n, high, std_dev } => {
+                use std::iter::FromIterator;
+                let mut rng = rng.clone();
+                let centers_d = Uniform::new(0, high);
+                let distribs: Vec<Normal> = Vec::from_iter(
+                    centers_d
+                        .sample_iter(&mut rng)
+                        .take(*n)
+                        .map(|center| Normal::new(center as f64, *std_dev as f64)),
+                );
+
+                Box::new(
+                    distribs
+                        .into_iter()
+                        .cycle()
+                        .map(move |d| rng.sample(d) as u32),
+                )
+            }
         }
     }
 
@@ -49,6 +72,7 @@ impl TimeDistribution {
         match &self {
             Self::Uniform { .. } => String::from("uniform"),
             Self::Zipf { .. } => String::from("zipf"),
+            Self::Clustered { .. } => String::from("clustered"),
         }
     }
 
@@ -56,6 +80,7 @@ impl TimeDistribution {
         match &self {
             Self::Uniform { low, high } => format!("{}:{}", low, high),
             Self::Zipf { n, beta } => format!("{}:{}", n, beta),
+            Self::Clustered { n, high, std_dev } => format!("{}:{}:{}", n, high, std_dev),
         }
     }
 }
