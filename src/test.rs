@@ -157,4 +157,12 @@ same_result! {
                             None
                             ).get(),
     ),
+    rand_clustered: (
+        RandomDataset::new(12351, 1000, TimeDistribution::Clustered{n: 100, high: 10000, std_dev: 10}, TimeDistribution::Zipf{n: 10000, beta: 1.0}).get(),
+        RandomQueryset::new(12351, 100,
+                            Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
+                            Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
+                            ).get(),
+    ),
+
 }
