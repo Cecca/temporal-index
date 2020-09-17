@@ -34,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        5
+        6
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -80,20 +80,71 @@ impl Algorithm for PeriodIndexPlusPlus {
                 self.index
                     .as_ref()
                     .expect("index not populated")
-                    .query_between(duration.min, duration.max, |by_start| {
-                        by_start.query_le(range.end, |by_end| {
-                            by_end.query_ge(range.start, |intervals| {
-                                for interval in intervals {
-                                    cnt += 1;
-                                    let matches_duration = duration.contains(interval);
-                                    let overlaps = range.overlaps(interval);
-                                    if matches_duration && overlaps {
-                                        answer.push(*interval);
+                    .query_between(
+                        duration.min,
+                        duration.max,
+                        |(duration_min_bound, duration_max_bound), by_start| {
+                            let bucket_duration_range = DurationRange {
+                                min: duration_min_bound,
+                                max: duration_max_bound,
+                            };
+                            by_start.query_le(range.end, |start_bound, by_end| {
+                                by_end.query_ge(range.start, |end_bound, intervals| {
+                                    let bucket_time_range = Interval {
+                                        start: start_bound.0,
+                                        end: end_bound.1,
+                                    };
+                                    match (
+                                        duration.contains_duration(bucket_duration_range),
+                                        range.contains_interval(&bucket_time_range),
+                                    ) {
+                                        (true, true) => {
+                                            // no verification is necessary, the bucket is contained in all dimensions in the query
+                                            for interval in intervals {
+                                                debug_assert!(range.overlaps(&interval));
+                                                debug_assert!(duration.contains(&interval));
+                                                cnt += 1;
+                                                answer.push(*interval);
+                                            }
+                                        }
+                                        (true, false) => {
+                                            // we can skip the verification of the duration
+                                            for interval in intervals {
+                                                debug_assert!(duration.contains(&interval));
+                                                cnt += 1;
+                                                let overlaps = range.overlaps(interval);
+                                                if overlaps {
+                                                    answer.push(*interval);
+                                                }
+                                            }
+                                        }
+                                        (false, true) => {
+                                            // we can skip the verification of the overlap
+                                            for interval in intervals {
+                                                debug_assert!(range.overlaps(&interval));
+                                                cnt += 1;
+                                                let matches_duration = duration.contains(interval);
+                                                if matches_duration {
+                                                    answer.push(*interval);
+                                                }
+                                            }
+                                        }
+                                        (false, false) => {
+                                            // We have to verify both duration and time range
+                                            for interval in intervals {
+                                                cnt += 1;
+                                                let matches_duration = duration.contains(interval);
+                                                let overlaps = range.overlaps(interval);
+                                                if matches_duration && overlaps {
+                                                    answer.push(*interval);
+                                                }
+                                            }
+                                        }
                                     }
-                                }
+                                })
                             })
-                        })
-                    });
+                        },
+                    );
                 answer.inc_examined(cnt);
             }
             (Some(range), None) => {
@@ -102,13 +153,25 @@ impl Algorithm for PeriodIndexPlusPlus {
                     .as_ref()
                     .expect("index not populated")
                     .for_each(|by_start| {
-                        by_start.query_le(range.end, |by_end| {
-                            by_end.query_ge(range.start, |intervals| {
-                                for interval in intervals {
-                                    cnt += 1;
-                                    let overlaps = range.overlaps(interval);
-                                    if overlaps {
+                        by_start.query_le(range.end, |start_bound, by_end| {
+                            by_end.query_ge(range.start, |end_bound, intervals| {
+                                let bucket_time_range = Interval {
+                                    start: start_bound.0,
+                                    end: end_bound.1,
+                                };
+                                if range.contains_interval(&bucket_time_range) {
+                                    // skip verification, just enumerate
+                                    for interval in intervals {
+                                        cnt += 1;
                                         answer.push(*interval);
+                                    }
+                                } else {
+                                    for interval in intervals {
+                                        cnt += 1;
+                                        let overlaps = range.overlaps(interval);
+                                        if overlaps {
+                                            answer.push(*interval);
+                                        }
                                     }
                                 }
                             })
@@ -121,19 +184,40 @@ impl Algorithm for PeriodIndexPlusPlus {
                 self.index
                     .as_ref()
                     .expect("index not populated")
-                    .query_between(duration.min, duration.max, |by_start| {
-                        by_start.for_each(|by_end| {
-                            by_end.for_each(|intervals| {
-                                for interval in intervals {
-                                    cnt += 1;
-                                    let matches_duration = duration.contains(interval);
-                                    if matches_duration {
-                                        answer.push(*interval);
-                                    }
-                                }
-                            })
-                        })
-                    });
+                    .query_between(
+                        duration.min,
+                        duration.max,
+                        |(duration_min_bound, duration_max_bound), by_start| {
+                            let bucket_duration_range = DurationRange {
+                                min: duration_min_bound,
+                                max: duration_max_bound,
+                            };
+                            if duration.contains_duration(bucket_duration_range) {
+                                // skip verification, just enumerate
+                                by_start.for_each(|by_end| {
+                                    by_end.for_each(|intervals| {
+                                        for interval in intervals {
+                                            cnt += 1;
+                                            debug_assert!(duration.contains(interval));
+                                            answer.push(*interval);
+                                        }
+                                    })
+                                })
+                            } else {
+                                by_start.for_each(|by_end| {
+                                    by_end.for_each(|intervals| {
+                                        for interval in intervals {
+                                            cnt += 1;
+                                            let matches_duration = duration.contains(interval);
+                                            if matches_duration {
+                                                answer.push(*interval);
+                                            }
+                                        }
+                                    })
+                                })
+                            }
+                        },
+                    );
                 answer.inc_examined(cnt);
             }
             (None, None) => {
@@ -203,7 +287,7 @@ impl<V> RangeIndex<V> {
             Self::Block(inner) => inner.for_each(action),
         }
     }
-    fn query_between<F: FnMut(&V)>(&self, min: Time, max: Time, action: F) {
+    fn query_between<F: FnMut((Time, Time), &V)>(&self, min: Time, max: Time, action: F) {
         match self {
             Self::Plain(inner) => inner.query_between(min, max, action),
             Self::Block(inner) => inner.query_between(min, max, action),
@@ -211,13 +295,13 @@ impl<V> RangeIndex<V> {
     }
 
     #[allow(dead_code)]
-    fn query_ge<F: FnMut(&V)>(&self, x: Time, action: F) {
+    fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, action: F) {
         match self {
             Self::Plain(inner) => inner.query_ge(x, action),
             Self::Block(inner) => inner.query_ge(x, action),
         }
     }
-    fn query_le<F: FnMut(&V)>(&self, x: Time, action: F) {
+    fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, action: F) {
         match self {
             Self::Plain(inner) => inner.query_le(x, action),
             Self::Block(inner) => inner.query_le(x, action),
@@ -315,29 +399,39 @@ impl<V> SortedBlockIndex<V> {
         self.values.iter().for_each(action);
     }
 
-    // TODO: use also a boolean parameter in the callback to inform the consumer
-    // if the data is safe to use as is, that is if it comes from a ionner block
-    // (true) or a boundary block (false)
-    fn query_between<F: FnMut(&V)>(&self, min: Time, max: Time, action: F) {
+    fn query_between<F: FnMut((Time, Time), &V)>(&self, min: Time, max: Time, mut action: F) {
         let start = Self::index_for(min, &self.boundaries);
         let end = std::cmp::min(
             Self::index_for(max, &self.boundaries),
             self.values.len() - 1,
         );
         debug_assert!(end < self.values.len());
-        self.values[start..=end].iter().for_each(action);
+        // self.values[start..=end].iter().for_each(action);
+        for i in start..=end {
+            let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
+            let upper_bound = self.boundaries[i];
+            action((lower_bound, upper_bound), &self.values[i]);
+        }
     }
 
     #[allow(dead_code)]
-    fn query_ge<F: FnMut(&V)>(&self, x: Time, action: F) {
+    fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
         let start = Self::index_for(x, &self.boundaries);
-        self.values[start..].iter().for_each(action);
+        for i in start..self.boundaries.len() {
+            let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
+            let upper_bound = self.boundaries[i];
+            action((lower_bound, upper_bound), &self.values[i]);
+        }
     }
 
-    fn query_le<F: FnMut(&V)>(&self, x: Time, action: F) {
+    fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
         let end = std::cmp::min(Self::index_for(x, &self.boundaries), self.values.len() - 1);
         debug_assert!(end < self.values.len());
-        self.values[..=end].iter().for_each(action);
+        for i in 0..=end {
+            let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
+            let upper_bound = self.boundaries[i];
+            action((lower_bound, upper_bound), &self.values[i]);
+        }
     }
 }
 
@@ -404,25 +498,32 @@ impl<V> SortedIndex<V> {
         self.values.iter().for_each(action);
     }
 
-    // TODO: use also a boolean parameter in the callback to inform the consumer
-    // if the data is safe to use as is, that is if it comes from a ionner block
-    // (true) or a boundary block (false)
-    fn query_between<F: FnMut(&V)>(&self, min: Time, max: Time, action: F) {
+    fn query_between<F: FnMut((Time, Time), &V)>(&self, min: Time, max: Time, mut action: F) {
         let start = self.index_for(min);
         let end = std::cmp::min(self.index_for(max), self.values.len() - 1);
         debug_assert!(end < self.values.len());
-        self.values[start..=end].iter().for_each(action);
+        let keys = self.keys[start..=end].iter().map(|t| (*t, *t + 1));
+        keys.zip(self.values[start..=end].iter())
+            .for_each(|(bounds, values)| action(bounds, values));
     }
 
-    fn query_ge<F: FnMut(&V)>(&self, x: Time, action: F) {
+    fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
         let start = self.index_for(x);
-        self.values[start..].iter().for_each(action);
+        for i in start..self.keys.len() {
+            let lower_bound = if i > 0 { self.keys[i - 1] } else { 0 };
+            let upper_bound = self.keys[i];
+            action((lower_bound, upper_bound), &self.values[i]);
+        }
     }
 
-    fn query_le<F: FnMut(&V)>(&self, x: Time, action: F) {
+    fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
         let end = std::cmp::min(self.index_for(x), self.values.len() - 1);
         debug_assert!(end < self.values.len());
-        self.values[..=end].iter().for_each(action);
+        for i in 0..=end {
+            let lower_bound = if i > 0 { self.keys[i - 1] } else { 0 };
+            let upper_bound = self.keys[i];
+            action((lower_bound, upper_bound), &self.values[i]);
+        }
     }
 }
 

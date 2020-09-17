@@ -30,6 +30,10 @@ impl Interval {
         self.start <= point && point < self.end
     }
 
+    pub fn contains_interval(&self, other: &Self) -> bool {
+        self.start <= other.start && other.end <= self.end
+    }
+
     pub fn middle(&self) -> Time {
         (self.end + self.start) / 2
     }
@@ -50,6 +54,10 @@ impl DurationRange {
     pub fn contains(&self, interval: &Interval) -> bool {
         let d = interval.duration();
         self.min <= d && d <= self.max
+    }
+
+    pub fn contains_duration(&self, other: Self) -> bool {
+        self.min <= other.min && other.max <= self.max
     }
 }
 
