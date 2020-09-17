@@ -173,23 +173,43 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
         )
     }
 
-    fn run(&self, queries: &[Query]) -> Vec<QueryAnswer> {
+    /// Returns either the query results or, if running too slow,
+    /// the predicted duration
+    fn run(
+        &self,
+        queries: &[Query],
+        min_qps: f64,
+    ) -> std::result::Result<Vec<QueryAnswer>, std::time::Duration> {
+        // Set a timeout given by 10 queries per second
+        let timeout = std::time::Duration::from_secs_f64(queries.len() as f64 / min_qps);
+        info!("query timeout is {:?}", timeout);
         let mut result = Vec::with_capacity(queries.len());
         let mut pl = ProgressLogger::builder()
             .with_expected_updates(queries.len() as u64)
+            .with_frequency(std::time::Duration::from_millis(100))
             .with_items_name("queries")
             .start();
+        let mut cnt = 0;
         for query in queries.iter() {
+            if let Some(time_to_completion) = pl.time_to_completion() {
+                // info!("time to completion {:?}", time_to_completion);
+                if time_to_completion > timeout && cnt > 100 {
+                    warn!("aborting execution, predicted time too long");
+                    return Err(time_to_completion);
+                }
+            }
             let mut query_result = QueryAnswer::builder();
             self.query(query, &mut query_result);
             result.push(query_result.finalize());
             pl.update(1u64);
+            cnt += 1;
         }
         pl.stop();
-        result
+        Ok(result)
     }
 
     /// Run all the queries, and actually record the answered items
+    #[cfg(test)]
     fn run_recording(&self, queries: &[Query]) -> Vec<QueryAnswer> {
         let mut result = Vec::with_capacity(queries.len());
         let mut pl = ProgressLogger::builder()

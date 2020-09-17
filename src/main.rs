@@ -96,6 +96,7 @@ fn main() -> Result<()> {
 
     for configurations in configurations {
         configurations.for_each(|experiment| {
+            let min_qps = experiment.min_qps;
             log_memory(&mut system);
             info!("{:-<60}", "");
             info!(
@@ -140,7 +141,7 @@ fn main() -> Result<()> {
                 let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
                 let start = Instant::now();
-                let answers = algorithm.run(&queryset_queries);
+                let answers = algorithm.run(&queryset_queries, min_qps);
                 let end = Instant::now();
                 let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 

@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct ExperimentConfiguration {
+    pub min_qps: f64,
     pub dataset: Rc<dyn Dataset>,
     pub queries: Rc<dyn Queryset>,
     pub algorithm: Rc<RefCell<dyn Algorithm>>,
@@ -277,6 +278,7 @@ impl QueryConfiguration {
 
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
+    min_qps: Option<f64>,
     datasets: Vec<DataConfiguration>,
     queries: Vec<QueryConfiguration>,
     algorithms: Vec<AlgorithmConfiguration>,
@@ -287,6 +289,7 @@ impl Configuration {
         self,
         mut action: F,
     ) -> Result<()> {
+        let min_qps = self.min_qps.unwrap_or(10.0);
         for dataset in self.datasets.iter().flat_map(|d| d.datasets()) {
             info!("{:=<60}", "");
             info!(
@@ -298,6 +301,7 @@ impl Configuration {
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
                     let conf = ExperimentConfiguration {
+                        min_qps,
                         dataset: Rc::clone(&dataset),
                         queries: Rc::clone(&queries),
                         algorithm: Rc::clone(&algorithm),
@@ -333,37 +337,42 @@ impl Configuration {
 
     pub fn dump(&self, what: String) -> Result<()> {
         match what.as_ref() {
-            "dataset" => {
-                self.for_each_dataset(|dataset| {
-                    let intervals = dataset.get();
-                    let name = dataset.name();
-                    let version = dataset.version();
-                    let parameters = dataset.parameters();
-                    for interval in intervals {
-                        println!(
-                            "{}, {}, {}, {}, {}",
-                            name, version, parameters, interval.start, interval.end
-                        );
-                    }
-                    Ok(())
-                })
-            }
-            "queries" => {
-                self.for_each_queryset(|queryset| {
-                    let queries = queryset.get();
-                    let name = queryset.name();
-                    let version = queryset.version();
-                    let parameters = queryset.parameters();
-                    let na_pair = String::from("NA, NA");
-                    for query in queries {
-                        let r_str = query.range.map(|i| format!("{}, {}", i.start, i.end)).unwrap_or(na_pair.clone());
-                        let d_str = query.duration.map(|d| format!("{}, {}", d.min, d.max)).unwrap_or(na_pair.clone());
-                        println!("{}, {}, {}, {}, {}", name, version, parameters, r_str, d_str);
-                    }
-                    Ok(())
-                })
-            }
-            _ => anyhow::bail!("Unknown parameter {}", what)
+            "dataset" => self.for_each_dataset(|dataset| {
+                let intervals = dataset.get();
+                let name = dataset.name();
+                let version = dataset.version();
+                let parameters = dataset.parameters();
+                for interval in intervals {
+                    println!(
+                        "{}, {}, {}, {}, {}",
+                        name, version, parameters, interval.start, interval.end
+                    );
+                }
+                Ok(())
+            }),
+            "queries" => self.for_each_queryset(|queryset| {
+                let queries = queryset.get();
+                let name = queryset.name();
+                let version = queryset.version();
+                let parameters = queryset.parameters();
+                let na_pair = String::from("NA, NA");
+                for query in queries {
+                    let r_str = query
+                        .range
+                        .map(|i| format!("{}, {}", i.start, i.end))
+                        .unwrap_or(na_pair.clone());
+                    let d_str = query
+                        .duration
+                        .map(|d| format!("{}, {}", d.min, d.max))
+                        .unwrap_or(na_pair.clone());
+                    println!(
+                        "{}, {}, {}, {}, {}",
+                        name, version, parameters, r_str, d_str
+                    );
+                }
+                Ok(())
+            }),
+            _ => anyhow::bail!("Unknown parameter {}", what),
         }
     }
 

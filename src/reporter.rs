@@ -6,6 +6,7 @@ use rusqlite::*;
 use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 pub struct Reporter {
     date: DateTime<Utc>,
@@ -83,7 +84,7 @@ impl Reporter {
         elapsed_index: i64,
         elapsed_query: i64,
         index_size_bytes: u32,
-        answers: Vec<QueryAnswer>,
+        answers: std::result::Result<Vec<QueryAnswer>, Duration>,
     ) -> Result<()> {
         let sha = self.sha.clone();
         let dbpath = Self::get_db_path();
@@ -102,13 +103,20 @@ impl Reporter {
 
         let tx = conn.transaction()?;
         {
+            let elapsed_query = if answers.is_err() {
+                warn!("using estimated query time");
+                answers.as_ref().unwrap_err().as_millis() as i64
+            } else {
+                elapsed_query
+            };
+
             tx.execute(
                 "INSERT INTO raw ( sha, date, git_rev, hostname, conf_file,
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
-                                    time_index_ms, time_query_ms, index_size_bytes )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17 )",
+                                    time_index_ms, time_query_ms, index_size_bytes, is_estimate )
+                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18 )",
                 params![
                     sha,
                     self.date.to_rfc3339(),
@@ -126,23 +134,26 @@ impl Reporter {
                     algorithm.borrow().version(),
                     elapsed_index,
                     elapsed_query,
-                    index_size_bytes
+                    index_size_bytes,
+                    answers.is_err()
                 ],
             )
             .context("error inserting into main table")?;
 
-            let mut stmt = tx.prepare(
+            if let Ok(answers) = answers {
+                let mut stmt = tx.prepare(
                 "INSERT INTO query_stats (sha, query_index, query_time_ns, query_count, query_examined)
-            VALUES (?1, ?2, ?3, ?4, ?5)",
+                VALUES (?1, ?2, ?3, ?4, ?5)",
             )?;
-            for (i, ans) in answers.into_iter().enumerate() {
-                stmt.execute(params![
-                    sha,
-                    i as u32,
-                    ans.elapsed_nanos(),
-                    ans.num_matches(),
-                    ans.num_examined(),
-                ])?;
+                for (i, ans) in answers.into_iter().enumerate() {
+                    stmt.execute(params![
+                        sha,
+                        i as u32,
+                        ans.elapsed_nanos(),
+                        ans.num_matches(),
+                        ans.num_examined(),
+                    ])?;
+                }
             }
         }
 
@@ -371,6 +382,13 @@ pub fn db_setup() -> Result<()> {
             NO_PARAMS,
         )?;
         bump(&conn, 6)?;
+    }
+    if version < 7 {
+        conn.execute(
+            "ALTER TABLE raw ADD COLUMN is_estimate BOOLEAN DEFAULT FALSE",
+            NO_PARAMS,
+        )?;
+        bump(&conn, 7)?;
     }
 
     info!("database schema up tp date");
