@@ -258,6 +258,8 @@ pub struct PeriodIndex {
     num_levels: u32,
     configured_num_levels: u32,
     anchor_point: Time,
+    // The time spanned by the period index
+    span: Option<Interval>,
     bucket_length: Option<Time>,
     n: usize,
     buckets: Vec<Bucket>,
@@ -276,6 +278,7 @@ impl PeriodIndex {
             num_levels,
             configured_num_levels: num_levels,
             anchor_point: 0,
+            span: None,
             bucket_length: None,
             n: 0,
             buckets: Vec::new(),
@@ -283,13 +286,16 @@ impl PeriodIndex {
     }
 
     #[inline]
-    fn bucket_for(&self, interval: Interval) -> (usize, usize) {
-        debug_assert!(interval.start >= self.anchor_point);
+    fn bucket_for(&self, interval: Interval) -> Option<(usize, usize)> {
+        // debug_assert!(interval.start >= self.anchor_point);
+        if !self.span.expect("uninitialized index").overlaps(&interval) {
+            return None;
+        }
         let start = ((std::cmp::max(0, interval.start - self.anchor_point))
             / self.bucket_length.expect("uninitialized index")) as usize;
         let end = ((std::cmp::max(0, interval.end - self.anchor_point))
             / self.bucket_length.expect("uninitialized index")) as usize;
-        (start, end)
+        Some((start, end))
     }
 }
 
@@ -303,7 +309,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        11
+        12
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -330,6 +336,10 @@ impl Algorithm for PeriodIndex {
 
         self.buckets.clear();
         self.anchor_point = anchor;
+        self.span.replace(Interval {
+            start: anchor,
+            end: endtime,
+        });
         self.n = dataset.len();
         let mut start = anchor;
         while start < endtime {
@@ -345,7 +355,9 @@ impl Algorithm for PeriodIndex {
             .with_expected_updates(dataset.len() as u64)
             .start();
         for interval in dataset {
-            let (start, end) = self.bucket_for(*interval);
+            let (start, end) = self
+                .bucket_for(*interval)
+                .expect("during indexing, every intereval should fall in a bucket");
             if interval.start == 9839 && interval.end == 9872 {
                 info!("Inserting in buckets from {} to {}", start, end);
             }
@@ -389,35 +401,31 @@ impl Algorithm for PeriodIndex {
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
-        let (start, end) = query
-            .range
-            .map(|r| self.bucket_for(r))
-            .unwrap_or_else(|| (0, self.buckets.len() - 1));
-        debug!("Loooking at buckets from {} to {}", start, end);
-        let end = if end >= self.buckets.len() {
-            self.buckets.len() - 1
-        } else {
-            end
-        };
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
-                for bucket in self.buckets[start..=end].iter() {
-                    let cnt = bucket.query_range_duration(range, duration, &mut |interval| {
-                        answer.push(*interval);
-                    });
-                    answer.inc_examined(cnt);
+                if let Some((start, end)) = self.bucket_for(range) {
+                    let end = std::cmp::min(end, self.buckets.len() - 1);
+                    for bucket in self.buckets[start..=end].iter() {
+                        let cnt = bucket.query_range_duration(range, duration, &mut |interval| {
+                            answer.push(*interval);
+                        });
+                        answer.inc_examined(cnt);
+                    }
                 }
             }
             (Some(range), None) => {
-                for bucket in self.buckets[start..=end].iter() {
-                    let cnt = bucket.query_range(range, &mut |interval| {
-                        answer.push(*interval);
-                    });
-                    answer.inc_examined(cnt);
+                if let Some((start, end)) = self.bucket_for(range) {
+                    let end = std::cmp::min(end, self.buckets.len() - 1);
+                    for bucket in self.buckets[start..=end].iter() {
+                        let cnt = bucket.query_range(range, &mut |interval| {
+                            answer.push(*interval);
+                        });
+                        answer.inc_examined(cnt);
+                    }
                 }
             }
             (None, Some(duration)) => {
-                for bucket in self.buckets[start..=end].iter() {
+                for bucket in self.buckets.iter() {
                     let cnt = bucket.query_duration(duration, &mut |interval| {
                         answer.push(*interval);
                     });
@@ -433,6 +441,7 @@ impl Algorithm for PeriodIndex {
     fn clear(&mut self) {
         self.buckets.clear();
         self.anchor_point = 0;
+        self.span.take();
         self.bucket_length.take();
         self.n = 0;
     }

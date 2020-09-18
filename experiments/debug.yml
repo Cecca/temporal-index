@@ -6,7 +6,8 @@
           - 1000000
         start_times:
           # - Uniform: { low: 1, high: 100000 }
-          - Clustered: { n: 100, high: 10000000, std_dev: 100 }
+          # - Clustered: { n: 100, high: 10000000, std_dev: 100 }
+          - Clustered: { n: 10, high: 10000000, std_dev: 10 }
         durations:
           - Zipf: { n: 1000000, beta: 1 }
 
@@ -31,8 +32,8 @@
     # - PeriodIndexStar:
     #     num_buckets: [16]
     #     num_levels: [4,32]
-    - PeriodIndexPlusPlus:
-        num_buckets: [100]
+    # - PeriodIndexPlusPlus:
+    #     num_buckets: [100]
     # - Grid3D:
     #     num_buckets: [16]
     # - Grid:
@@ -41,6 +42,6 @@
     # - NestedBTree
     # - NestedVecs
     # - IntervalTree
-    # - PeriodIndex:
-    #     num_buckets: [16]
-    #     num_levels: [4]
+    - PeriodIndex:
+        num_buckets: [1024]
+        num_levels: [4]
