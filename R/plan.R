@@ -100,17 +100,16 @@ plan <- drake_plan(
     barchart_qps() %>%
     save_png(file_out("imgs/qps_duration_only.png")),
 
+  ## Uniform distribution of start times
   distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%
     filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
   distribution_duration = get_histograms("dataset-durations", "experiments/all.yml") %>%
     filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
-
   queries = get_dump("queries", "experiments/all.yml") %>%
     filter(parameters == "23512:5000_1:10000000_10000000:1_1:10000_1:10000", name == "random-uniform-zipf-uniform-uniform"),
   dataset_intervals = get_dump("dataset", "experiments/all.yml") %>%
     filter(parameters == "123:10000000_1:10000000_10000000:1", name == "random-uniform-zipf"),
   plot_dataset_intervals = draw_dataset(dataset_intervals),
-
   plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
   plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
   plot_distribution = cowplot::plot_grid(
@@ -120,6 +119,24 @@ plan <- drake_plan(
       ncol=3
     ) %>%
     save_png("imgs/distribution_plots.png", width=10, height=4),
+
+  ## Clustered distribution of start times
+  distribution_start_time_clustered = get_histograms("dataset-start-times", "experiments/all.yml") %>%
+    filter(parameters == "123:10000000_10:10000000:100000_10000000:1", name == "random-clustered-zipf"),
+  distribution_duration_clustered = get_histograms("dataset-durations", "experiments/all.yml") %>%
+    filter(parameters == "123:10000000_10:10000000:100000_10000000:1", name == "random-clustered-zipf"),
+  dataset_intervals_clustered = get_dump("dataset", "experiments/all.yml") %>%
+    filter(parameters == "123:10000000_10:10000000:100000_10000000:1", name == "random-clustered-zipf"),
+  plot_dataset_intervals_clustered = draw_dataset(dataset_intervals_clustered),
+  plot_distribution_start_time_clustered = plot_histogram(distribution_start_time_clustered, "start time"),
+  plot_distribution_duration_clustered = plot_point_distribution(distribution_duration_clustered, "duration"),
+  plot_distribution_clustered = cowplot::plot_grid(
+      plot_distribution_start_time_clustered,
+      plot_distribution_duration_clustered,
+      plot_dataset_intervals_clustered,
+      ncol=3
+    ) %>%
+    save_png("imgs/distribution_plots_clustered.png", width=10, height=4),
 
   overview_qps = {
     p <- plot_overview(data, qps, xlab="queries per second")

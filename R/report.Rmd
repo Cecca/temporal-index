@@ -175,16 +175,26 @@ being excluded from the interval.
     returned range, but has the drawback of not being implementable in an actual database.
     We use it to see how fast this approach can potentially go.
 
-## Dataset distribution
+## Dataset distribution {.tabset}
 
 The following plots report the distribution of times in the dataset we use in the following
 experiments, which comprises $10\,000\,000$ intervals with start times uniformly
 distributed between 0 and 10 million, and durations distributed according to a Zipf
 law with $\beta=1$.
 
+### Uniform start times
+
 ```{r fig.fullwidth=TRUE}
 drake::readd(plot_distribution)
 ```
+
+### Clustered start times
+
+```{r fig.fullwidth=TRUE}
+drake::readd(plot_distribution_clustered)
+```
+
+## {-}
 
 The plots confirm that we are getting the distributions we ask for.
 Note that to allow distributions to have the distributions we want,
