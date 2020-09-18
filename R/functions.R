@@ -105,7 +105,7 @@ barchart_qps <- function(dataset) {
       plot_label <- build_plot_label(dataset)
       p <- p + labs(caption=plot_label)
     } else {
-      p <- p + facet_wrap(vars(workload), scales="free")
+      p <- p + facet_grid(vars(dataset), vars(workload), scales="free")
     }
 
     p +
@@ -368,12 +368,14 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
     best <- data %>% 
       group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
       slice(which.max({{metric}})) %>%
-      mutate(workload_type = case_when(
-        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-        queryset == "random-None-uniform-uniform" ~ "duration",
-        queryset == "random-uniform-zipf-None" ~ "time",
-        TRUE ~ "Unknown"
-      )) %>%
+      mutate(
+        workload_type = case_when(
+          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-None-uniform-uniform" ~ "duration",
+          queryset == "random-uniform-zipf-None" ~ "time",
+          TRUE ~ "Unknown"
+        )
+      ) %>%
       ungroup() %>%
       mutate(bin = ntile({{metric}}, n_bins)) %>%
       mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params))

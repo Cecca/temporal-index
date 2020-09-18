@@ -68,8 +68,8 @@ plan <- drake_plan(
   plot_both = data %>%
     filter(
       hostname == "ironmaiden",
-      dataset == "random-uniform-zipf",
-      dataset_params == "123:10000000_1:10000000_10000000:1",
+      dataset %in% c("random-uniform-zipf", "random-clustered-zipf"),
+      dataset_params %in% c("123:10000000_1:10000000_10000000:1"),
       queryset == "random-uniform-zipf-uniform-uniform",
     ) %>%
     inner_join(workloads) %>%

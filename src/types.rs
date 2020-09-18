@@ -181,8 +181,6 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
         min_qps: f64,
     ) -> std::result::Result<Vec<QueryAnswer>, std::time::Duration> {
         // Set a timeout given by 10 queries per second
-        let timeout = std::time::Duration::from_secs_f64(queries.len() as f64 / min_qps);
-        info!("query timeout is {:?}", timeout);
         let mut result = Vec::with_capacity(queries.len());
         let mut pl = ProgressLogger::builder()
             .with_expected_updates(queries.len() as u64)
@@ -191,11 +189,11 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
             .start();
         let mut cnt = 0;
         for query in queries.iter() {
-            if let Some(time_to_completion) = pl.time_to_completion() {
+            if let Some(throughput) = pl.throughput() {
                 // info!("time to completion {:?}", time_to_completion);
-                if time_to_completion > timeout && cnt > 100 {
-                    warn!("aborting execution, predicted time too long");
-                    return Err(time_to_completion);
+                if throughput < min_qps && cnt > 100 {
+                    warn!("aborting execution, throughput too small");
+                    return Err(pl.time_to_completion().unwrap());
                 }
             }
             let mut query_result = QueryAnswer::builder();

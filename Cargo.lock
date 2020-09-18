@@ -503,9 +503,9 @@ dependencies = [
 
 [[package]]
 name = "progress-logger"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e438ffcedaa332dcdb533f9af2920c3979410321a4a78fc956201db0c1e509bd"
+checksum = "8cf9af70e113c0264cef87cb9fe3209f796bf326e29175b81f5bc54d4284c70a"
 dependencies = [
  "log",
  "sysinfo",
