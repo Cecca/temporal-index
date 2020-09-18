@@ -58,12 +58,11 @@ impl TimeDistribution {
                         .map(|center| Normal::new(center as f64, *std_dev as f64)),
                 );
 
-                Box::new(
-                    distribs
-                        .into_iter()
-                        .cycle()
-                        .map(move |d| rng.sample(d) as u32),
-                )
+                Box::new(distribs.into_iter().cycle().map(move |d| {
+                    let s = rng.sample(d);
+                    assert!(s < std::u32::MAX as f64);
+                    s as u32
+                }))
             }
         }
     }
