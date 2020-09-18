@@ -12,4 +12,5 @@ suppressPackageStartupMessages({
     library(cowplot)
     library(bsselectR)
     library(tidytext)
+    library(ggiraph)
 })

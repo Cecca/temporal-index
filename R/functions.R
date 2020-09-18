@@ -364,6 +364,64 @@ plot_point_distribution <- function(plotdata, xlab) {
     theme_tufte()
 }
 
+plot_overview <- function(data, n_bins=60) {
+    best <- data %>% 
+      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
+      slice(which.max(output_throughput)) %>%
+      mutate(workload_type = case_when(
+        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+        queryset == "random-None-uniform-uniform" ~ "duration",
+        queryset == "random-uniform-zipf-None" ~ "time",
+        TRUE ~ "Unknown"
+      )) %>%
+      ungroup() %>%
+      mutate(bin = ntile(output_throughput, n_bins)) %>%
+      mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params))
+
+    y_breaks_data <- best %>%
+      group_by(bin) %>%
+      summarise(output_throughput = scales::number(drop_units(median(output_throughput)))) %>%
+      ungroup() %>%
+      arrange(bin) %>%
+      filter(bin %in% pretty(bin))
+    y_breaks <- y_breaks_data %>% pull(bin)
+    y_labels <- y_breaks_data %>% pull(output_throughput)
+ 
+    algo_rank <- best %>%
+      group_by(algorithm) %>%
+      summarise(output_throughput = median(output_throughput)) %>%
+      ungroup() %>%
+      arrange(output_throughput) %>%
+      mutate(algo_id = row_number()) %>%
+      select(-output_throughput)
+
+    breaks <- algo_rank %>% pull(algo_id)
+    labels <- algo_rank %>% pull(algorithm)
+
+    p <- best %>%
+      inner_join(algo_rank) %>%
+      group_by(algorithm, bin) %>%
+      mutate(offset = (row_number() - 1) * 0.15) %>%
+      ungroup() %>%
+      # (function(d) {print(arrange(d, algorithm, bin) %>% select(algorithm, bin, offset)); d}) %>%
+      ggplot(aes(x=algo_id + offset,
+                 y=bin,
+                 color=workload_type)) + 
+      geom_point_interactive(aes(data_id=data_id),
+                             size=2) +
+      geom_point(mapping=aes(x=algo_id, y=median(bin), group=algo_id),
+                 shape="|",
+                 color="black") +
+      scale_x_continuous(labels=labels, breaks=breaks) +
+      scale_y_continuous(labels=y_labels, breaks=y_breaks) +
+      labs(y="output throughput (records/s)",
+           x="algorithm") +
+      coord_flip() +
+      theme_tufte() +
+      theme(legend.position='top',
+            panel.grid.major.y=element_line(color="lightgray"))
+}
+
 save_png <- function(ggobj, filename, width = 10, height = 6) {
   ggsave(filename, 
          ggobj,

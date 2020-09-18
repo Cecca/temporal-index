@@ -194,7 +194,7 @@ small values.
 
 ## An overview of the results
 
-```{r fig.fullwidth=TRUE}
+```{r fig.fullwidth=F}
 drake::readd(overview)
 ```
 
