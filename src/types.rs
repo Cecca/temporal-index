@@ -184,7 +184,6 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
         let mut result = Vec::with_capacity(queries.len());
         let mut pl = ProgressLogger::builder()
             .with_expected_updates(queries.len() as u64)
-            .with_frequency(std::time::Duration::from_millis(100))
             .with_items_name("queries")
             .start();
         let mut cnt = 0;
