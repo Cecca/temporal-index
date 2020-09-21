@@ -105,7 +105,7 @@ barchart_qps <- function(dataset) {
       plot_label <- build_plot_label(dataset)
       p <- p + labs(caption=plot_label)
     } else {
-      p <- p + facet_grid(vars(dataset), vars(workload), scales="free")
+      p <- p + facet_wrap(vars(workload, dataset), scales="free")
     }
 
     p +

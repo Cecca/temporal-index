@@ -14,6 +14,115 @@ impl NestedVecs {
             .flat_map(|v| v.iter().map(|p| p.1))
             .sum()
     }
+
+    pub fn query_range_duration<F: FnMut(usize, Interval)>(
+        &self,
+        range: Interval,
+        duration: DurationRange,
+        mut action: F,
+    ) -> u32 {
+        let mut cnt = 0;
+        let mut i = self
+            .durations
+            // there are no duplicates, so any match is unique
+            .binary_search(&duration.min)
+            .unwrap_or_else(|i| i);
+
+        while i < self.durations.len() && self.durations[i] <= duration.max {
+            let d = self.durations[i];
+            if d >= duration.min {
+                let search_start = if d > range.start {
+                    0
+                } else {
+                    range.start - d + 1
+                };
+                let j = self.start_times[i]
+                    .binary_search_by_key(&search_start, |p| p.0)
+                    .unwrap_or_else(|i| i);
+                for &(s, c) in &self.start_times[i][j..] {
+                    cnt += c as u32;
+                    if s >= range.end {
+                        break;
+                    }
+                    if s >= search_start {
+                        let interval = Interval::new(s, d);
+                        debug_assert!(range.overlaps(&interval));
+                        action(c, interval)
+                    }
+                }
+            }
+
+            i += 1;
+        }
+        cnt
+    }
+
+    pub fn query_range<F: FnMut(usize, Interval)>(&self, range: Interval, mut action: F) -> u32 {
+        let mut cnt = 0u32;
+        let mut i = 0;
+        while i < self.durations.len() {
+            let d = self.durations[i];
+            let search_start = if d > range.start {
+                0
+            } else {
+                range.start - d + 1
+            };
+            let j = self.start_times[i]
+                .binary_search_by_key(&search_start, |p| p.0)
+                .unwrap_or_else(|i| i);
+            for &(s, c) in &self.start_times[i][j..] {
+                cnt += c as u32;
+                if s >= range.end {
+                    break;
+                }
+                if s >= search_start {
+                    let interval = Interval::new(s, d);
+                    debug_assert!(range.overlaps(&interval));
+                    action(c, interval);
+                }
+            }
+
+            i += 1;
+        }
+        cnt
+    }
+
+    pub fn query_duration<F: FnMut(usize, Interval)>(
+        &self,
+        duration: DurationRange,
+        mut action: F,
+    ) -> u32 {
+        let mut cnt = 0u32;
+        let mut i = self
+            .durations
+            // there are no duplicates, so any match is unique
+            .binary_search(&duration.min)
+            .unwrap_or_else(|i| i);
+
+        while i < self.durations.len() && self.durations[i] <= duration.max {
+            let d = self.durations[i];
+            if d >= duration.min {
+                for &(s, c) in &self.start_times[i] {
+                    cnt += c as u32;
+                    let interval = Interval::new(s, d);
+                    debug_assert!(duration.contains(&interval));
+                    action(c, interval);
+                }
+            }
+
+            i += 1;
+        }
+        cnt
+    }
+
+    pub fn for_each<F: FnMut(usize, Interval)>(&self, mut action: F) {
+        for (d, times) in self.durations.iter().zip(self.start_times.iter()) {
+            for (start, c) in times {
+                let interval = Interval::new(*start, *d);
+                action(*c, interval);
+            }
+        }
+    }
 }
 
 impl Default for NestedVecs {
@@ -39,7 +148,7 @@ impl Algorithm for NestedVecs {
         String::new()
     }
     fn version(&self) -> u8 {
-        3
+        5
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
@@ -106,100 +215,39 @@ impl Algorithm for NestedVecs {
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
-                let mut cnt = 0u32;
-                let mut i = self
-                    .durations
-                    // there are no duplicates, so any match is unique
-                    .binary_search(&duration.min)
-                    .unwrap_or_else(|i| i);
-
-                while i < self.durations.len() && self.durations[i] <= duration.max {
-                    let d = self.durations[i];
-                    if d >= duration.min {
-                        let search_start = if d > range.start {
-                            0
-                        } else {
-                            range.start - d + 1
-                        };
-                        let j = self.start_times[i]
-                            .binary_search_by_key(&search_start, |p| p.0)
-                            .unwrap_or_else(|i| i);
-                        for &(s, c) in &self.start_times[i][j..] {
-                            cnt += c as u32;
-                            if s >= range.end {
-                                break;
-                            }
-                            if s >= search_start {
-                                let interval = Interval::new(s, d);
-                                debug_assert!(range.overlaps(&interval));
-                                for _ in 0..c {
-                                    answers.push(interval);
-                                }
-                            }
-                        }
+                let cnt = self.query_range_duration(range, duration, |c, interval| {
+                    for _ in 0..c {
+                        answers.push(interval);
                     }
-
-                    i += 1;
-                }
+                });
                 answers.inc_examined(cnt);
             }
             (Some(range), None) => {
-                let mut cnt = 0u32;
-                let mut i = 0;
-                while i < self.durations.len() {
-                    let d = self.durations[i];
-                    let search_start = if d > range.start {
-                        0
-                    } else {
-                        range.start - d + 1
-                    };
-                    let j = self.start_times[i]
-                        .binary_search_by_key(&search_start, |p| p.0)
-                        .unwrap_or_else(|i| i);
-                    for &(s, c) in &self.start_times[i][j..] {
-                        cnt += c as u32;
-                        if s >= range.end {
-                            break;
-                        }
-                        if s >= search_start {
-                            let interval = Interval::new(s, d);
-                            debug_assert!(range.overlaps(&interval));
-                            for _ in 0..c {
-                                answers.push(interval);
-                            }
-                        }
+                let cnt = self.query_range(range, |c, interval| {
+                    for _ in 0..c {
+                        answers.push(interval);
                     }
-
-                    i += 1;
-                }
+                });
                 answers.inc_examined(cnt);
             }
             (None, Some(duration)) => {
-                let mut cnt = 0u32;
-                let mut i = self
-                    .durations
-                    // there are no duplicates, so any match is unique
-                    .binary_search(&duration.min)
-                    .unwrap_or_else(|i| i);
-
-                while i < self.durations.len() && self.durations[i] <= duration.max {
-                    let d = self.durations[i];
-                    if d >= duration.min {
-                        for &(s, c) in &self.start_times[i] {
-                            cnt += c as u32;
-                            let interval = Interval::new(s, d);
-                            debug_assert!(duration.contains(&interval));
-                            for _ in 0..c {
-                                answers.push(interval);
-                            }
-                        }
+                let cnt = self.query_duration(duration, |c, interval| {
+                    for _ in 0..c {
+                        answers.push(interval);
                     }
-
-                    i += 1;
-                }
+                });
                 answers.inc_examined(cnt);
             }
-            (None, None) => todo!(),
+            (None, None) => {
+                let mut cnt = 0u32;
+                self.for_each(|c, interval| {
+                    cnt += c as u32;
+                    for _ in 0..c {
+                        answers.push(interval);
+                    }
+                });
+                answers.inc_examined(cnt);
+            }
         }
     }
 

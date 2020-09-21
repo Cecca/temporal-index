@@ -1,3 +1,4 @@
+use crate::nested_vecs::NestedVecs;
 use crate::types::*;
 use deepsize::DeepSizeOf;
 use std::iter::FromIterator;
@@ -6,7 +7,7 @@ use std::iter::FromIterator;
 pub struct PeriodIndexPlusPlus {
     /// the number of buckets in which each dimension is divided
     num_buckets: usize,
-    index: Option<RangeIndex<RangeIndex<RangeIndex<Vec<Interval>>>>>,
+    index: Option<RangeIndex<RangeIndex<RangeIndex<NestedVecs>>>>,
 }
 
 impl PeriodIndexPlusPlus {
@@ -56,7 +57,15 @@ impl Algorithm for PeriodIndexPlusPlus {
                             n_buckets,
                             by_start,
                             |interval| interval.end,
-                            |by_end| Vec::from_iter(by_end.iter().map(|interval| ****interval)),
+                            |by_end| {
+                                //
+                                let local =
+                                    Vec::from_iter(by_end.iter().map(|interval| ****interval));
+                                let mut inner = NestedVecs::default();
+                                inner.index(&local);
+                                inner
+                            },
+                            // |by_end| Vec::from_iter(by_end.iter().map(|interval| ****interval)),
                         )
                     },
                 )
@@ -76,6 +85,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
         match (query.range, query.duration) {
             (Some(range), Some(duration)) => {
+                let mut skip_duration = 0;
                 let mut cnt = 0;
                 self.index
                     .as_ref()
@@ -94,58 +104,63 @@ impl Algorithm for PeriodIndexPlusPlus {
                                         start: start_bound.0,
                                         end: end_bound.1,
                                     };
-                                    match (
-                                        duration.contains_duration(bucket_duration_range),
-                                        range.contains_interval(&bucket_time_range),
-                                    ) {
-                                        (true, true) => {
-                                            // no verification is necessary, the bucket is contained in all dimensions in the query
-                                            for interval in intervals {
-                                                debug_assert!(range.overlaps(&interval));
-                                                debug_assert!(duration.contains(&interval));
-                                                cnt += 1;
-                                                answer.push(*interval);
-                                            }
-                                        }
-                                        (true, false) => {
-                                            // we can skip the verification of the duration
-                                            for interval in intervals {
-                                                debug_assert!(duration.contains(&interval));
-                                                cnt += 1;
-                                                let overlaps = range.overlaps(interval);
-                                                if overlaps {
-                                                    answer.push(*interval);
-                                                }
-                                            }
-                                        }
-                                        (false, true) => {
-                                            // we can skip the verification of the overlap
-                                            for interval in intervals {
-                                                debug_assert!(range.overlaps(&interval));
-                                                cnt += 1;
-                                                let matches_duration = duration.contains(interval);
-                                                if matches_duration {
-                                                    answer.push(*interval);
-                                                }
-                                            }
-                                        }
-                                        (false, false) => {
-                                            // We have to verify both duration and time range
-                                            for interval in intervals {
-                                                cnt += 1;
-                                                let matches_duration = duration.contains(interval);
-                                                let overlaps = range.overlaps(interval);
-                                                if matches_duration && overlaps {
-                                                    answer.push(*interval);
-                                                }
-                                            }
-                                        }
-                                    }
+                                    // match (
+                                    //     duration.contains_duration(bucket_duration_range),
+                                    //     range.contains_interval(&bucket_time_range),
+                                    // ) {
+                                    //     (true, true) => {
+                                    //         // no verification is necessary, the bucket is contained in all dimensions in the query
+                                    //         for interval in intervals {
+                                    //             debug_assert!(range.overlaps(&interval));
+                                    //             debug_assert!(duration.contains(&interval));
+                                    //             cnt += 1;
+                                    //             skip_duration += 1;
+                                    //             answer.push(*interval);
+                                    //         }
+                                    //     }
+                                    //     (true, false) => {
+                                    //         // we can skip the verification of the duration
+                                    //         for interval in intervals {
+                                    //             debug_assert!(duration.contains(&interval));
+                                    //             cnt += 1;
+                                    //             skip_duration += 1;
+                                    //             let overlaps = range.overlaps(interval);
+                                    //             if overlaps {
+                                    //                 answer.push(*interval);
+                                    //             }
+                                    //         }
+                                    //     }
+                                    //     (false, true) => {
+                                    //         // we can skip the verification of the overlap
+                                    //         for interval in intervals {
+                                    //             debug_assert!(range.overlaps(&interval));
+                                    //             cnt += 1;
+                                    //             let matches_duration = duration.contains(interval);
+                                    //             if matches_duration {
+                                    //                 answer.push(*interval);
+                                    //             }
+                                    //         }
+                                    //     }
+                                    //     (false, false) => {
+                                    //         // We have to verify both duration and time range
+                                    //         for interval in intervals {
+                                    //             cnt += 1;
+                                    //             let matches_duration = duration.contains(interval);
+                                    //             let overlaps = range.overlaps(interval);
+                                    //             if matches_duration && overlaps {
+                                    //                 answer.push(*interval);
+                                    //             }
+                                    //         }
+                                    //     }
+                                    // }
                                 })
                             })
                         },
                     );
                 answer.inc_examined(cnt);
+                if cnt > 0 {
+                    info!("skip duration check {} / total {}", skip_duration, cnt);
+                }
             }
             (Some(range), None) => {
                 let mut cnt = 0;
@@ -161,18 +176,18 @@ impl Algorithm for PeriodIndexPlusPlus {
                                 };
                                 if range.contains_interval(&bucket_time_range) {
                                     // skip verification, just enumerate
-                                    for interval in intervals {
-                                        cnt += 1;
-                                        answer.push(*interval);
-                                    }
+                                    // for interval in intervals {
+                                    //     cnt += 1;
+                                    //     answer.push(*interval);
+                                    // }
                                 } else {
-                                    for interval in intervals {
-                                        cnt += 1;
-                                        let overlaps = range.overlaps(interval);
-                                        if overlaps {
-                                            answer.push(*interval);
-                                        }
-                                    }
+                                    // for interval in intervals {
+                                    //     cnt += 1;
+                                    //     let overlaps = range.overlaps(interval);
+                                    //     if overlaps {
+                                    //         answer.push(*interval);
+                                    //     }
+                                    // }
                                 }
                             })
                         })
@@ -196,23 +211,23 @@ impl Algorithm for PeriodIndexPlusPlus {
                                 // skip verification, just enumerate
                                 by_start.for_each(|by_end| {
                                     by_end.for_each(|intervals| {
-                                        for interval in intervals {
-                                            cnt += 1;
-                                            debug_assert!(duration.contains(interval));
-                                            answer.push(*interval);
-                                        }
+                                        // for interval in intervals {
+                                        //     cnt += 1;
+                                        //     debug_assert!(duration.contains(interval));
+                                        //     answer.push(*interval);
+                                        // }
                                     })
                                 })
                             } else {
                                 by_start.for_each(|by_end| {
                                     by_end.for_each(|intervals| {
-                                        for interval in intervals {
-                                            cnt += 1;
-                                            let matches_duration = duration.contains(interval);
-                                            if matches_duration {
-                                                answer.push(*interval);
-                                            }
-                                        }
+                                        // for interval in intervals {
+                                        //     cnt += 1;
+                                        //     let matches_duration = duration.contains(interval);
+                                        //     if matches_duration {
+                                        //         answer.push(*interval);
+                                        //     }
+                                        // }
                                     })
                                 })
                             }

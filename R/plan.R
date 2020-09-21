@@ -65,40 +65,73 @@ plan <- drake_plan(
                                                     queryset_val = "random-uniform-zipf-uniform-uniform",
                                                     queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
 
-  plot_both = data %>%
+  plot_both_uniform = data %>%
     filter(
       hostname == "ironmaiden",
-      dataset %in% c("random-uniform-zipf", "random-clustered-zipf"),
-      dataset_params %in% c("123:10000000_1:10000000_10000000:1"),
+      dataset == "random-uniform-zipf",
+      dataset_params %in% c("123:10000000_1:10000000_10000000:1", "123:10000000_10:10000000:100000_10000000:1"),
       queryset == "random-uniform-zipf-uniform-uniform",
     ) %>%
     inner_join(workloads) %>%
     barchart_qps() %>%
-    save_png(file_out("imgs/qps_both.png")),
+    save_png(file_out("imgs/qps_both_uniform.png")),
 
-  plot_range_only = data %>%
+  plot_range_only_uniform = data %>%
     filter(
       hostname == "ironmaiden",
       dataset == "random-uniform-zipf",
+      dataset_params %in% c("123:10000000_1:10000000_10000000:1", "123:10000000_10:10000000:100000_10000000:1"),
       queryset == "random-uniform-zipf-None",
-      dataset_params == "123:10000000_1:10000000_10000000:1",
       queryset_params == "23512:5000_1:10000000_10000000:1_NA_NA"
     ) %>%
     inner_join(workloads) %>%
     barchart_qps() %>%
-    save_png(file_out("imgs/qps_time_only.png")),
+    save_png(file_out("imgs/qps_time_only_uniform.png")),
 
-  plot_duration_only = data %>%
+  plot_duration_only_uniform = data %>%
     filter(
       hostname == "ironmaiden",
       dataset == "random-uniform-zipf",
+      dataset_params %in% c("123:10000000_1:10000000_10000000:1", "123:10000000_10:10000000:100000_10000000:1"),
       queryset == "random-None-uniform-uniform",
-      dataset_params == "123:10000000_1:10000000_10000000:1",
-      # queryset_params == "23512:5000_NA_NA_1:100_1:100"
     ) %>%
     inner_join(workloads) %>%
     barchart_qps() %>%
-    save_png(file_out("imgs/qps_duration_only.png")),
+    save_png(file_out("imgs/qps_duration_only_uniform.png")),
+
+  plot_both_clustered = data %>%
+    filter(
+      hostname == "ironmaiden",
+      dataset == "random-clustered-zipf",
+      dataset_params %in% c("123:10000000_1:10000000_10000000:1", "123:10000000_10:10000000:100000_10000000:1"),
+      queryset == "random-uniform-zipf-uniform-uniform",
+    ) %>%
+    inner_join(workloads) %>%
+    barchart_qps() %>%
+    save_png(file_out("imgs/qps_both_clustered.png")),
+
+  # plot_range_only_clustered = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-clustered-zipf",
+  #     dataset_params %in% c("123:10000000_1:10000000_10000000:1", "123:10000000_10:10000000:100000_10000000:1"),
+  #     queryset == "random-uniform-zipf-None",
+  #     queryset_params == "23512:5000_1:10000000_10000000:1_NA_NA"
+  #   ) %>%
+  #   inner_join(workloads) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_time_only_clustered.png")),
+
+  # plot_duration_only_clustered = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-clustered-zipf",
+  #     dataset_params %in% c("123:10000000_1:10000000_10000000:1", "123:10000000_10:10000000:100000_10000000:1"),
+  #     queryset == "random-None-uniform-uniform",
+  #   ) %>%
+  #   inner_join(workloads) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_duration_only_clustered.png")),
 
   ## Uniform distribution of start times
   distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%

@@ -175,7 +175,12 @@ being excluded from the interval.
     returned range, but has the drawback of not being implementable in an actual database.
     We use it to see how fast this approach can potentially go.
 
-## Dataset distribution {.tabset}
+`PeriodIndex++`
+
+:   A three dimensional grid which is adaptive in all dimensions. The difference with the other three dimensional grid
+    is that the cumulative distributions used for adaptiveness are _conditional_.
+
+## Dataset distribution 
 
 The following plots report the distribution of times in the dataset we use in the following
 experiments, which comprises $10\,000\,000$ intervals with start times uniformly
@@ -221,8 +226,12 @@ plays some role, unlike the workload used in the conference version of the paper
 The following figure reports the throughput of each algorithm. Parameterized algorithms report
 several parameterizations.
 
-```{r fig.fullwidth=TRUE, fig.width=10, fig.cap="Query throughput (in queries per second) of different indices with different parameterization, on a dataset of ten million intervals."}
-readd(plot_both)
+```{r fig.fullwidth=TRUE, fig.width=10}
+readd(plot_both_uniform)
+```
+
+```{r fig.fullwidth=TRUE, fig.width=10}
+readd(plot_both_clustered)
 ```
 
 The `NestedVecs` data structure is by far the best performing, followed by the three dimensional grid.
@@ -231,6 +240,11 @@ leaves quite a lot of performance on the table.
 All the other algorithms are in a completely different league, performing pretty similarly to one another
 (at least in terms of order of magnitude) and being one to two orders of magnitude slower than the leading
 group.
+
+The `period-index++` is not very performant on queries with large minimum duration and
+high selectivity (i.e. queries with durations in a range like `[1000, 1100]`).
+Such queries involve a first level of buckets that contains a wider span of durations, compared
+with the first cell (which contains only duration 1, under a Zipf distribution).
 
 In the next figure we consider the distribution of query times of the 5000 queries (left), for the best
 configuration of each algorithm. The algorithms are sorted by increasing median query time, which is reported
@@ -266,6 +280,10 @@ This is the same workload as before, with the duration part of the query omitted
 My expectation here is for data structures that explicitly support range queries (all except linear scan and `BTree`) to perform well.
 
 ```{r fig.fullwidth=TRUE, fig.widht=10}
+readd(plot_range_only_uniform)
+```
+
+```{r fig.fullwidth=TRUE, fig.widht=10}
 readd(plot_range_only)
 ```
 
@@ -298,7 +316,7 @@ Again, we have a similar workload here, but just with the duration part. The exp
 to have `BTree` to perform really well.
 
 ```{r fig.fullwidth=TRUE, fig.widht=10}
-readd(plot_duration_only)
+readd(plot_duration_only_uniform)
 ```
 
 The performance of `NestedVecs` is pretty similar.
