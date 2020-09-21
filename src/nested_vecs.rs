@@ -153,16 +153,15 @@ impl Algorithm for NestedVecs {
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
         let mut tmp = Vec::with_capacity(dataset.len());
-        let mut pl = progress_logger::ProgressLogger::builder()
-            .with_items_name("intervals")
-            .with_expected_updates(dataset.len() as u64)
-            .start();
-        info!("Inserting intervals");
+        // let mut pl = progress_logger::ProgressLogger::builder()
+        //     .with_items_name("intervals")
+        //     .with_expected_updates(dataset.len() as u64)
+        //     .start();
         for interval in dataset {
             tmp.push((interval.duration(), interval.start));
-            pl.update_light(1u64);
+            // pl.update_light(1u64);
         }
-        pl.stop();
+        // pl.stop();
 
         // Sort by increasing duration and start time, lexicographically
         tmp.sort_unstable();
@@ -172,11 +171,10 @@ impl Algorithm for NestedVecs {
         let mut last_start = tmp[0].1;
         let mut count = 1usize;
         let mut current_vec = Vec::new();
-        info!("Storing intervals");
-        let mut pl = progress_logger::ProgressLogger::builder()
-            .with_items_name("intervals")
-            .with_expected_updates(dataset.len() as u64)
-            .start();
+        // let mut pl = progress_logger::ProgressLogger::builder()
+        //     .with_items_name("intervals")
+        //     .with_expected_updates(dataset.len() as u64)
+        // .start();
         for (d, s) in tmp.drain(1..) {
             if d > last_d {
                 current_vec.push((last_start, count));
@@ -194,9 +192,9 @@ impl Algorithm for NestedVecs {
             } else {
                 count += 1;
             }
-            pl.update_light(1u64);
+            // pl.update_light(1u64);
         }
-        pl.stop();
+        // pl.stop();
         current_vec.push((last_start, count));
         self.durations.push(last_d);
         self.start_times.push(current_vec);
@@ -204,12 +202,12 @@ impl Algorithm for NestedVecs {
         assert_eq!(self.durations.len(), self.start_times.len());
         assert_eq!(self.n_intervals(), dataset.len());
 
-        let size = self.deep_size_of();
-        info!(
-            "Allocated for index: {} bytes ({} Mb)",
-            size,
-            size / (1024 * 1024)
-        );
+        // let size = self.deep_size_of();
+        // info!(
+        //     "Allocated for index: {} bytes ({} Mb)",
+        //     size,
+        //     size / (1024 * 1024)
+        // );
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
