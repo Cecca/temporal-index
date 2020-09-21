@@ -30,6 +30,38 @@ plan <- drake_plan(
     ) %>%
     select(-time_query_ms, -time_index_ms)
     ,
+  
+  historical_variations = table_history(conn, file_in("temporal-index-results.sqlite")) %>%
+    group_by(algorithm, workload) %>% 
+    arrange(algorithm_version, date) %>% 
+    transmute(algorithm_version, date, variation = time_query_ms / lag(time_query_ms)) %>% 
+    ungroup() %>%
+    arrange(algorithm, workload, algorithm_version, date)
+  ,
+
+  regressions = historical_variations %>% filter(variation > 1),
+  regressions_latest = historical_variations %>%
+    group_by(algorithm) %>%
+    filter(algorithm_version == max(algorithm_version)) %>%
+    ungroup() %>%
+    filter(variation > 1),
+
+  latest_change = {
+    mingroup <- historical_variations %>%
+      group_by(algorithm) %>%
+      filter(algorithm_version == max(algorithm_version)) %>%
+      slice(which.min(abs(variation - 1))) %>%
+      transmute(algorithm_version, min_variation = variation) %>%
+      ungroup()
+
+    maxgroup <- historical_variations %>%
+      group_by(algorithm) %>%
+      filter(algorithm_version == max(algorithm_version)) %>%
+      slice(which.max(abs(variation - 1))) %>%
+      transmute(algorithm_version, max_variation = variation) %>%
+      ungroup()
+    inner_join(mingroup, maxgroup)
+  },
 
   query_stats_both = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",

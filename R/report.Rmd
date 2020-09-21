@@ -180,6 +180,16 @@ being excluded from the interval.
 :   A three dimensional grid which is adaptive in all dimensions. The difference with the other three dimensional grid
     is that the cumulative distributions used for adaptiveness are _conditional_.
 
+    The indexing works on two levels. On the first level, the entire dataset is partitioned based on the 
+    conditional cumulative distibution functions, with conditioning in this order: first duration, then start times, 
+    then end times.^[Clearly, the end time is dependent on the other two quantities. Nonetheless, explicitly 
+    indexing it when defining the grid makes for better running times (experiments omitted).]
+
+    The grid defines a set of buckets, partitioning the dataset. Each bucket is then further indexed using a data
+    structure akin to tries, which we implement using `NestedVecs`. On the first level of this trie we have the durations,
+    on the second the start times. Elements on each level are sorted. This allows for fast access of relevant ranges
+    of data.
+
 ## Dataset distribution 
 
 The following plots report the distribution of times in the dataset we use in the following

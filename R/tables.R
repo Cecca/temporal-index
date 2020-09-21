@@ -36,3 +36,14 @@ table_period_index_buckets <- function(connection, path, dataset_val, dataset_pa
   print(p)
   p
 }
+
+table_history <- function(connection, path) {
+  tbl(connection, "raw") %>% 
+    collect() %>% 
+    mutate(workload = str_c(dataset, dataset_params, dataset_version, queryset, queryset_params, queryset_version, algorithm_params, sep=":::")) %>%
+    mutate(time_query = set_units(time_query_ms, "ms")) %>%
+    mutate(date = parse_datetime(date)) %>%
+    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
+    slice(which.max(date)) %>%
+    ungroup()
+}
