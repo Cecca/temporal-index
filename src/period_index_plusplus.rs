@@ -1,4 +1,3 @@
-use crate::nested_vecs::NestedVecs;
 use crate::types::*;
 use deepsize::DeepSizeOf;
 use std::iter::FromIterator;
@@ -7,7 +6,7 @@ use std::iter::FromIterator;
 pub struct PeriodIndexPlusPlus {
     /// the number of buckets in which each dimension is divided
     num_buckets: usize,
-    index: Option<RangeIndex<RangeIndex<RangeIndex<NestedVecs>>>>,
+    index: Option<RangeIndex<RangeIndex<RangeIndex<Vec<Interval>>>>>,
 }
 
 impl PeriodIndexPlusPlus {
@@ -35,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        7
+        8
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -57,15 +56,7 @@ impl Algorithm for PeriodIndexPlusPlus {
                             n_buckets,
                             by_start,
                             |interval| interval.end,
-                            |by_end| {
-                                //
-                                let local =
-                                    Vec::from_iter(by_end.iter().map(|interval| ****interval));
-                                let mut inner = NestedVecs::default();
-                                inner.index(&local);
-                                inner
-                            },
-                            // |by_end| Vec::from_iter(by_end.iter().map(|interval| ****interval)),
+                            |by_end| Vec::from_iter(by_end.iter().map(|interval| ****interval)),
                         )
                     },
                 )
@@ -109,52 +100,45 @@ impl Algorithm for PeriodIndexPlusPlus {
                                     ) {
                                         (true, true) => {
                                             // no verification is necessary, the bucket is contained in all dimensions in the query
-                                            intervals.for_each(|count, interval| {
+                                            for interval in intervals {
                                                 debug_assert!(range.overlaps(&interval));
                                                 debug_assert!(duration.contains(&interval));
-                                                cnt += count as u32;
-                                                for _ in 0..count {
-                                                    answer.push(interval);
-                                                }
-                                            });
+                                                cnt += 1;
+                                                answer.push(*interval);
+                                            }
                                         }
                                         (true, false) => {
                                             // we can skip the verification of the duration
-                                            cnt +=
-                                                intervals.query_range(range, |count, interval| {
-                                                    debug_assert!(duration.contains(&interval));
-                                                    debug_assert!(range.overlaps(&interval));
-                                                    for _ in 0..count {
-                                                        answer.push(interval);
-                                                    }
-                                                });
+                                            for interval in intervals {
+                                                debug_assert!(duration.contains(&interval));
+                                                cnt += 1;
+                                                let overlaps = range.overlaps(interval);
+                                                if overlaps {
+                                                    answer.push(*interval);
+                                                }
+                                            }
                                         }
                                         (false, true) => {
                                             // we can skip the verification of the overlap
-                                            cnt += intervals.query_duration(
-                                                duration,
-                                                |count, interval| {
-                                                    debug_assert!(duration.contains(&interval));
-                                                    debug_assert!(range.overlaps(&interval));
-                                                    for _ in 0..count {
-                                                        answer.push(interval);
-                                                    }
-                                                },
-                                            );
+                                            for interval in intervals {
+                                                debug_assert!(range.overlaps(&interval));
+                                                cnt += 1;
+                                                let matches_duration = duration.contains(interval);
+                                                if matches_duration {
+                                                    answer.push(*interval);
+                                                }
+                                            }
                                         }
                                         (false, false) => {
                                             // We have to verify both duration and time range
-                                            cnt += intervals.query_range_duration(
-                                                range,
-                                                duration,
-                                                |count, interval| {
-                                                    debug_assert!(duration.contains(&interval));
-                                                    debug_assert!(range.overlaps(&interval));
-                                                    for _ in 0..count {
-                                                        answer.push(interval);
-                                                    }
-                                                },
-                                            );
+                                            for interval in intervals {
+                                                cnt += 1;
+                                                let matches_duration = duration.contains(interval);
+                                                let overlaps = range.overlaps(interval);
+                                                if matches_duration && overlaps {
+                                                    answer.push(*interval);
+                                                }
+                                            }
                                         }
                                     }
                                 })
@@ -176,20 +160,19 @@ impl Algorithm for PeriodIndexPlusPlus {
                                     end: end_bound.1,
                                 };
                                 if range.contains_interval(&bucket_time_range) {
-                                    intervals.for_each(|count, interval| {
-                                        debug_assert!(range.overlaps(&interval));
-                                        cnt += count as u32;
-                                        for _ in 0..count {
-                                            answer.push(interval);
-                                        }
-                                    });
+                                    // skip verification, just enumerate
+                                    for interval in intervals {
+                                        cnt += 1;
+                                        answer.push(*interval);
+                                    }
                                 } else {
-                                    cnt += intervals.query_range(range, |count, interval| {
-                                        debug_assert!(range.overlaps(&interval));
-                                        for _ in 0..count {
-                                            answer.push(interval);
+                                    for interval in intervals {
+                                        cnt += 1;
+                                        let overlaps = range.overlaps(interval);
+                                        if overlaps {
+                                            answer.push(*interval);
                                         }
-                                    });
+                                    }
                                 }
                             })
                         })
@@ -213,27 +196,23 @@ impl Algorithm for PeriodIndexPlusPlus {
                                 // skip verification, just enumerate
                                 by_start.for_each(|by_end| {
                                     by_end.for_each(|intervals| {
-                                        intervals.for_each(|count, interval| {
-                                            debug_assert!(duration.contains(&interval));
-                                            cnt += count as u32;
-                                            for _ in 0..count {
-                                                answer.push(interval);
-                                            }
-                                        });
+                                        for interval in intervals {
+                                            cnt += 1;
+                                            debug_assert!(duration.contains(interval));
+                                            answer.push(*interval);
+                                        }
                                     })
                                 })
                             } else {
                                 by_start.for_each(|by_end| {
                                     by_end.for_each(|intervals| {
-                                        cnt += intervals.query_duration(
-                                            duration,
-                                            |count, interval| {
-                                                debug_assert!(duration.contains(&interval));
-                                                for _ in 0..count {
-                                                    answer.push(interval);
-                                                }
-                                            },
-                                        );
+                                        for interval in intervals {
+                                            cnt += 1;
+                                            let matches_duration = duration.contains(interval);
+                                            if matches_duration {
+                                                answer.push(*interval);
+                                            }
+                                        }
                                     })
                                 })
                             }
