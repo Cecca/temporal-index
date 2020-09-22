@@ -219,9 +219,30 @@ small values.
 
 ## An overview of the results
 
+In this section we give an overview of all the results that will be presented in the next sections.
+Specifically, we consider the throughput achieved by each algorithm across all the tested datasets
+and workloads. The results are arranged in the following (interactive) plot, which reports the
+throughput on a logarithmic scale, ranking algorithms by their median throughput (higher is better).
+Each algorithm is associated to a boxplot (black lines) that succinctly describes the distribution
+of the results.
+Furthermore, we report each experiments as a dot in the plot, colored according to the type of query:
+both time and duration are constrained, only time or only duration.
+For readability, the points are snapped to a logarithmic grid.
+
 ```{r fig.fullwidth=F}
 drake::readd(overview_qps)
 ```
+
+The `period-index++` index ranks the best, but only by a small margin. Note,
+however, that `Grid3D` is basically the same index, with cumulative
+distribution functions that are not conditioned on each other. Also
+`NestedVecs` can be seen as an extreme case of `period-index++`, where
+buckets are defined to contain a single value of the domain.
+
+The advantage of `period-index++` is that is the most _consistently_ good index, across the entire range of tested datasets and querysets.
+
+The simple `BTree` performs rather well whenever the duration is involved in the computation, otherwise it is on the slow side.
+The interval tree has a similar behaviour, with bad performance when the time ranges are not considered.
 
 ## Range-duration queries
 
