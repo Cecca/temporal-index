@@ -364,7 +364,12 @@ plot_point_distribution <- function(plotdata, xlab) {
     theme_tufte()
 }
 
-plot_overview <- function(data, metric, xlab, n_bins=60) {
+# Snap points to tenths of logarithms
+logsnap <- function(x, step=10) {
+  as.integer(10^(ceiling(log10(x) * step) / step))
+}
+
+plot_overview2 <- function(data, metric, xlab, n_bins=60) {
     best <- data %>% 
       group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
       slice(which.max({{metric}})) %>%
@@ -377,7 +382,7 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
         )
       ) %>%
       ungroup() %>%
-      mutate(bin = ntile({{metric}}, n_bins)) %>%
+      mutate(bin = logsnap(drop_units(qps), 10)) %>%
       mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params))
 
     y_breaks_data <- best %>%
@@ -402,7 +407,7 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
     plotdata <- best %>%
       inner_join(algo_rank) %>%
       group_by(algorithm, bin) %>%
-      mutate(offset = (row_number()) * 0.15) %>%
+      mutate(offset = (row_number()) * 0.1) %>%
       ungroup()
 
     quartiles <- plotdata %>%
@@ -417,7 +422,7 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
       ungroup()
 
     annotation_positions <- quartiles %>%
-      slice(which.min(algo_id)) %>%
+      slice(which.max(algo_id)) %>%
       gather(min_bin:median_bin, key="label", value="bin") %>%
       mutate(label = case_when(
         label == "min_bin" ~ "min",
@@ -426,7 +431,7 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
         label == "bin75"   ~ "75%",
         label == "median_bin"   ~ "median",
       )) %>%
-      mutate(xpos = if_else(label == "median", algo_id - 0.5, algo_id - 0.2))
+      mutate(xpos = if_else(label == "median", algo_id - 0.25, algo_id - 0.15))
     print(annotation_positions)
 
     p <- plotdata %>%
@@ -451,8 +456,8 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
                  shape=15,
                  color="white") +
       geom_point_interactive(aes(data_id=data_id),
-                             size=2) +
-      geom_point(mapping=aes(x=algo_id-0.2, y=median_bin),
+                             size=1.4) +
+      geom_point(mapping=aes(x=algo_id-0.1, y=median_bin),
                  data=plotdata %>% group_by(algo_id) %>% summarise(median_bin=median(bin)),
                  shape=17,
                  color="black") +
@@ -460,20 +465,20 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
                 inherit.aes=F,
                 data=annotation_positions,
                 size=3) +
+      # geom_point(mapping=aes(x=algo_id - 0.2, y=drop_units(qps)), shape="|", color="black") +
       scale_x_continuous(labels=labels, breaks=breaks) +
-      scale_y_continuous(labels=y_labels, breaks=y_breaks) +
-      # annotate("text",
-      #   x = pull(annotation_positions, algo_id),
-      #   y = pull(annotation_position, bin),
-      #   label = pull(annotation_position, 10)
-      # ) +
+      scale_y_continuous(trans="log", breaks=c(1,10,100,1000,10000,100000),
+                         labels=scales::number_format(),
+                         expand = expansion(add=.5)) +
       labs(y=xlab, # The plot is flipped, hence y -> x
-           x="algorithm") +
+           x="algorithm",
+           color="workload") +
       coord_flip() +
       theme_tufte() +
       theme(legend.position='top',
             panel.grid.major.y=element_line(color="white"))
 }
+
 
 save_png <- function(ggobj, filename, width = 10, height = 6) {
   ggsave(filename, 

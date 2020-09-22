@@ -231,7 +231,7 @@ plan <- drake_plan(
     save_png("imgs/distribution_plots_clustered.png", width=10, height=4),
 
   overview_qps = {
-    p <- plot_overview(data, qps, xlab="queries per second")
+    p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
     save_png(p, file_out("imgs/overview-qps.png"))
     girafe(
       ggobj=p, 
@@ -245,19 +245,19 @@ plan <- drake_plan(
   },
 
 
-  # overview_output_throughput = {
-  #   p <- plot_overview(data, output_throughput, xlab="output throughput (records/s)")
-  #   save_png(p, file_out("imgs/overview-output-thoughput.png"))
-  #   girafe(
-  #     ggobj=p, 
-  #     width_svg=10,
-  #     height_svg=6,
-  #     options = list(
-  #       opts_hover(css = "r:4; stroke: black;"),
-  #       opts_hover_inv(css = "opacity: 0.2;")
-  #     ) 
-  #   )
-  # },
+  overview_output_throughput = {
+    p <- plot_overview2(data, output_throughput, xlab="output throughput (records/s)")
+    save_png(p, file_out("imgs/overview-output-thoughput.png"))
+    girafe(
+      ggobj=p, 
+      width_svg=10,
+      height_svg=6,
+      options = list(
+        opts_hover(css = "r:4; stroke: black;"),
+        opts_hover_inv(css = "opacity: 0.2;")
+      ) 
+    )
+  },
 
   report = rmarkdown::render(
     knitr_in("R/report.Rmd"),
