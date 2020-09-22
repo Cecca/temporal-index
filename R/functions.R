@@ -382,8 +382,13 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
         )
       ) %>%
       ungroup() %>%
-      mutate(bin = logsnap(drop_units(qps), 10)) %>%
-      mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params))
+      mutate(bin = logsnap(drop_units(qps), 20)) %>%
+      mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params)) %>%
+      mutate(labelshow = str_c(
+        dataset, dataset_params, "\n",
+        queryset, queryset_params,
+        sep=" "
+      ))
 
     y_breaks_data <- best %>%
       group_by(bin) %>%
@@ -432,7 +437,10 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
         label == "median_bin"   ~ "median",
       )) %>%
       mutate(xpos = if_else(label == "median", algo_id - 0.25, algo_id - 0.15))
-    print(annotation_positions)
+
+    labelshows <- plotdata %>%
+      distinct(data_id)
+    print(labelshows)
 
     p <- plotdata %>%
       # (function(d) {print(arrange(d, algorithm, bin) %>% select(algorithm, bin, offset)); d}) %>%
@@ -455,7 +463,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
                  size=1,
                  shape=15,
                  color="white") +
-      geom_point_interactive(aes(data_id=data_id),
+      geom_point_interactive(aes(data_id=data_id, tooltip=scales::number(drop_units(qps))),
                              size=1.4) +
       geom_point(mapping=aes(x=algo_id-0.1, y=median_bin),
                  data=plotdata %>% group_by(algo_id) %>% summarise(median_bin=median(bin)),
@@ -465,8 +473,17 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
                 inherit.aes=F,
                 data=annotation_positions,
                 size=3) +
+      # geom_text_interactive(aes(label=data_id,
+      #                           data_id=data_id),
+      #                       data=labelshows,
+      #                       inherit.aes=F,
+      #                       x = 9, y = 1,
+      #                       size = 3,
+      #                       hjust=0,
+      #                       alpha = 0) +
       # geom_point(mapping=aes(x=algo_id - 0.2, y=drop_units(qps)), shape="|", color="black") +
-      scale_x_continuous(labels=labels, breaks=breaks) +
+      scale_x_continuous(labels=labels, breaks=breaks,
+                         expand = expansion(add=c(0, 1))) +
       scale_y_continuous(trans="log", breaks=c(1,10,100,1000,10000,100000),
                          labels=scales::number_format(),
                          expand = expansion(add=.5)) +
@@ -475,7 +492,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
            color="workload") +
       coord_flip() +
       theme_tufte() +
-      theme(legend.position='top',
+      theme(legend.position='bottom',
             panel.grid.major.y=element_line(color="white"))
 }
 
