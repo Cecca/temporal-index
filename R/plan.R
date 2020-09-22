@@ -79,17 +79,44 @@ plan <- drake_plan(
                                        queryset_val = "random-None-uniform-uniform",
                                        queryset_params_val = "23512:5000_NA_NA_1:100_1:100"),
 
+  query_stats_both_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
+                                       dataset_val = "random-clustered-zipf",
+                                       dataset_params_val = "123:10000000_10:10000000:100000_10000000:1",
+                                       queryset_val = "random-uniform-zipf-uniform-uniform",
+                                       queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
+  query_stats_range_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
+                                       dataset_val = "random-clustered-zipf",
+                                       dataset_params_val = "123:10000000_10:10000000:100000_10000000:1",
+                                       queryset_val = "random-uniform-zipf-None",
+                                       queryset_params_val = "23512:5000_1:10000000_10000000:1_NA_NA"),
+  query_stats_duration_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
+                                       dataset_val = "random-clustered-zipf",
+                                       dataset_params_val = "123:10000000_10:10000000:100000_10000000:1",
+                                       queryset_val = "random-None-uniform-uniform",
+                                       queryset_params_val = "23512:5000_NA_NA_1:100_1:100"),
+
   plot_latency_both = query_stats_both %>% distribution_latency(),
   plot_normalized_latency_both = query_stats_both %>% distribution_normalized_latency(),
-  plot_overhead_both = query_stats_both %>% distribution_overhead(),
+  # plot_overhead_both = query_stats_both %>% distribution_overhead(),
+  plots_latencies_both = {
+    p <- plot_grid(plot_latency_both, plot_normalized_latency_both)
+    save_png(p, "imgs/latencies_both.png")
+  },
+
+  plot_latency_both_clustered = query_stats_both_clustered %>% distribution_latency(),
+  plot_normalized_latency_both_clustered = query_stats_both_clustered %>% distribution_normalized_latency(),
+  plots_latencies_both_clustered = {
+    p <- plot_grid(plot_latency_both_clustered, plot_normalized_latency_both_clustered)
+    save_png(p, "imgs/latencies_both_clustered.png")
+  },
 
   plot_latency_range = query_stats_range %>% distribution_latency(),
   plot_normalized_latency_range = query_stats_range %>% distribution_normalized_latency(),
-  plot_overhead_range = query_stats_range %>% distribution_overhead(),
+  # plot_overhead_range = query_stats_range %>% distribution_overhead(),
 
   plot_latency_duration = query_stats_duration %>% distribution_latency(),
   plot_normalized_latency_duration = query_stats_duration %>% distribution_normalized_latency(),
-  plot_overhead_duration = query_stats_duration %>% distribution_overhead(),
+  # plot_overhead_duration = query_stats_duration %>% distribution_overhead(),
 
   period_index_buckets = table_period_index_buckets(conn, file_in("temporal-index-results.sqlite"),
                                                     dataset_val = "random-uniform-zipf",
@@ -218,19 +245,19 @@ plan <- drake_plan(
   },
 
 
-  overview_output_throughput = {
-    p <- plot_overview(data, output_throughput, xlab="output throughput (records/s)")
-    save_png(p, file_out("imgs/overview-output-thoughput.png"))
-    girafe(
-      ggobj=p, 
-      width_svg=10,
-      height_svg=6,
-      options = list(
-        opts_hover(css = "r:4; stroke: black;"),
-        opts_hover_inv(css = "opacity: 0.2;")
-      ) 
-    )
-  },
+  # overview_output_throughput = {
+  #   p <- plot_overview(data, output_throughput, xlab="output throughput (records/s)")
+  #   save_png(p, file_out("imgs/overview-output-thoughput.png"))
+  #   girafe(
+  #     ggobj=p, 
+  #     width_svg=10,
+  #     height_svg=6,
+  #     options = list(
+  #       opts_hover(css = "r:4; stroke: black;"),
+  #       opts_hover_inv(css = "opacity: 0.2;")
+  #     ) 
+  #   )
+  # },
 
   report = rmarkdown::render(
     knitr_in("R/report.Rmd"),

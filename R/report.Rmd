@@ -264,11 +264,11 @@ To take into account the fact that a query with many results requires some time 
 output, we also consider the _normalized query time_, which is an _output sensitive_ measure: we divide
 the query time by the size of the output of the given query (right plot).
 
-```{r fig.fullwidth=TRUE, fig.width=10, fig.height=6, fig.dpi=300}
-#plot_grid(
-  #readd(plot_latency_both),
-  #readd(plot_normalized_latency_both)
-#)
+```{r fig.fullwidth=TRUE}
+readd(plots_latencies_both)
+```
+```{r fig.fullwidth=TRUE}
+readd(plots_latencies_both_clustered)
 ```
 
 Looking at both metrics the ranking between the algorithms does not really change.

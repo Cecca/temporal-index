@@ -402,28 +402,77 @@ plot_overview <- function(data, metric, xlab, n_bins=60) {
     plotdata <- best %>%
       inner_join(algo_rank) %>%
       group_by(algorithm, bin) %>%
-      mutate(offset = (row_number() - 1) * 0.15) %>%
+      mutate(offset = (row_number()) * 0.15) %>%
       ungroup()
+
+    quartiles <- plotdata %>%
+      group_by(algo_id) %>%
+      summarise(
+        min_bin = min(bin),
+        max_bin = max(bin),
+        bin75 = quantile(bin, .75),
+        bin25 = quantile(bin, .25),
+        median_bin = median(bin)
+      ) %>%
+      ungroup()
+
+    annotation_positions <- quartiles %>%
+      slice(which.min(algo_id)) %>%
+      gather(min_bin:median_bin, key="label", value="bin") %>%
+      mutate(label = case_when(
+        label == "min_bin" ~ "min",
+        label == "max_bin" ~ "max",
+        label == "bin25"   ~ "25%",
+        label == "bin75"   ~ "75%",
+        label == "median_bin"   ~ "median",
+      )) %>%
+      mutate(xpos = if_else(label == "median", algo_id - 0.5, algo_id - 0.2))
+    print(annotation_positions)
 
     p <- plotdata %>%
       # (function(d) {print(arrange(d, algorithm, bin) %>% select(algorithm, bin, offset)); d}) %>%
       ggplot(aes(x=algo_id + offset,
                  y=bin,
                  color=workload_type)) + 
+      geom_linerange(aes(x=algo_id, ymin=min_bin, ymax=max_bin),
+                     data=quartiles,
+                     inherit.aes=F,
+                     size=.5,
+                     color="black") +
+      geom_linerange(aes(x=algo_id, ymin=bin25, ymax=bin75),
+                     data=quartiles,
+                     inherit.aes=F,
+                     size=1,
+                     color="black") +
+      geom_point(aes(x=algo_id, y=median_bin),
+                 data=quartiles,
+                 inherit.aes=F,
+                 size=1,
+                 shape=15,
+                 color="white") +
       geom_point_interactive(aes(data_id=data_id),
                              size=2) +
       geom_point(mapping=aes(x=algo_id-0.2, y=median_bin),
                  data=plotdata %>% group_by(algo_id) %>% summarise(median_bin=median(bin)),
                  shape=17,
                  color="black") +
+      geom_text(aes(x = xpos, y = bin, label=label),
+                inherit.aes=F,
+                data=annotation_positions,
+                size=3) +
       scale_x_continuous(labels=labels, breaks=breaks) +
       scale_y_continuous(labels=y_labels, breaks=y_breaks) +
+      # annotate("text",
+      #   x = pull(annotation_positions, algo_id),
+      #   y = pull(annotation_position, bin),
+      #   label = pull(annotation_position, 10)
+      # ) +
       labs(y=xlab, # The plot is flipped, hence y -> x
            x="algorithm") +
       coord_flip() +
       theme_tufte() +
       theme(legend.position='top',
-            panel.grid.major.y=element_line(color="lightgray"))
+            panel.grid.major.y=element_line(color="white"))
 }
 
 save_png <- function(ggobj, filename, width = 10, height = 6) {
