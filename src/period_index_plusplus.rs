@@ -416,20 +416,25 @@ impl<V> SortedBlockIndex<V> {
 
     #[allow(dead_code)]
     fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
-        let start = Self::index_for(x, &self.boundaries);
-        for i in start..self.boundaries.len() {
+        for i in (0..self.boundaries.len()).rev() {
             let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
             let upper_bound = self.boundaries[i];
+            if upper_bound < x {
+                break;
+            }
             action((lower_bound, upper_bound), &self.values[i]);
         }
     }
 
     fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
-        let end = std::cmp::min(Self::index_for(x, &self.boundaries), self.values.len() - 1);
-        debug_assert!(end < self.values.len());
-        for i in 0..=end {
+        // let end = std::cmp::min(Self::index_for(x, &self.boundaries), self.values.len() - 1);
+        // debug_assert!(end < self.values.len());
+        for i in 0..self.values.len() {
             let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
             let upper_bound = self.boundaries[i];
+            if lower_bound > x {
+                break;
+            }
             action((lower_bound, upper_bound), &self.values[i]);
         }
     }
@@ -508,20 +513,23 @@ impl<V> SortedIndex<V> {
     }
 
     fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
-        let start = self.index_for(x);
-        for i in start..self.keys.len() {
+        for i in (0..self.keys.len()).rev() {
             let lower_bound = if i > 0 { self.keys[i - 1] } else { 0 };
             let upper_bound = self.keys[i];
+            if upper_bound < x {
+                break;
+            }
             action((lower_bound, upper_bound), &self.values[i]);
         }
     }
 
     fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
-        let end = std::cmp::min(self.index_for(x), self.values.len() - 1);
-        debug_assert!(end < self.values.len());
-        for i in 0..=end {
+        for i in 0..self.keys.len() {
             let lower_bound = if i > 0 { self.keys[i - 1] } else { 0 };
             let upper_bound = self.keys[i];
+            if lower_bound > x {
+                break;
+            }
             action((lower_bound, upper_bound), &self.values[i]);
         }
     }
