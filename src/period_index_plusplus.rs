@@ -30,11 +30,11 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn parameters(&self) -> String {
-        format!("{}", self.num_buckets)
+        format!("n_buckets={}", self.num_buckets)
     }
 
     fn version(&self) -> u8 {
-        8
+        9
     }
 
     fn index(&mut self, dataset: &[Interval]) {

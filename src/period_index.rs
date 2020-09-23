@@ -305,11 +305,14 @@ impl Algorithm for PeriodIndex {
     }
 
     fn parameters(&self) -> String {
-        format!("{},{}", self.num_buckets, self.configured_num_levels)
+        format!(
+            "n_buckets={} max_levels={}",
+            self.num_buckets, self.configured_num_levels
+        )
     }
 
     fn version(&self) -> u8 {
-        12
+        13
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -509,11 +512,14 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn parameters(&self) -> String {
-        format!("{}-{}", self.num_buckets, self.num_levels)
+        format!(
+            "n_buckets={} max_levels={}",
+            self.num_buckets, self.num_levels
+        )
     }
 
     fn version(&self) -> u8 {
-        6
+        7
     }
 
     fn index(&mut self, dataset: &[Interval]) {

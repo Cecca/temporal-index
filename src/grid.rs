@@ -117,10 +117,10 @@ impl Algorithm for Grid {
         String::from("grid")
     }
     fn parameters(&self) -> String {
-        format!("{}", self.num_buckets)
+        format!("n_buckets={}", self.num_buckets)
     }
     fn version(&self) -> u8 {
-        5
+        6
     }
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();

@@ -17,6 +17,23 @@ get_dump <- function(what, conf_file) {
   data
 }
 
+inline_print <- function(d) {
+  print(d)
+  d
+}
+
+get_params <- function(data, column, prefix) {
+  data %>% 
+  separate({{ column }}, into=paste0("p", 1:20), sep=" ", remove=F) %>% 
+  suppressWarnings() %>%
+  gather(p1:p20, key="dummy__", value="pair__") %>% 
+  drop_na(pair__) %>% 
+  separate(pair__, into=c("param__", "param_val__"), sep="=", remove=T, convert=T) %>% 
+  mutate(param__ = str_c(prefix, param__)) %>%
+  pivot_wider(names_from=param__, values_from=param_val__) %>%
+  select(-dummy__)
+}
+
 draw_dataset <- function(intervals) {
   assert_that(distinct(intervals, name) %>% nrow() == 1)
   assert_that(distinct(intervals, parameters) %>% nrow() == 1)

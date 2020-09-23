@@ -75,11 +75,14 @@ impl TimeDistribution {
         }
     }
 
-    pub fn parameters(&self) -> String {
+    pub fn parameters(&self, prefix: &str) -> String {
         match &self {
-            Self::Uniform { low, high } => format!("{}:{}", low, high),
-            Self::Zipf { n, beta } => format!("{}:{}", n, beta),
-            Self::Clustered { n, high, std_dev } => format!("{}:{}:{}", n, high, std_dev),
+            Self::Uniform { low, high } => format!("{}low={} {}high={}", prefix, low, prefix, high),
+            Self::Zipf { n, beta } => format!("{}n={} {}beta={}", prefix, n, prefix, beta),
+            Self::Clustered { n, high, std_dev } => format!(
+                "{}n={} {}high={} {}stddev={}",
+                prefix, n, prefix, high, prefix, std_dev
+            ),
         }
     }
 }
@@ -119,16 +122,16 @@ impl Dataset for RandomDataset {
 
     fn parameters(&self) -> String {
         format!(
-            "{}:{}_{}_{}",
+            "seef={} n={} {} {}",
             self.seed,
             self.n,
-            self.start_times.parameters(),
-            self.durations.parameters()
+            self.start_times.parameters("start_"),
+            self.durations.parameters("dur_")
         )
     }
 
     fn version(&self) -> u8 {
-        2
+        3
     }
 
     /// Does not remove the duplicates, because otherwise the distributions
@@ -334,26 +337,24 @@ impl Queryset for RandomQueryset {
 
     fn parameters(&self) -> String {
         format!(
-            "{}:{}_{}_{}_{}_{}",
+            "seed={} n={} {} {}",
             self.seed,
             self.n,
             self.intervals
-                .map(|it| it.0.parameters())
-                .unwrap_or("NA".to_owned()),
-            self.intervals
-                .map(|it| it.1.parameters())
-                .unwrap_or("NA".to_owned()),
+                .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
+                .unwrap_or(String::new()),
             self.durations
-                .map(|d| d.0.parameters())
-                .unwrap_or("NA".to_owned()),
-            self.durations
-                .map(|d| d.1.parameters())
-                .unwrap_or("NA".to_owned())
+                .map(|d| format!(
+                    "{} {}",
+                    d.0.parameters("durmin_"),
+                    d.0.parameters("durmax_")
+                ))
+                .unwrap_or(String::new()),
         )
     }
 
     fn version(&self) -> u8 {
-        3
+        4
     }
 
     fn get(&self) -> Vec<Query> {
