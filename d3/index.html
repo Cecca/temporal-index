@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>D3 Page Template</title>
+    <title>Overview of the results</title>
     <script type="text/javascript" src="d3.js"></script>
 </head>
 
@@ -76,7 +76,9 @@
                     d3.max(dataset, function (d) { return d.qps })
                 ])
                 .range([margin.left, width - margin.right]);
-            var xAxis = d3.axisBottom(xScale);
+            var xAxis = d3.axisBottom(xScale)
+                .tickFormat(d3.format(","))
+                .tickValues([100, 1000, 10000, 100000]);
             svg.append("g")
                 .attr("transform", "translate(0," + (height - margin.bottom) + ")")
                 .call(xAxis);
