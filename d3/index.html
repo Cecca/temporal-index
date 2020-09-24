@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>D3 Page Template</title>
+    <script type="text/javascript" src="d3.js"></script>
+</head>
+
+<body>
+    <script type="text/javascript">
+        var width = 900;
+        var height = 600;
+        var margin = {
+            "left": 100,
+            "right": 10,
+            "top": 10,
+            "bottom": 20,
+        };
+        var radiusAtRest = 4;
+        var dataset;
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+        var lastId = 0;
+        var classIds = {};
+
+        function logsnap(x, step) {
+            return Math.floor(10 ** (Math.ceil(Math.log10(x) * step) / step));
+        }
+
+        function plot() {
+
+            function getClassId(d) {
+                var k = d.queryset_params + d.queryset + d.dataset_params + d.dataset;
+                var v = classIds[k];
+                if (!(k in classIds)) {
+                    lastId += 1;
+                    classIds[k] = "___cls" + lastId;
+                }
+                return classIds[k];
+            }
+
+            dataset = dataset.map(function (d) {
+                d.bin = logsnap(d.qps, 20);
+                d.classId = getClassId(d);
+                if (/random-None-.*-.*/.test(d.queryset)) {
+                    d.query_workload = "duration only";
+                } else if (/random-.*-.*-None/.test(d.queryset)) {
+                    d.query_workload = "time only";
+                } else {
+                    d.query_workload = "both";
+                }
+                return d;
+            });
+
+            var stats = d3.groups(dataset, d => d.algorithm).map(function (g) {
+                var group = g[1];
+
+                return {
+                    "algorithm": g[0],
+                    "min": d3.min(group, d => d.qps),
+                    "perc25": d3.quantile(group, 0.25, d => d.qps),
+                    "median": d3.median(group, d => d.qps),
+                    "perc75": d3.quantile(group, 0.75, d => d.qps),
+                    "max": d3.max(group, d => d.qps)
+                };
+            }).sort(d => d.median);
+            console.log(stats);
+
+            // X scale/axis
+            var xScale = d3.scaleLog()
+                .domain([
+                    d3.min(dataset, function (d) { return d.qps; }),
+                    d3.max(dataset, function (d) { return d.qps })
+                ])
+                .range([margin.left, width - margin.right]);
+            var xAxis = d3.axisBottom(xScale);
+            svg.append("g")
+                .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+                .call(xAxis);
+
+            // Y scale/axis
+            var yScale = d3.scalePoint()
+                .domain(stats.sort((a, b) => b.median - a.median).map(function (d) { return d.algorithm }))
+                .range([margin.top, height - margin.bottom])
+                .padding(1);
+            var yAxis = d3.axisLeft(yScale);
+            svg.append("g")
+                .attr("transform", "translate(" + (margin.left) + ", 0)")
+                .call(yAxis);
+
+            // Color scale
+            var colorScale = d3.scaleOrdinal()
+                .domain(dataset.map(function (d) { return d.query_workload }))
+                .range(d3.schemeSet1);
+
+            var grouped = d3.groups(dataset, d => d.algorithm, d => d.bin)
+                .map(function (g) {
+                    return g[1].map(function (g1) {
+                        return g1[1].map(function (d, i) {
+                            d.offset = (1 + i) * 10;
+                            return d;
+                        });
+                    }).flat();
+                }).flat();
+
+            // // draw dots
+            var dots = svg.append("g");
+            dots.selectAll("circle")
+                .data(grouped)
+                .enter()
+                .append("circle")
+                .attr("cx", function (d) { return xScale(d.bin); })
+                .attr("cy", function (d) { return yScale(d.algorithm) - d.offset; })
+                .attr("r", radiusAtRest)
+                .style("fill", function (d) { return colorScale(d.query_workload); })
+                .attr("class", d => d.classId);
+
+            dots.selectAll("circle")
+                .on("mouseover", function (e, d) {
+                    dots.selectAll("circle")
+                        .transition()
+                        .attr("r", radiusAtRest)
+                        .style("opacity", 0.2);
+                    dots.selectAll("." + d.classId)
+                        .transition()
+                        .attr("r", radiusAtRest * 2)
+                        .style("opacity", 1);
+                })
+                .on("mouseout", function () {
+                    dots.selectAll("circle")
+                        .transition()
+                        .style("opacity", 1)
+                        .attr("r", radiusAtRest);
+                });
+
+            // // draw bars
+            var barsLong = svg.append("g");
+            var barsShort = svg.append("g");
+            var medianPoints = svg.append("g");
+            barsLong.selectAll("lines")
+                .data(stats)
+                .enter()
+                .append("line")
+                .attr("x1", d => xScale(d.min))
+                .attr("x2", d => xScale(d.max))
+                .attr("y1", d => yScale(d.algorithm))
+                .attr("y2", d => yScale(d.algorithm))
+                .style("stroke", "black")
+                .style("stroke-width", "1px");
+
+            barsShort.selectAll("lines")
+                .data(stats)
+                .enter()
+                .append("line")
+                .attr("x1", d => xScale(d.perc25))
+                .attr("x2", d => xScale(d.perc75))
+                .attr("y1", d => yScale(d.algorithm))
+                .attr("y2", d => yScale(d.algorithm))
+                .style("stroke", "black")
+                .style("stroke-width", "3px");
+
+            medianPoints.selectAll("circle")
+                .data(stats)
+                .enter()
+                .append("circle")
+                .attr("cx", d => xScale(d.median))
+                .attr("cy", d => yScale(d.algorithm))
+                .attr("r", "3px")
+                .style("fill", "white");
+
+            // draw legend
+            var legend = svg.append("g")
+                .attr("transform", "translate(" + (margin.left + 10) + ", " + (margin.top) + ")");
+            var size = 20;
+            var item_padding = 2;
+
+            legend.selectAll("rect")
+                .data(colorScale.domain())
+                .enter()
+                .append("rect")
+                .attr("x", 0)
+                .attr("y", (d, i) => (i * (size + item_padding)))
+                .attr("width", size)
+                .attr("height", size)
+                .style("fill", d => colorScale(d))
+
+            legend.selectAll("text")
+                .data(colorScale.domain())
+                .enter()
+                .append("text")
+                .attr("x", size + item_padding)
+                .attr("y", (d, i) => (i * (size + item_padding) + size))
+                .text(d => d)
+                .attr("text-anchor", "left")
+                .style("alignment-baseline", "middle")
+                .attr("font-size", 12)
+                .style("font-family", "sans-serif");
+        }
+
+        d3.csv("best.csv", d3.autoType).then(function (data) {
+            dataset = data;
+            plot();
+        });
+    </script>
+</body>
+
+</html>
