@@ -9,11 +9,11 @@
         start_times:
           - Uniform: { low: 1, high: 10000000 }
           - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
-          - Clustered: { n: 100, high: 10000000, std_dev: 100000 }
-          - Clustered: { n: 100, high: 10000000, std_dev: 1000 }
+          # - Clustered: { n: 100, high: 10000000, std_dev: 100000 }
+          # - Clustered: { n: 100, high: 10000000, std_dev: 1000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
-          - Zipf: { n: 10000000, beta: 2 }
+          # - Zipf: { n: 10000000, beta: 2 }
 
   queries:
     - Random:

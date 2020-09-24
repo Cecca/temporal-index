@@ -30,6 +30,13 @@ plan <- drake_plan(
     ) %>%
     select(-time_query_ms, -time_index_ms)
     ,
+
+  best_qps = data %>% 
+    group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
+    slice(which.max(qps)) %>%
+    ungroup(),
+
+  d3overview = r2d3::r2d3(data=best_qps, script=file_in("js/overview.js")),
   
   historical_variations = table_history(conn, file_in("temporal-index-results.sqlite")) %>%
     group_by(algorithm, workload) %>% 
