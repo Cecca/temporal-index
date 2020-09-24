@@ -122,7 +122,7 @@ impl Dataset for RandomDataset {
 
     fn parameters(&self) -> String {
         format!(
-            "seef={} n={} {} {}",
+            "seed={} n={} {} {}",
             self.seed,
             self.n,
             self.start_times.parameters("start_"),
@@ -131,7 +131,7 @@ impl Dataset for RandomDataset {
     }
 
     fn version(&self) -> u8 {
-        3
+        4
     }
 
     /// Does not remove the duplicates, because otherwise the distributions
@@ -347,14 +347,14 @@ impl Queryset for RandomQueryset {
                 .map(|d| format!(
                     "{} {}",
                     d.0.parameters("durmin_"),
-                    d.0.parameters("durmax_")
+                    d.1.parameters("durmax_")
                 ))
                 .unwrap_or(String::new()),
         )
     }
 
     fn version(&self) -> u8 {
-        4
+        5
     }
 
     fn get(&self) -> Vec<Query> {
