@@ -12,8 +12,6 @@ plan <- drake_plan(
     ) %>%
     collect() %>%
     mutate(date = parse_datetime(date)) %>%
-    # Fix a typo in the database
-    mutate(dataset_params = str_replace(dataset_params, "seef", "seed")) %>%
     group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
     slice(which.max(date)) %>%
     ungroup() %>%
@@ -72,33 +70,33 @@ plan <- drake_plan(
 
   query_stats_both = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",
-                                       dataset_params_val = "seef=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+                                       dataset_params_val = "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
                                        queryset_val = "random-uniform-zipf-uniform-uniform",
                                        queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
   query_stats_range = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",
-                                       dataset_params_val = "seef=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+                                       dataset_params_val = "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
                                        queryset_val = "random-uniform-zipf-None",
                                        queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 "),
   query_stats_duration = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-uniform-zipf",
-                                       dataset_params_val = "seef=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+                                       dataset_params_val = "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
                                        queryset_val = "random-None-uniform-uniform",
                                        queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
 
   query_stats_both_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-clustered-zipf",
-                                       dataset_params_val = "seef=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
+                                       dataset_params_val = "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
                                        queryset_val = "random-uniform-zipf-uniform-uniform",
                                        queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
   query_stats_range_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-clustered-zipf",
-                                       dataset_params_val = "seef=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
+                                       dataset_params_val = "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
                                        queryset_val = "random-uniform-zipf-None",
                                        queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 "),
   query_stats_duration_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
                                        dataset_val = "random-clustered-zipf",
-                                       dataset_params_val = "seef=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
+                                       dataset_params_val = "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
                                        queryset_val = "random-None-uniform-uniform",
                                        queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
 
@@ -205,11 +203,11 @@ plan <- drake_plan(
 
   ## Uniform distribution of start times
   distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%
-    filter(parameters == "seef=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
+    filter(parameters == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
   distribution_duration = get_histograms("dataset-durations", "experiments/all.yml") %>%
-    filter(parameters == "seef=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
+    filter(parameters == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
   dataset_intervals = get_dump("dataset", "experiments/all.yml") %>%
-    filter(parameters == "seef=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
+    filter(parameters == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
   plot_dataset_intervals = draw_dataset(dataset_intervals),
   plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
   plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
@@ -223,11 +221,11 @@ plan <- drake_plan(
 
   ## Clustered distribution of start times
   distribution_start_time_clustered = get_histograms("dataset-start-times", "experiments/all.yml") %>%
-    filter(parameters == "seef=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
+    filter(parameters == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
   distribution_duration_clustered = get_histograms("dataset-durations", "experiments/all.yml") %>%
-    filter(parameters == "seef=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
+    filter(parameters == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
   dataset_intervals_clustered = get_dump("dataset", "experiments/all.yml") %>%
-    filter(parameters == "seef=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
+    filter(parameters == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
   plot_dataset_intervals_clustered = draw_dataset(dataset_intervals_clustered),
   plot_distribution_start_time_clustered = plot_histogram(distribution_start_time_clustered, "start time"),
   plot_distribution_duration_clustered = plot_point_distribution(distribution_duration_clustered, "duration"),
