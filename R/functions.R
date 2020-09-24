@@ -23,15 +23,18 @@ inline_print <- function(d) {
 }
 
 get_params <- function(data, column, prefix) {
-  data %>% 
-  separate({{ column }}, into=paste0("p", 1:20), sep=" ", remove=F) %>% 
-  suppressWarnings() %>%
-  gather(p1:p20, key="dummy__", value="pair__") %>% 
-  drop_na(pair__) %>% 
-  separate(pair__, into=c("param__", "param_val__"), sep="=", remove=T, convert=T) %>% 
-  mutate(param__ = str_c(prefix, param__)) %>%
-  pivot_wider(names_from=param__, values_from=param_val__) %>%
-  select(-dummy__)
+  out <- data %>% 
+    separate({{ column }}, into=paste0("p", 1:20), sep=" ", remove=F) %>% 
+    suppressWarnings() %>%
+    pivot_longer(p1:p20, names_to="dummy__", values_to="pair__") %>% 
+    select(-dummy__) %>%
+    drop_na(pair__) %>% 
+    separate(pair__, into=c("param__", "param_val__"), sep="=", remove=T, convert=T) %>% 
+    mutate(param__ = str_c(prefix, param__)) %>%
+    pivot_wider(names_from=param__, values_from=param_val__)
+  
+  assert_that(nrow(out) == nrow(data))
+  out
 }
 
 draw_dataset <- function(intervals) {
@@ -114,7 +117,7 @@ barchart_qps <- function(dataset) {
             nudge_y=10) +
     scale_x_reordered() +
     scale_y_unit(breaks=scales::pretty_breaks(),
-                 expand = expand_scale(mult = c(0, .1))) +
+                 expand = expansion(mult = c(0, .1))) +
     scale_fill_algorithm() +
     coord_flip()
 
@@ -122,7 +125,7 @@ barchart_qps <- function(dataset) {
       plot_label <- build_plot_label(dataset)
       p <- p + labs(caption=plot_label)
     } else {
-      p <- p + facet_wrap(vars(workload, dataset), scales="free")
+      p <- p + facet_wrap(vars(workload, dataset_params), scales="free")
     }
 
     p +
