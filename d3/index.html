@@ -9,7 +9,7 @@
 
 <body>
     <script type="text/javascript">
-        var width = 900;
+        var width = 1000;
         var height = 600;
         var margin = {
             "left": 100,
@@ -28,6 +28,125 @@
 
         function logsnap(x, step) {
             return Math.floor(10 ** (Math.ceil(Math.log10(x) * step) / step));
+        }
+
+        function drawDots(drawGroup, dotsData, xScale, yScale, colorScale) {
+            drawGroup.selectAll("circle")
+                .data(dotsData)
+                .enter()
+                .append("circle")
+                .attr("cx", function (d) { return xScale(d.bin); })
+                .attr("cy", function (d) { return yScale(d.algorithm) - d.offset; })
+                .attr("r", radiusAtRest)
+                .style("fill", function (d) { return colorScale(d.query_workload); })
+                .attr("class", d => d.classId);
+
+        }
+
+        function drawBars(drawGroup, barsData, xScale, yScale) {
+            var barsLong = drawGroup.append("g");
+            var barsShort = drawGroup.append("g");
+            var medianPoints = drawGroup.append("g");
+            barsLong.selectAll("lines")
+                .data(barsData)
+                .enter()
+                .append("line")
+                .attr("x1", d => xScale(d.min))
+                .attr("x2", d => xScale(d.max))
+                .attr("y1", d => yScale(d.algorithm))
+                .attr("y2", d => yScale(d.algorithm))
+                .style("stroke", "black")
+                .style("stroke-width", "1px");
+
+            barsShort.selectAll("lines")
+                .data(barsData)
+                .enter()
+                .append("line")
+                .attr("x1", d => xScale(d.perc25))
+                .attr("x2", d => xScale(d.perc75))
+                .attr("y1", d => yScale(d.algorithm))
+                .attr("y2", d => yScale(d.algorithm))
+                .style("stroke", "black")
+                .style("stroke-width", "3px");
+
+            medianPoints.selectAll("circle")
+                .data(barsData)
+                .enter()
+                .append("circle")
+                .attr("cx", d => xScale(d.median))
+                .attr("cy", d => yScale(d.algorithm))
+                .attr("r", "3px")
+                .style("fill", "white");
+        }
+
+        function drawLegend(drawGroup, colorScale) {
+            var size = 20;
+            var item_padding = 2;
+
+            drawGroup.selectAll("rect")
+                .data(colorScale.domain())
+                .enter()
+                .append("rect")
+                .attr("x", 0)
+                .attr("y", (d, i) => (i * (size + item_padding)))
+                .attr("width", size)
+                .attr("height", size)
+                .style("fill", d => colorScale(d))
+
+            drawGroup.selectAll("text")
+                .data(colorScale.domain())
+                .enter()
+                .append("text")
+                .attr("x", size + item_padding)
+                .attr("y", (d, i) => (i * (size + item_padding) + size))
+                .text(d => d)
+                .attr("text-anchor", "left")
+                .style("alignment-baseline", "middle")
+                .attr("font-size", 12)
+                .style("font-family", "sans-serif");
+        }
+
+        function drawText(drawGroup, textData, xScale, yScale) {
+            drawGroup.selectAll("text")
+                .data(textData)
+                .enter()
+                .append("text")
+                .text(d => d3.format(",.0f")(d.qps))
+                .attr("class", d => d.classId)
+                .style("opacity", 0)
+                .style("font-family", "sans-serif")
+                .attr("x", d => xScale(d.bin))
+                .attr("y", d => yScale(d.algorithm) + 15)
+                .attr("text-anchor", "center")
+                .attr("alignment-baseline", "top")
+                .attr("font-size", "smaller");
+        }
+
+        function addInteractions(dots, text) {
+            dots.selectAll("circle")
+                .on("mouseover", function (e, d) {
+                    dots.selectAll("circle")
+                        .transition()
+                        .attr("r", radiusAtRest)
+                        .style("opacity", 0.2);
+                    svg.selectAll("." + d.classId)
+                        .transition()
+                        .attr("r", radiusAtRest * 2)
+                        .style("opacity", 1);
+                })
+                .on("mouseout", function () {
+                    dots.selectAll("circle")
+                        .transition()
+                        .style("opacity", 1)
+                        .attr("r", radiusAtRest);
+                    text.selectAll("text")
+                        .transition()
+                        .style("opacity", 0);
+                });
+        }
+
+        function brushed(selection) {
+            console.log(selection);
         }
 
         function plot() {
@@ -75,10 +194,12 @@
                     d3.min(dataset, function (d) { return d.qps; }),
                     d3.max(dataset, function (d) { return d.qps })
                 ])
+                .nice()
                 .range([margin.left, width - margin.right]);
+            console.log(xScale.domain());
             var xAxis = d3.axisBottom(xScale)
                 .tickFormat(d3.format(","))
-                .tickValues([100, 1000, 10000, 100000]);
+                .tickValues([1, 10, 100, 1000, 10000, 100000]);
             svg.append("g")
                 .attr("transform", "translate(0," + (height - margin.bottom) + ")")
                 .call(xAxis);
@@ -108,98 +229,29 @@
                     }).flat();
                 }).flat();
 
-            // // draw dots
+            // text
+            var text = svg.append("g");
+            drawText(text, grouped, xScale, yScale);
+
+            // draw dots
             var dots = svg.append("g");
-            dots.selectAll("circle")
-                .data(grouped)
-                .enter()
-                .append("circle")
-                .attr("cx", function (d) { return xScale(d.bin); })
-                .attr("cy", function (d) { return yScale(d.algorithm) - d.offset; })
-                .attr("r", radiusAtRest)
-                .style("fill", function (d) { return colorScale(d.query_workload); })
-                .attr("class", d => d.classId);
+            drawDots(dots, grouped, xScale, yScale, colorScale);
 
-            dots.selectAll("circle")
-                .on("mouseover", function (e, d) {
-                    dots.selectAll("circle")
-                        .transition()
-                        .attr("r", radiusAtRest)
-                        .style("opacity", 0.2);
-                    dots.selectAll("." + d.classId)
-                        .transition()
-                        .attr("r", radiusAtRest * 2)
-                        .style("opacity", 1);
-                })
-                .on("mouseout", function () {
-                    dots.selectAll("circle")
-                        .transition()
-                        .style("opacity", 1)
-                        .attr("r", radiusAtRest);
-                });
-
-            // // draw bars
-            var barsLong = svg.append("g");
-            var barsShort = svg.append("g");
-            var medianPoints = svg.append("g");
-            barsLong.selectAll("lines")
-                .data(stats)
-                .enter()
-                .append("line")
-                .attr("x1", d => xScale(d.min))
-                .attr("x2", d => xScale(d.max))
-                .attr("y1", d => yScale(d.algorithm))
-                .attr("y2", d => yScale(d.algorithm))
-                .style("stroke", "black")
-                .style("stroke-width", "1px");
-
-            barsShort.selectAll("lines")
-                .data(stats)
-                .enter()
-                .append("line")
-                .attr("x1", d => xScale(d.perc25))
-                .attr("x2", d => xScale(d.perc75))
-                .attr("y1", d => yScale(d.algorithm))
-                .attr("y2", d => yScale(d.algorithm))
-                .style("stroke", "black")
-                .style("stroke-width", "3px");
-
-            medianPoints.selectAll("circle")
-                .data(stats)
-                .enter()
-                .append("circle")
-                .attr("cx", d => xScale(d.median))
-                .attr("cy", d => yScale(d.algorithm))
-                .attr("r", "3px")
-                .style("fill", "white");
+            var bars = svg.append("g");
+            drawBars(bars, stats, xScale, yScale);
 
             // draw legend
             var legend = svg.append("g")
                 .attr("transform", "translate(" + (margin.left + 10) + ", " + (margin.top) + ")");
-            var size = 20;
-            var item_padding = 2;
+            drawLegend(legend, colorScale);
 
-            legend.selectAll("rect")
-                .data(colorScale.domain())
-                .enter()
-                .append("rect")
-                .attr("x", 0)
-                .attr("y", (d, i) => (i * (size + item_padding)))
-                .attr("width", size)
-                .attr("height", size)
-                .style("fill", d => colorScale(d))
+            const brush = d3.brushX()
+                .extent([[margin.left, 0.5], [width - margin.right, height - margin.bottom + 0.5]])
+                .on("brush", brushed);
+            const gb = svg.append("g")
+                .call(brush);
 
-            legend.selectAll("text")
-                .data(colorScale.domain())
-                .enter()
-                .append("text")
-                .attr("x", size + item_padding)
-                .attr("y", (d, i) => (i * (size + item_padding) + size))
-                .text(d => d)
-                .attr("text-anchor", "left")
-                .style("alignment-baseline", "middle")
-                .attr("font-size", 12)
-                .style("font-family", "sans-serif");
+            addInteractions(dots, text);
         }
 
         d3.csv("best.csv", d3.autoType).then(function (data) {

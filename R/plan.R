@@ -11,7 +11,10 @@ plan <- drake_plan(
       algorithm != "linear-scan",
     ) %>%
     collect() %>%
-    mutate(date = parse_datetime(date)) %>%
+    mutate(
+      date = parse_datetime(date),
+      is_estimate = is_estimate > 0
+    ) %>%
     group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
     slice(which.max(date)) %>%
     ungroup() %>%
@@ -34,8 +37,6 @@ plan <- drake_plan(
     slice(which.max(qps)) %>%
     ungroup(),
 
-  d3overview = r2d3::r2d3(data=best_qps, script=file_in("js/overview.js")),
-  
   historical_variations = table_history(conn, file_in("temporal-index-results.sqlite")) %>%
     group_by(algorithm, workload) %>% 
     arrange(algorithm_version, date) %>% 
@@ -245,7 +246,7 @@ plan <- drake_plan(
       width_svg=10,
       height_svg=6,
       options = list(
-        opts_hover(css = "r:4; stroke: black;"),
+        opts_hover(css = "r:4; opacity: 1.0;"),
         opts_hover_inv(css = "opacity: 0.2;")
       ) 
     )
@@ -253,14 +254,15 @@ plan <- drake_plan(
 
 
   overview_output_throughput = {
-    p <- plot_overview2(data, output_throughput, xlab="output throughput (records/s)")
+    p <- plot_overview2(data, output_throughput, xlab="output throughput (records/s)",
+                        annotations_selector=which.min)
     save_png(p, file_out("imgs/overview-output-thoughput.png"))
     girafe(
       ggobj=p, 
       width_svg=10,
       height_svg=6,
       options = list(
-        opts_hover(css = "r:4; stroke: black;"),
+        opts_hover(css = "r:4; opacity: 1.0;"),
         opts_hover_inv(css = "opacity: 0.2;")
       ) 
     )

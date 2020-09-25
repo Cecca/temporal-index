@@ -229,8 +229,16 @@ Furthermore, we report each experiments as a dot in the plot, colored according 
 both time and duration are constrained, only time or only duration.
 For readability, the points are snapped to a logarithmic grid.
 
+### By queries per second
+
 ```{r fig.fullwidth=F}
 drake::readd(overview_qps)
+```
+
+### By output throughput
+
+```{r fig.fullwidth=F}
+drake::readd(overview_output_throughput)
 ```
 
 The `period-index++` index ranks the best, but only by a small margin. Note,

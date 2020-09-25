@@ -5,7 +5,7 @@ table_main <- function(connection, path) {
   stats <- tbl(connection, "query_stats") %>%
     group_by(sha) %>%
     summarise(output_throughput_ints_ns = sum(as.double(query_count), na.rm = T) / sum(as.double(query_time_ns), na.rm = T))
-  inner_join(main, stats)
+  left_join(main, stats)
 }
 
 table_query_stats <- function(connection, path, dataset_val, dataset_params_val, queryset_val, queryset_params_val) {

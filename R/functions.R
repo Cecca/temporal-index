@@ -389,7 +389,7 @@ logsnap <- function(x, step=10) {
   as.integer(10^(ceiling(log10(x) * step) / step))
 }
 
-plot_overview2 <- function(data, metric, xlab, n_bins=60) {
+plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=which.max) {
     best <- data %>% 
       group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
       slice(which.max({{metric}})) %>%
@@ -402,7 +402,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
         )
       ) %>%
       ungroup() %>%
-      mutate(bin = logsnap(drop_units(qps), 20)) %>%
+      mutate(bin = logsnap(drop_units({{ metric }}), 20)) %>%
       mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params)) %>%
       mutate(labelshow = str_c(
         dataset, dataset_params, "\n",
@@ -447,7 +447,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
       ungroup()
 
     annotation_positions <- quartiles %>%
-      slice(which.max(algo_id)) %>%
+      slice(annotations_selector(algo_id)) %>%
       gather(min_bin:median_bin, key="label", value="bin") %>%
       mutate(label = case_when(
         label == "min_bin" ~ "min",
@@ -460,13 +460,18 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
 
     labelshows <- plotdata %>%
       distinct(data_id)
-    print(labelshows)
 
     p <- plotdata %>%
-      # (function(d) {print(arrange(d, algorithm, bin) %>% select(algorithm, bin, offset)); d}) %>%
       ggplot(aes(x=algo_id + offset,
                  y=bin,
                  color=workload_type)) + 
+      geom_line_interactive(aes(x=algo_id, y=bin, 
+                                group=data_id, 
+                                # color=workload_type,
+                                data_id=data_id),
+                            show.legend=F,
+                            color="black",
+                            alpha=0) +
       geom_linerange(aes(x=algo_id, ymin=min_bin, ymax=max_bin),
                      data=quartiles,
                      inherit.aes=F,
@@ -483,28 +488,20 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60) {
                  size=1,
                  shape=15,
                  color="white") +
-      geom_point_interactive(aes(data_id=data_id, tooltip=scales::number(drop_units(qps))),
+      geom_point_interactive(aes(data_id=data_id, shape=is_estimate),
                              size=1.4) +
-      geom_point(mapping=aes(x=algo_id-0.1, y=median_bin),
-                 data=plotdata %>% group_by(algo_id) %>% summarise(median_bin=median(bin)),
-                 shape=17,
-                 color="black") +
+      geom_text_interactive(aes(x=algo_id - 0.1 , y=bin, data_id=data_id, 
+                                label=scales::number(drop_units(qps))),
+                            color="black",
+                            alpha=0,
+                            size=3) +
       geom_text(aes(x = xpos, y = bin, label=label),
                 inherit.aes=F,
                 data=annotation_positions,
                 size=3) +
-      # geom_text_interactive(aes(label=data_id,
-      #                           data_id=data_id),
-      #                       data=labelshows,
-      #                       inherit.aes=F,
-      #                       x = 9, y = 1,
-      #                       size = 3,
-      #                       hjust=0,
-      #                       alpha = 0) +
-      # geom_point(mapping=aes(x=algo_id - 0.2, y=drop_units(qps)), shape="|", color="black") +
       scale_x_continuous(labels=labels, breaks=breaks,
-                         expand = expansion(add=c(0, 1))) +
-      scale_y_continuous(trans="log", breaks=c(1,10,100,1000,10000,100000),
+                         expand = expansion(add=c(1, 1))) +
+      scale_y_continuous(trans="log", breaks=c(1,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000),
                          labels=scales::number_format(),
                          expand = expansion(add=.5)) +
       labs(y=xlab, # The plot is flipped, hence y -> x
