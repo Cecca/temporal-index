@@ -230,6 +230,7 @@ pub enum QueryConfiguration {
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorPairConfig>,
     },
+    Mixed(Vec<QueryConfiguration>),
 }
 
 impl QueryConfiguration {
@@ -270,6 +271,13 @@ impl QueryConfiguration {
                         }
                     },
                 );
+                Box::new(iter)
+            }
+            Self::Mixed(inner) => {
+                let queries: Vec<Rc<dyn Queryset>> =
+                    inner.iter().flat_map(|qc| qc.queries()).collect();
+                let mixed = Rc::new(MixedQueryset::new(queries)) as Rc<dyn Queryset>;
+                let iter = Some(mixed).into_iter();
                 Box::new(iter)
             }
         }

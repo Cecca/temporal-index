@@ -12,21 +12,38 @@
           - Zipf: { n: 1000000, beta: 1 }
 
   queries:
-    - Random:
-        seed: [23512]
-        n: [5000]
-        range:
-          - Pair: [
-              Uniform: { low: 1, high: 100000 },
-              Zipf: { n: 1000000, beta: 1 }
-          ]
-          # - Free
-        duration:
-          - Pair: [
-              Uniform: { low: 1, high: 10000 },
-              Uniform: { low: 1, high: 10000 },
-          ]
-          # - Free
+    - Mixed:
+      - Random:
+          seed: [10733]
+          n: [10]
+          range:
+            - Pair: [
+                Uniform: { low: 1, high: 100000 },
+                Zipf: { n: 1000000, beta: 1 }
+            ]
+            - Free
+          duration:
+            - Pair: [
+                Uniform: { low: 1, high: 10000 },
+                Uniform: { low: 1, high: 10000 },
+            ]
+            - Free
+
+    # - Random:
+    #     seed: [23512]
+    #     n: [5000]
+    #     range:
+    #       - Pair: [
+    #           Uniform: { low: 1, high: 100000 },
+    #           Zipf: { n: 1000000, beta: 1 }
+    #       ]
+    #       # - Free
+    #     duration:
+    #       - Pair: [
+    #           Uniform: { low: 1, high: 10000 },
+    #           Uniform: { low: 1, high: 10000 },
+    #       ]
+    #       # - Free
 
   algorithms:
     # - PeriodIndexStar:

@@ -7,6 +7,7 @@ use crate::zipf::ZipfDistribution;
 use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
+use std::rc::Rc;
 
 pub trait Dataset: std::fmt::Debug {
     fn name(&self) -> String;
@@ -394,5 +395,39 @@ impl Queryset for RandomQueryset {
             });
         }
         data.into_iter().collect()
+    }
+}
+
+#[derive(Debug)]
+pub struct MixedQueryset {
+    inner: Vec<Rc<dyn Queryset>>,
+}
+
+impl MixedQueryset {
+    pub fn new(sets: Vec<Rc<dyn Queryset>>) -> Self {
+        Self { inner: sets }
+    }
+}
+
+impl Queryset for MixedQueryset {
+    fn name(&self) -> String {
+        "Mixed".to_owned()
+    }
+
+    fn parameters(&self) -> String {
+        let ps: Vec<String> = self.inner.iter().map(|x| x.parameters()).collect();
+        ps.join("|")
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Vec<Query> {
+        let queries = self.inner.iter().flat_map(|inner| inner.get()).collect();
+        for q in &queries {
+            println!("{:?}", q);
+        }
+        queries
     }
 }
