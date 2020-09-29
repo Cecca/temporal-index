@@ -1,0 +1,28 @@
+\documentclass[manuscript,nonacm,timestamp]{acmart}
+
+\title{Indexing temporal relations for range-duration queries}
+
+\begin{abstract}
+We present a learned index for temporal intervals, supporting range-duration
+queries.
+\end{abstract}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+\section{Related work}
+
+\section{Data structure}
+
+Our index is a grid, partitioning the intervals into disjoint buckets according
+to the durations and the start times of the intervals.
+The boundaries between cells are defined by using the empirical cumulative
+distribution function of the duration and the starting times, so that 
+each cell contains the same number of intervals, which corresponds to the
+\emph{page size} of our index.
+
+\section{Experimental evaluation}
+    
+\end{document}
