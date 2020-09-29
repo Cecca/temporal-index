@@ -424,10 +424,6 @@ impl Queryset for MixedQueryset {
     }
 
     fn get(&self) -> Vec<Query> {
-        let queries = self.inner.iter().flat_map(|inner| inner.get()).collect();
-        for q in &queries {
-            println!("{:?}", q);
-        }
-        queries
+        self.inner.iter().flat_map(|inner| inner.get()).collect()
     }
 }

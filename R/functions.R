@@ -398,6 +398,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
           queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
           queryset == "random-None-uniform-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "Mixed" ~ "mixed",
           TRUE ~ "Unknown"
         )
       ) %>%

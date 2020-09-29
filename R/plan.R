@@ -129,6 +129,17 @@ plan <- drake_plan(
   #                                                   queryset_val = "random-uniform-zipf-uniform-uniform",
   #                                                   queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
 
+  plot_mixed = data %>%
+    filter(
+      hostname == "ironmaiden",
+      dataset == "random-uniform-zipf",
+      dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+      queryset == "Mixed",
+    ) %>%
+    mutate(workload = queryset_params) %>%
+    barchart_qps() %>%
+    save_png(file_out("imgs/qps_mixed.png")),
+
   plot_both_uniform = data %>%
     filter(
       hostname == "ironmaiden",
