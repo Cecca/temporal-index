@@ -50,7 +50,7 @@
     #     num_buckets: [16]
     #     num_levels: [4,32]
     # - PeriodIndexPlusPlus:
-    #     num_buckets: [100]
+    #     page_size: [100]
     # - Grid3D:
     #     num_buckets: [16]
     # - Grid:
