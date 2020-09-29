@@ -16,38 +16,38 @@
           # - Zipf: { n: 10000000, beta: 2 }
 
   queries:
-    - Mixed:
-      - Random:
-          seed: [23512]
-          n: [600]
-          range:
-            - Pair: [
-                Uniform: { low: 1, high: 10000000 },
-                Zipf: { n: 10000000, beta: 1 }
-            ]
-            - Free
-          duration:
-            # Long duration low selectivity
-            - Pair: [
-                Uniform: { low: 1, high: 10000 },
-                Uniform: { low: 1, high: 10000 },
-            ]
-            # Short duration high selectivity
-            - Pair: [
-                Uniform: { low: 1, high: 100 },
-                Uniform: { low: 1, high: 100 },
-            ]
-            # Short duration low selectivity
-            - Pair: [
-                Uniform: { low: 1, high: 100 },
-                Uniform: { low: 1, high: 10000 },
-            ]
-            # Long duration high selectivity
-            - Pair: [
-                Uniform: { low: 1, high: 10000 },
-                Uniform: { low: 1, high: 100 },
-            ]
-            - Free
+    # - Mixed:
+    #   - Random:
+    #       seed: [23512]
+    #       n: [600]
+    #       range:
+    #         - Pair: [
+    #             Uniform: { low: 1, high: 10000000 },
+    #             Zipf: { n: 10000000, beta: 1 }
+    #         ]
+    #         - Free
+    #       duration:
+    #         # Long duration low selectivity
+    #         - Pair: [
+    #             Uniform: { low: 1, high: 10000 },
+    #             Uniform: { low: 1, high: 10000 },
+    #         ]
+    #         # Short duration high selectivity
+    #         - Pair: [
+    #             Uniform: { low: 1, high: 100 },
+    #             Uniform: { low: 1, high: 100 },
+    #         ]
+    #         # Short duration low selectivity
+    #         - Pair: [
+    #             Uniform: { low: 1, high: 100 },
+    #             Uniform: { low: 1, high: 10000 },
+    #         ]
+    #         # Long duration high selectivity
+    #         - Pair: [
+    #             Uniform: { low: 1, high: 10000 },
+    #             Uniform: { low: 1, high: 100 },
+    #         ]
+    #         - Free
     # The above queries in isolation
     - Random:
         seed: [23512]
