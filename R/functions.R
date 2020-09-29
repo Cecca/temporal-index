@@ -489,7 +489,9 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
                  size=1,
                  shape=15,
                  color="white") +
-      geom_point_interactive(aes(data_id=data_id, shape=is_estimate),
+      geom_point_interactive(aes(data_id=data_id, 
+                                 shape=is_estimate, 
+                                 tooltip=algorithm_params),
                              size=1.4) +
       geom_text_interactive(aes(x=algo_id - 0.1 , y=bin, data_id=data_id, 
                                 label=scales::number(drop_units(qps))),
