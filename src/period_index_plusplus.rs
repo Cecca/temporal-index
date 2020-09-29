@@ -4,15 +4,15 @@ use std::iter::FromIterator;
 
 #[derive(DeepSizeOf)]
 pub struct PeriodIndexPlusPlus {
-    /// the number of buckets in which each dimension is divided
-    num_buckets: usize,
+    // num_buckets: usize,
+    page_size: usize,
     index: Option<RangeIndex<RangeIndex<Vec<Interval>>>>,
 }
 
 impl PeriodIndexPlusPlus {
-    pub fn new(num_buckets: usize) -> Self {
+    pub fn new(page_size: usize) -> Self {
         Self {
-            num_buckets,
+            page_size,
             index: None,
         }
     }
@@ -20,7 +20,7 @@ impl PeriodIndexPlusPlus {
 
 impl std::fmt::Debug for PeriodIndexPlusPlus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "period-index++({})", self.num_buckets)
+        write!(f, "period-index++({})", self.page_size)
     }
 }
 
@@ -30,30 +30,44 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn parameters(&self) -> String {
-        format!("n_buckets={}", self.num_buckets)
+        format!("page_size={}", self.page_size)
     }
 
     fn version(&self) -> u8 {
-        10
+        11
     }
 
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
-        let n_buckets = self.num_buckets;
+        let n = dataset.len();
+        let n_buckets_duration =
+            ((n + 1) as f64 / (self.page_size * self.page_size) as f64).ceil() as usize;
+        debug!(
+            "Splitting {} intervals in {} buckets",
+            n, n_buckets_duration
+        );
 
         let index = RangeIndex::new(
-            n_buckets,
+            n_buckets_duration,
             dataset,
             |interval| interval.duration(),
             |by_duration| {
+                let n_buckets_start =
+                    ((by_duration.len() + 1) as f64 / self.page_size as f64).ceil() as usize;
+                debug!(
+                    " . Splitting {} intervals in {} buckets",
+                    by_duration.len(),
+                    n_buckets_start
+                );
                 RangeIndex::new(
-                    n_buckets,
+                    n_buckets_start,
                     by_duration,
                     |interval| interval.start,
                     |by_start| {
                         let mut intervals =
                             Vec::from_iter(by_start.iter().map(|interval| ***interval));
                         intervals.sort_unstable_by_key(|x| x.end);
+                        trace!(" .. {} intervals", intervals.len());
                         intervals
                     },
                 )
