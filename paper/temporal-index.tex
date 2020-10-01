@@ -1,10 +1,13 @@
 \documentclass[manuscript,nonacm,timestamp]{acmart}
 
+\usepackage{todonotes}
+\newcommand{\cetodo}[1]{\todo[inline,color=teal!30]{#1}}
+
 \title{Indexing temporal relations for range-duration queries}
 
 \begin{abstract}
 We present a learned index for temporal intervals, supporting range-duration
-queries.
+queries .
 \end{abstract}
 
 \begin{document}
@@ -13,6 +16,53 @@ queries.
 \section{Introduction}
 
 \section{Related work}
+
+\section{Preliminaries}
+
+\subsection{Temporal queries}
+
+In this paper we adopt the 
+\emph{discrete linear time} model~\cite{BohlenDGJ_ebiss2017_temporal-data-management},
+where the time domain is an ordered set of discrete \emph{chronons}.
+For the continuous case we can simply choose as a chronon an interval of length
+equal to the greatest common divisor of the intervals in all relations, and use 
+it to quantize all the intervals.
+A time interval $e = [)$ is a contiguous set of chronons between a starting
+time $e_s$ (included) and and ending time $e_e$ (excluded), that is the intervals are \emph{close open}.
+Given an interval $e$, we denote with $|e| = e_e - e_s$ the number of chronons it spans.
+Furthermore, given two intervals $e$ and $e'$ we denote with $e \cap e'$ the set of chronons
+shared by the two intervals, which might be empty.
+Note that such an intersection is itself an interval, if not empty.
+
+Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
+
+\cetodo{Shall we rename it \emph{temporal query?}. Ultimately, also duration queries involve a range of durations, so it might be confusing.}
+\begin{definition}[Range query]
+    Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$, 
+    a \emph{range query} $Q(A, e)$ is defined as
+    \[
+        Q(A, e) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \}
+    \]
+\end{definition}
+
+\begin{definition}[Duration query]
+    Given a duration interval $d = [d_{min}, d_{max}]$ and a set of intervals $A$, 
+    a \emph{duration query} $Q(A, d)$ is defined as
+    \[
+        Q(A, d) = \{e | e \in A \wedge |e| \in [d_{min}, d_{max}] \}
+    \]
+\end{definition}
+
+\begin{definition}[Range-duration query]
+    Given a temporal interval $e = [e_s, e_e)$, a duration interval $d = [d_{min}, d_{max}]$,
+    and a set of intervals $A$, 
+    a \emph{range-duration query} $Q(A, e, d)$ is defined as
+    \[
+        Q(A, e, d) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \wedge |e'| \in [d_{min}, d_{max}] \}
+    \]
+\end{definition}
+
+The latter type of query is a combination of the former two.
 
 \section{Data structure}
 
@@ -23,6 +73,15 @@ distribution function of the duration and the starting times, so that
 each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
 
+The time for building the index is \emph{linear} in the dataset size.
+
+Time for querying the index is logarithmic in the number of buckets and
+then linear in the number of output elements (plus some factor of the page 
+size for the boundary cells).
+
 \section{Experimental evaluation}
+
+\bibliographystyle{plain}
+\bibliography{references}
     
 \end{document}
