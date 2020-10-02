@@ -148,7 +148,8 @@ end time, we can stop as soon as we see an interval whose en time is $< e_s$.
 
         % Query point: duration between 8 and 20
         \coordinate (query) at (30,25);
-        \draw[thick, red, fill=red!10] (17, 25) -- (30, 38) -- (30, 50) -- (17, 37) -- (17, 25) ;
+        \draw[thick, red, fill=red!10]
+        (17, 25) -- (30, 38) -- (30, 50) -- (5, 25) -- (17, 25) ;
         \fill[red] (query) circle (10pt);
         \draw [red,dashed] (0,25) -- (query);
         \draw [red,dashed] (30,60) -- (query);
@@ -168,7 +169,7 @@ end time, we can stop as soon as we see an interval whose en time is $< e_s$.
         \draw[dashed] (16, 17) -- (16, 5);
         \node[anchor=center] at (12, 5) {$e_s \in [8, 16)$};
         % grid duration 15
-        \foreach \start in {10, 15, 22, 33, 40} \draw (\start, \start+5) -- (\start, \start+15);
+        \foreach \start in {7, 15, 22, 33, 40} \draw (\start, \start+5) -- (\start, \start+15);
         % grid duration 27
         \foreach \start in {5, 13, 31} \draw (\start, \start+15) -- (\start, \start+27);
         % grid duration 50
