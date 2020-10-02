@@ -1,4 +1,5 @@
 /target
+*.log
 imgs/*.png
 /*.sqlite
 /*.sqlite.bak*
