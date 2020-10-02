@@ -3,6 +3,8 @@
 \usepackage{todonotes}
 \newcommand{\cetodo}[1]{\todo[inline,color=teal!30]{#1}}
 
+\usepackage{tikz}
+
 \title{Indexing temporal relations for range-duration queries}
 
 \begin{abstract}
@@ -21,24 +23,27 @@ queries .
 
 \subsection{Temporal queries}
 
-In this paper we adopt the 
+In this paper we adopt the
 \emph{discrete linear time} model~\cite{BohlenDGJ_ebiss2017_temporal-data-management},
 where the time domain is an ordered set of discrete \emph{chronons}.
 For the continuous case we can simply choose as a chronon an interval of length
-equal to the greatest common divisor of the intervals in all relations, and use 
+equal to the greatest common divisor of the intervals in all relations, and use
 it to quantize all the intervals.
 A time interval $e = [)$ is a contiguous set of chronons between a starting
 time $e_s$ (included) and and ending time $e_e$ (excluded), that is the intervals are \emph{close open}.
-Given an interval $e$, we denote with $|e| = e_e - e_s$ the number of chronons it spans.
+Given an interval $e$, we denote with $|e| = e_e - e_s$ its duration, i.e. the number of chronons it spans.
 Furthermore, given two intervals $e$ and $e'$ we denote with $e \cap e'$ the set of chronons
 shared by the two intervals, which might be empty.
 Note that such an intersection is itself an interval, if not empty.
+
+Throughout this paper we will refer to sets of intervals rather than relations with time interval attributes,
+for simplicity of exposition.
 
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
 \cetodo{Shall we rename it \emph{temporal query?}. Ultimately, also duration queries involve a range of durations, so it might be confusing.}
 \begin{definition}[Range query]
-    Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$, 
+    Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$,
     a \emph{range query} $Q(A, e)$ is defined as
     \[
         Q(A, e) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \}
@@ -46,7 +51,7 @@ Our index efficiently supports the three following types of queries (defined as 
 \end{definition}
 
 \begin{definition}[Duration query]
-    Given a duration interval $d = [d_{min}, d_{max}]$ and a set of intervals $A$, 
+    Given a duration interval $d = [d_{min}, d_{max}]$ and a set of intervals $A$,
     a \emph{duration query} $Q(A, d)$ is defined as
     \[
         Q(A, d) = \{e | e \in A \wedge |e| \in [d_{min}, d_{max}] \}
@@ -55,7 +60,7 @@ Our index efficiently supports the three following types of queries (defined as 
 
 \begin{definition}[Range-duration query]
     Given a temporal interval $e = [e_s, e_e)$, a duration interval $d = [d_{min}, d_{max}]$,
-    and a set of intervals $A$, 
+    and a set of intervals $A$,
     a \emph{range-duration query} $Q(A, e, d)$ is defined as
     \[
         Q(A, e, d) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \wedge |e'| \in [d_{min}, d_{max}] \}
@@ -69,19 +74,119 @@ The latter type of query is a combination of the former two.
 Our index is a grid, partitioning the intervals into disjoint buckets according
 to the durations and the start times of the intervals.
 The boundaries between cells are defined by using the empirical cumulative
-distribution function of the duration and the starting times, so that 
+distribution function of the duration and the starting times, so that
 each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
+\cetodo{Should we show how to update the data structure?}
+Therefore the structure is adaptive to the distribution of the input.
 
-The time for building the index is \emph{linear} in the dataset size.
+\subsection{Index construction}
 
-Time for querying the index is logarithmic in the number of buckets and
-then linear in the number of output elements (plus some factor of the page 
-size for the boundary cells).
+Let $s$ be the \emph{page size} parameter.
+For an interval $e \in A$, let $CDF_d^A(e)$ be the fraction of intervals $e' \in A$
+whose duration is
+$\le |e|$.
+Similarly, let $CDF_s^A(e)$ be the fraction of the
+intervals whose start time is $\le e_s$.
+
+\cetodo{What happens when there are more than $s^2$ elements in a bucket?
+    This happens when there are more than $s^2$ elements with the same duration: they
+    all fall in the same bucket.}
+\cetodo{We need to describe a way to efficiently compute the cumulative distribution function.}
+We partition the intervals in $n / s^2$ buckets: an interval $e$ is assigned to
+bucket $\lfloor CDF_d(e) \cdot n/2^s \rfloor$.
+In particular, we define the $i$-th bucket in the duration dimension as
+\[
+    A_i^d = \{ e \in A | i = \lfloor CDF_d^A(e) \cdot |A|/2^s \rfloor \}
+\]
+Consider one such bucket $i$, and let $[\bar{d}_{min}, \bar{d}_{max}]$ be the
+range of durations spanned by the intervals it contains.
+We further partition the intervals in $A_i^d$ according to the distribution
+of their starting times:
+\[
+    A_{i,j}^{d,s} = \{ e \in A_i^d ~|~ j = \lfloor CDF_s(e) \cdot |A_i^d|/s \rfloor \}
+\]
+
+Our index is a grid built out of the cells $A_{i,j}^{d,s}$.
+In each cell, the intervals are sorted by decreasing end time.
+
+We can use a compact representation of the cumulative density function
+that is sufficient for indexing into this grid.
+Observe that since we always apply a floor operator to the result of the CDF
+we can just store the values of the CDF defining the start of a new bucket.
+
+\cetodo{The time for building the index is $O(n\log n)$ where $n$ is the set size.}
+
+\subsection{Index query}
+
+Given a range-duration query $Q(A, e, d)$ with $e=[e_s, e_e)$ and $d=[d_min, d_max]$,
+we can split the evaluation of the predicate in three steps.
+First, we find the range of cells in the duration domain containing intervals
+that can match the duration part of the query.
+In particular, we need to identify two indices:
+\begin{align*}
+    i_{start} & = \lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \rfloor \\
+    i_{end}   & = \lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \rfloor
+\end{align*}
+Then, for each $i \in [i_{start}, i_{end}]$ we consider the cells in the start
+dimension in the range $[0, j_{end}]$ with
+\begin{align*}
+    j_{end} & = \lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \rfloor
+\end{align*}
+For each cell $A_{i,j}^{d,s}$ within the above bounds, we evaluate the query
+predicate for all the intervals. Since the intervals are sorted by decreasing
+end time, we can stop as soon as we see an interval whose en time is $< e_s$.
+
+\begin{figure}
+    \begin{tikzpicture}[xscale=.2, yscale=.15]
+        % Axes
+        \draw [<->] (0,60) node (yaxis) [above] {$end$}
+        |- (60,0) node (xaxis) [right] {$start$};
+        %ticks
+        \foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
+        \foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
+
+        % Query point: duration between 8 and 20
+        \coordinate (query) at (30,25);
+        \draw[thick, red, fill=red!10] (17, 25) -- (30, 38) -- (30, 50) -- (17, 37) -- (17, 25) ;
+        \fill[red] (query) circle (10pt);
+        \draw [red,dashed] (0,25) -- (query);
+        \draw [red,dashed] (30,60) -- (query);
+
+        % % Grid structure
+        \draw [-] (0,1) -- (60,61);
+        \foreach \duration in {5, 15, 27, 50} \draw (0, \duration) -- (60-\duration, 60);
+        \foreach \duration in {1, 5, 15, 27, 50} \draw[dashed] (0, \duration) -- (-5, \duration);
+        \node[anchor=east] at (-4, 3) {$d\in[1,5)$};
+            \node[anchor=east] at (-4, 10) {$d\in[5, 15)$};
+        \node[anchor=east] at (-4, 22) {$d\in[15, 27)$};
+            \node[anchor=east] at (-4, 38) {$d\in[27, 50)$};
+
+        % grid duration 5
+        \foreach \start in {8, 16, 26, 44} \draw (\start, \start+1) -- (\start, \start+5);
+        \draw[dashed] (8, 9) -- (8, 5);
+        \draw[dashed] (16, 17) -- (16, 5);
+        \node[anchor=center] at (12, 5) {$e_s \in [8, 16)$};
+        % grid duration 15
+        \foreach \start in {10, 15, 22, 33, 40} \draw (\start, \start+5) -- (\start, \start+15);
+        % grid duration 27
+        \foreach \start in {5, 13, 31} \draw (\start, \start+15) -- (\start, \start+27);
+        % grid duration 50
+        \draw (5, 5+27) -- (5, 55);
+        \draw (20, 20+27) -- (20, 60);
+
+    \end{tikzpicture}
+\end{figure}
+
+\cetodo{Time for querying the index is logarithmic in the number of buckets and
+    then linear in the number of output elements (plus some factor of the page
+    size for the boundary cells).}
+
+\cetodo{Describe parallelization}
 
 \section{Experimental evaluation}
 
 \bibliographystyle{plain}
 \bibliography{references}
-    
+
 \end{document}
