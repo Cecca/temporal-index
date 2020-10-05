@@ -83,10 +83,10 @@ Therefore the structure is adaptive to the distribution of the input.
 \subsection{Index construction}
 
 Let $s$ be the \emph{page size} parameter.
-For an interval $e \in A$, let $CDF_d^A(e)$ be the fraction of intervals $e' \in A$
+For an interval $e \in A$, let $CDF_d^A(|e|)$ be the fraction of intervals $e' \in A$
 whose duration is
 $\le |e|$.
-Similarly, let $CDF_s^A(e)$ be the fraction of the
+Similarly, let $CDF_s^A(e_s)$ be the fraction of the
 intervals whose start time is $\le e_s$.
 
 \cetodo{What happens when there are more than $s^2$ elements in a bucket?
@@ -94,17 +94,17 @@ intervals whose start time is $\le e_s$.
     all fall in the same bucket.}
 \cetodo{We need to describe a way to efficiently compute the cumulative distribution function.}
 We partition the intervals in $n / s^2$ buckets: an interval $e$ is assigned to
-bucket $\lfloor CDF_d(e) \cdot n/2^s \rfloor$.
+bucket $\lfloor CDF_d(|e|) \cdot n/2^s \rfloor$.
 In particular, we define the $i$-th bucket in the duration dimension as
 \[
-    A_i^d = \{ e \in A | i = \lfloor CDF_d^A(e) \cdot |A|/2^s \rfloor \}
+    A_i^d = \{ e \in A | i = \lfloor CDF_d^A(|e|) \cdot |A|/2^s \rfloor \}
 \]
 Consider one such bucket $i$, and let $[\bar{d}_{min}, \bar{d}_{max}]$ be the
 range of durations spanned by the intervals it contains.
 We further partition the intervals in $A_i^d$ according to the distribution
 of their starting times:
 \[
-    A_{i,j}^{d,s} = \{ e \in A_i^d ~|~ j = \lfloor CDF_s(e) \cdot |A_i^d|/s \rfloor \}
+    A_{i,j}^{d,s} = \{ e \in A_i^d ~|~ j = \lfloor CDF_s(e_s) \cdot |A_i^d|/s \rfloor \}
 \]
 
 Our index is a grid built out of the cells $A_{i,j}^{d,s}$.
@@ -120,22 +120,45 @@ we can just store the values of the CDF defining the start of a new bucket.
 \subsection{Index query}
 
 Given a range-duration query $Q(A, e, d)$ with $e=[e_s, e_e)$ and $d=[d_min, d_max]$,
-we can split the evaluation of the predicate in three steps.
-First, we find the range of cells in the duration domain containing intervals
-that can match the duration part of the query.
-In particular, we need to identify two indices:
+recall that an interval $e'$ satisfies the query if the three following conditions
+are met:
+\begin{align}
+     & |e'| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
+     & e_s < e'_e                  \label{eq:start-condition}    \\
+     & e'_s < e_e                  \label{eq:end-condition}
+\end{align}
+
+First, identify two indices, which identify the range of cells in the duration
+dimension containing at least one interval satisfying
+condition~\eqref{eq:duration-condition}.
 \begin{align*}
     i_{start} & = \lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \rfloor \\
     i_{end}   & = \lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \rfloor
 \end{align*}
-Then, for each $i \in [i_{start}, i_{end}]$ we consider the cells in the start
-dimension in the range $[0, j_{end}]$ with
+Then, for each $i \in [i_{start}, i_{end}]$, let $[d_{min}^i, d_{max}^i]$
+be the range of durations spanned by the $i$-th column.
+We consider the cells in the start
+dimension in the range $[j_{start}, j_{end}]$ with
 \begin{align*}
-    j_{end} & = \lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \rfloor
+    j_{start} & = \lfloor CDF_{s}^{A_i^d}(e_e - d_{max}^i) \cdot |A_i^d| / s \rfloor \\
+    j_{end}   & = \lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \rfloor
 \end{align*}
+In other words,
+the start is the first cell such that the upper boundary on the start
+time plus the maximum duration in the duration range of the column
+is strictly less than the end time of the query
+(in Figure~\ref{fig:grid-query} this corresponds to the upper corner of each cell).
+
 For each cell $A_{i,j}^{d,s}$ within the above bounds, we evaluate the query
 predicate for all the intervals. Since the intervals are sorted by decreasing
 end time, we can stop as soon as we see an interval whose en time is $< e_s$.
+
+Figure~\ref{fig:grid-query} shows an example of a grid together with a query.
+Note that each group of durations is partitioned according to start times
+in a different way.
+As for the query, the dashed lines mark the range of intervals overlapping
+the query intervals. Intersecting this area with the diagonals enclosing the
+duration part of the query gives the area where query answers lie.
 
 \begin{figure}
     \begin{tikzpicture}[xscale=.2, yscale=.15]
@@ -177,11 +200,15 @@ end time, we can stop as soon as we see an interval whose en time is $< e_s$.
         \draw (20, 20+27) -- (20, 60);
 
     \end{tikzpicture}
+    \caption{Instantiation of the grid over durations and start times, with
+        a query. Note that points with the same duration fall on the same diagonal.
+        \label{fig:grid-query}}
 \end{figure}
 
-\cetodo{Time for querying the index is logarithmic in the number of buckets and
-    then linear in the number of output elements (plus some factor of the page
-    size for the boundary cells).}
+\cetodo{Time for querying the index is logarithmic in the number of buckets
+    and then linear in the number of output elements (plus some factor of the
+    page size for the boundary cells). Since the number of buckets is a fraction
+    of the dataset, then time is actually logarithmic in the number of elements.}
 
 \cetodo{Describe parallelization}
 
