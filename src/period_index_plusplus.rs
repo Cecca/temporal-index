@@ -348,7 +348,8 @@ impl<V> SortedBlockIndex<V> {
             }
         }
         // push the last boundary
-        if boundaries.last().unwrap() != &(distribution.len() as u32 - 1) {
+        if boundaries.is_empty() || (boundaries.last().unwrap() != &(distribution.len() as u32 - 1))
+        {
             boundaries.push(distribution.len() as u32 - 1);
         }
 
