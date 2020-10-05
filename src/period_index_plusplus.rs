@@ -34,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        11
+        12
     }
 
     fn index(&mut self, dataset: &[Interval]) {
