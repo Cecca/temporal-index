@@ -5,6 +5,9 @@
 
 \usepackage{tikz}
 
+\newcommand{\BO}[1]{O\left(#1\right)}
+\renewcommand{\epsilon}{\varepsilon}
+
 \title{Indexing temporal relations for range-duration queries}
 
 \begin{abstract}
@@ -115,9 +118,7 @@ that is sufficient for indexing into this grid.
 Observe that since we always apply a floor operator to the result of the CDF
 we can just store the values of the CDF defining the start of a new bucket.
 
-\cetodo{The time for building the index is $O(n\log n)$ where $n$ is the set size.}
-
-\subsection{Index query}
+\subsection{Querying the index}
 
 Given a range-duration query $Q(A, e, d)$ with $e=[e_s, e_e)$ and $d=[d_min, d_max]$,
 recall that an interval $e'$ satisfies the query if the three following conditions
@@ -128,20 +129,20 @@ are met:
      & e'_s < e_e                  \label{eq:end-condition}
 \end{align}
 
-First, identify two indices, which identify the range of cells in the duration
-dimension containing at least one interval satisfying
+First, find the two indices which identify the range of cells in the duration
+dimension each containing at least one interval satisfying
 condition~\eqref{eq:duration-condition}.
 \begin{align*}
-    i_{start} & = \lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \rfloor \\
-    i_{end}   & = \lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \rfloor
+    i_{start} & = \left\lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \right\rfloor \\
+    i_{end}   & = \left\lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \right\rfloor
 \end{align*}
 Then, for each $i \in [i_{start}, i_{end}]$, let $[d_{min}^i, d_{max}^i]$
 be the range of durations spanned by the $i$-th column.
 We consider the cells in the start
 dimension in the range $[j_{start}, j_{end}]$ with
 \begin{align*}
-    j_{start} & = \lfloor CDF_{s}^{A_i^d}(e_s - d_{max}^i) \cdot |A_i^d| / s \rfloor \\
-    j_{end}   & = \lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \rfloor
+    j_{start} & = \left\lfloor CDF_{s}^{A_i^d}(e_s - d_{max}^i) \cdot |A_i^d| / s \right\rfloor \\
+    j_{end}   & = \left\lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \right\rfloor
 \end{align*}
 In other words,
 the start is the first cell such that the upper boundary on the start
@@ -203,12 +204,48 @@ duration part of the query gives the area where query answers lie.
     \caption{Instantiation of the grid over durations and start times, with
         a query. Note that points with the same duration fall on the same diagonal.
         \label{fig:grid-query}}
+    \Description{}
 \end{figure}
 
-\cetodo{Time for querying the index is logarithmic in the number of buckets
-    and then linear in the number of output elements (plus some factor of the
-    page size for the boundary cells). Since the number of buckets is a fraction
-    of the dataset, then time is actually logarithmic in the number of elements.}
+\cetodo{Intervals within a "safe" region are not eve checked, just reported}
+
+\subsection{Analysis}
+
+\begin{theorem}
+    Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
+\end{theorem}
+\begin{proof}
+    Computing the Empirical Cumulative Distribution Function for the duration measure can be done
+    by first sorting the intervals according to the duration and then scanning through the sorted interval
+    to compute the cumulative counts. A final scan allows to associate each interval to appropriate bucket.
+    These operations can thus be accomplished in time $\BO{n \log n}$.
+    Each bucket is then further partitioned according to the start times.
+    Let $n_i$ be the size of the $i$-th bucket.
+    Then, partitioning it according to the cumulative distribution function
+    requires time $\BO{n_i \log n_i}$, following the same argument as above.
+    Therefore, the time for building the second level of the index is
+    \[
+        \BO{\sum_i n_i \log n_i}
+        = \BO{\log n \cdot \sum_i n_i}
+        = \BO{n \log n}
+    \]
+\end{proof}
+
+The following theorem ensures that, by setting the page size $s$ appropriately, the query time
+can be made polynomially smaller than the input size.
+\begin{theorem}
+    Given an index over a set of $n$ intervals, with page size $s$, the time for
+    answering a range-duration query is
+    \[
+        \BO{\frac{n}{s} + s^2 + k}
+    \]
+    where $k$ is the number of intervals matching the query predicate.
+    For $s = \BO{n^\epsilon}$, we have that the query time is
+    \[
+        \BO{n^\epsilon + k}
+    \]
+\end{theorem}
+
 
 \cetodo{Describe parallelization}
 
