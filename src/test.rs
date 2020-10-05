@@ -112,14 +112,20 @@ macro_rules! same_result {
             #[test]
             fn [<$name _period_index_plusplus>]() {
                 let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(2)));
+                run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(5)));
             }
 
             #[test]
-            fn [<$name _period_index_plusplus_manybucks>]() {
+            fn [<$name _period_index_plusplus_ps_10>]() {
                 let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(100000)));
+                run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(10)));
             }
+
+            // #[test]
+            // fn [<$name _period_index_plusplus_manybucks>]() {
+            //     let (data, queries) = &$value;
+            //     run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(100000)));
+            // }
 
             // #[test]
             // fn [<$name _ebi>]() {
