@@ -38,7 +38,8 @@ fn run_test_same_result(data: &Vec<Interval>, queries: &Vec<Query>, mut algo: Bo
         actual.sort_unstable();
         assert!(
             expected == actual,
-            "query is {:?}, {} false negatives, {} false positives:\nfalse negatives:\n{}",
+            "query {} is {:?}, {} false negatives, {} false positives:\nfalse negatives:\n{}",
+            idx,
             queries[idx],
             BTreeSet::from_iter(actual.iter())
                 .difference(&BTreeSet::from_iter(expected.iter()))

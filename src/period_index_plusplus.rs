@@ -42,10 +42,10 @@ impl Algorithm for PeriodIndexPlusPlus {
         let n = dataset.len();
         let n_buckets_duration =
             ((n + 1) as f64 / (self.page_size * self.page_size) as f64).ceil() as usize;
-        debug!(
-            "Splitting {} intervals in {} buckets",
-            n, n_buckets_duration
-        );
+        // debug!(
+        //     "Splitting {} intervals in {} buckets",
+        //     n, n_buckets_duration
+        // );
 
         let index = RangeIndex::new(
             n_buckets_duration,
@@ -54,11 +54,11 @@ impl Algorithm for PeriodIndexPlusPlus {
             |by_duration| {
                 let n_buckets_start =
                     ((by_duration.len() + 1) as f64 / self.page_size as f64).ceil() as usize;
-                debug!(
-                    " . Splitting {} intervals in {} buckets",
-                    by_duration.len(),
-                    n_buckets_start
-                );
+                // debug!(
+                //     " . Splitting {} intervals in {} buckets",
+                //     by_duration.len(),
+                //     n_buckets_start
+                // );
                 RangeIndex::new(
                     n_buckets_start,
                     by_duration,
@@ -99,96 +99,113 @@ impl Algorithm for PeriodIndexPlusPlus {
                                 min: duration_min_bound,
                                 max: duration_max_bound,
                             };
-                            by_start.query_le(range.end, |start_bound, sorted_by_end| {
-                                match (
-                                    duration.contains_duration(bucket_duration_range),
-                                    start_bound.1 < range.end,
-                                ) {
-                                    // don't check overlap or duration, they are guaranteed
-                                    (true, true) => sorted_by_end
-                                        .iter()
-                                        .rev()
-                                        .take_while(|interval| interval.end > range.start)
-                                        .for_each(|interval| {
-                                            cnt += 1;
-                                            debug_assert!(duration.contains(interval));
-                                            debug_assert!(range.overlaps(interval));
-                                            answer.push(*interval);
-                                        }),
-                                    // check only the overlap
-                                    (true, false) => sorted_by_end
-                                        .iter()
-                                        .rev()
-                                        .take_while(|interval| interval.end > range.start)
-                                        .for_each(|interval| {
-                                            cnt += 1;
-                                            if range.overlaps(interval) {
+                            let start_time = if range.start > duration_max_bound {
+                                range.start - duration_max_bound
+                            } else {
+                                0
+                            };
+                            by_start.query_between(
+                                start_time,
+                                range.end,
+                                |start_bound, sorted_by_end| {
+                                    match (
+                                        duration.contains_duration(bucket_duration_range),
+                                        start_bound.1 < range.end,
+                                    ) {
+                                        // don't check overlap or duration, they are guaranteed
+                                        (true, true) => sorted_by_end
+                                            .iter()
+                                            .rev()
+                                            .take_while(|interval| interval.end > range.start)
+                                            .for_each(|interval| {
+                                                cnt += 1;
                                                 debug_assert!(duration.contains(interval));
-                                                answer.push(*interval);
-                                            }
-                                        }),
-                                    // check only the duration
-                                    (false, true) => sorted_by_end
-                                        .iter()
-                                        .rev()
-                                        .take_while(|interval| interval.end > range.start)
-                                        .for_each(|interval| {
-                                            cnt += 1;
-                                            if duration.contains(interval) {
                                                 debug_assert!(range.overlaps(interval));
                                                 answer.push(*interval);
-                                            }
-                                        }),
-                                    // check both duration and overlap
-                                    (false, false) => sorted_by_end
-                                        .iter()
-                                        .rev()
-                                        .take_while(|interval| interval.end > range.start)
-                                        .for_each(|interval| {
-                                            cnt += 1;
-                                            if duration.contains(interval)
-                                                && range.overlaps(interval)
-                                            {
-                                                answer.push(*interval);
-                                            }
-                                        }),
-                                }
-                            });
+                                            }),
+                                        // check only the overlap
+                                        (true, false) => sorted_by_end
+                                            .iter()
+                                            .rev()
+                                            .take_while(|interval| interval.end > range.start)
+                                            .for_each(|interval| {
+                                                cnt += 1;
+                                                if range.overlaps(interval) {
+                                                    debug_assert!(duration.contains(interval));
+                                                    answer.push(*interval);
+                                                }
+                                            }),
+                                        // check only the duration
+                                        (false, true) => sorted_by_end
+                                            .iter()
+                                            .rev()
+                                            .take_while(|interval| interval.end > range.start)
+                                            .for_each(|interval| {
+                                                cnt += 1;
+                                                if duration.contains(interval) {
+                                                    debug_assert!(range.overlaps(interval));
+                                                    answer.push(*interval);
+                                                }
+                                            }),
+                                        // check both duration and overlap
+                                        (false, false) => sorted_by_end
+                                            .iter()
+                                            .rev()
+                                            .take_while(|interval| interval.end > range.start)
+                                            .for_each(|interval| {
+                                                cnt += 1;
+                                                if duration.contains(interval)
+                                                    && range.overlaps(interval)
+                                                {
+                                                    answer.push(*interval);
+                                                }
+                                            }),
+                                    }
+                                },
+                            );
                         },
                     );
                 answer.inc_examined(cnt);
             }
             (Some(range), None) => {
                 let mut cnt = 0;
-                self.index
-                    .as_ref()
-                    .expect("index not populated")
-                    .for_each(|by_start| {
-                        by_start.query_le(range.end, |start_bound, sorted_by_end| {
-                            if start_bound.1 < range.end {
-                                // we don't need to check for the range
-                                sorted_by_end
-                                    .iter()
-                                    .rev()
-                                    .take_while(|interval| interval.end > range.start)
-                                    .for_each(|interval| {
-                                        cnt += 1;
-                                        answer.push(*interval);
-                                    })
-                            } else {
-                                sorted_by_end
-                                    .iter()
-                                    .rev()
-                                    .take_while(|interval| interval.end > range.start)
-                                    .for_each(|interval| {
-                                        cnt += 1;
-                                        if range.overlaps(interval) {
+                self.index.as_ref().expect("index not populated").for_each(
+                    |(_duration_min, duration_max), by_start| {
+                        let start_time = if range.start > duration_max {
+                            range.start - duration_max
+                        } else {
+                            0
+                        };
+                        by_start.query_between(
+                            start_time,
+                            range.end,
+                            |start_bound, sorted_by_end| {
+                                if start_bound.1 < range.end {
+                                    // we don't need to check for the range
+                                    sorted_by_end
+                                        .iter()
+                                        .rev()
+                                        .take_while(|interval| interval.end > range.start)
+                                        .for_each(|interval| {
+                                            cnt += 1;
                                             answer.push(*interval);
-                                        }
-                                    })
-                            }
-                        })
-                    });
+                                        })
+                                } else {
+                                    sorted_by_end
+                                        .iter()
+                                        .rev()
+                                        .take_while(|interval| interval.end > range.start)
+                                        .for_each(|interval| {
+                                            cnt += 1;
+                                            if range.overlaps(interval) {
+                                                answer.push(*interval);
+                                            }
+                                        })
+                                }
+                            },
+                        )
+                    },
+                );
                 answer.inc_examined(cnt);
             }
             (None, Some(duration)) => {
@@ -206,7 +223,7 @@ impl Algorithm for PeriodIndexPlusPlus {
                             };
                             if duration.contains_duration(bucket_duration_range) {
                                 // skip verification, just enumerate
-                                by_start.for_each(|sorted_by_end| {
+                                by_start.for_each(|_, sorted_by_end| {
                                     for interval in sorted_by_end {
                                         cnt += 1;
                                         debug_assert!(duration.contains(interval));
@@ -214,7 +231,7 @@ impl Algorithm for PeriodIndexPlusPlus {
                                     }
                                 })
                             } else {
-                                by_start.for_each(|sorted_by_end| {
+                                by_start.for_each(|_, sorted_by_end| {
                                     for interval in sorted_by_end {
                                         cnt += 1;
                                         let matches_duration = duration.contains(interval);
@@ -289,9 +306,9 @@ impl<V> RangeIndex<V> {
         }
     }
 
-    fn for_each<F: FnMut(&V)>(&self, action: F) {
+    fn for_each<F: FnMut((Time, Time), &V)>(&self, action: F) {
         match self {
-            Self::Plain(inner) => inner.for_each(action),
+            Self::Plain(inner) => todo!(), // inner.for_each(action),
             Self::Block(inner) => inner.for_each(action),
         }
     }
@@ -404,8 +421,13 @@ impl<V> SortedBlockIndex<V> {
         }
     }
 
-    fn for_each<F: FnMut(&V)>(&self, action: F) {
-        self.values.iter().for_each(action);
+    fn for_each<F: FnMut((Time, Time), &V)>(&self, mut action: F) {
+        // self.values.iter().for_each(action);
+        for i in 0..self.boundaries.len() {
+            let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
+            let upper_bound = self.boundaries[i];
+            action((lower_bound, upper_bound), &self.values[i]);
+        }
     }
 
     fn query_between<F: FnMut((Time, Time), &V)>(&self, min: Time, max: Time, mut action: F) {
