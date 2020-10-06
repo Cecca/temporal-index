@@ -148,6 +148,3 @@
     - PeriodIndexPlusPlus:
         page_size: [50]
     - BTree
-    - PeriodIndexStar:
-        num_buckets: [2048]
-        num_levels: [128]

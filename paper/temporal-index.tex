@@ -245,7 +245,23 @@ can be made polynomially smaller than the input size.
         \BO{n^\epsilon + k}
     \]
 \end{theorem}
-
+\begin{proof}
+    Main points of the proof
+    \begin{itemize}
+        \item Define \emph{heavy} and \emph{light} columns, with the former being columns with more than $s^2$ intervals.
+              All intervals in a heavy column share the same duration.
+        \item Within columns, define \emph{heavy} and \emph{light} cells, with the former having more than $s$ intervals in them.
+              All intervals in a heavy cell share the same starting point. Question: can we even have heavy cells?
+              I mean, we are under set semantics, so there are no duplicate intervals. In a heavy column, necessarily all
+              the intervals \emph{must} have distinct starting times, lest there are duplicate intervals. So there \emph{cannot} be
+              heavy cells in heavy columns.
+              What about heavy cells in light columns? That would mean that there are $> s$ intervals with the same starting points
+              but with distinct durations.
+              Since the bucket size for distances is $s^2$, all these intervals can be indeed fit into the same bucket
+              (think of intervals starting at 0 with durations $1, 2, \dots, s^2$).
+              So the answer is yes, you can have them but only in light columns.
+    \end{itemize}
+\end{proof}
 
 \cetodo{Describe parallelization}
 
