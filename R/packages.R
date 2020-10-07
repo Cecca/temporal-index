@@ -13,4 +13,5 @@ suppressPackageStartupMessages({
     library(bsselectR)
     library(tidytext)
     library(ggiraph)
+    library(dtplyr)
 })
