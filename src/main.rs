@@ -135,11 +135,13 @@ fn main() -> Result<()> {
                 let queryset_queries = experiment.queries.get();
                 let dataset_intervals = experiment.dataset.get();
 
+                info!("Building index");
                 let start = Instant::now();
                 algorithm.index(&dataset_intervals);
                 let end = Instant::now();
                 let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
+                info!("Running queries");
                 let start = Instant::now();
                 let answers = algorithm.run(&queryset_queries, min_qps);
                 let end = Instant::now();
