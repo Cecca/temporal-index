@@ -42,10 +42,11 @@ impl Algorithm for PeriodIndexPlusPlus {
         let n = dataset.len();
         let n_buckets_duration =
             ((n + 1) as f64 / (self.page_size * self.page_size) as f64).ceil() as usize;
-        // debug!(
-        //     "Splitting {} intervals in {} buckets",
-        //     n, n_buckets_duration
-        // );
+
+        let mut pl = progress_logger::ProgressLogger::builder()
+            .with_expected_updates(dataset.len() as u64)
+            .with_items_name("intervals")
+            .start();
 
         let index = RangeIndex::new(
             n_buckets_duration,
@@ -54,11 +55,6 @@ impl Algorithm for PeriodIndexPlusPlus {
             |by_duration| {
                 let n_buckets_start =
                     ((by_duration.len() + 1) as f64 / self.page_size as f64).ceil() as usize;
-                // debug!(
-                //     " . Splitting {} intervals in {} buckets",
-                //     by_duration.len(),
-                //     n_buckets_start
-                // );
                 RangeIndex::new(
                     n_buckets_start,
                     by_duration,
@@ -68,6 +64,7 @@ impl Algorithm for PeriodIndexPlusPlus {
                             Vec::from_iter(by_start.iter().map(|interval| ***interval));
                         intervals.sort_unstable_by_key(|x| x.end);
                         trace!(" .. {} intervals", intervals.len());
+                        pl.update(intervals.len() as u64);
                         intervals
                     },
                 )
@@ -296,7 +293,7 @@ impl<V> RangeIndex<V> {
     where
         I: IntoIterator<Item = D>,
         F: Fn(&D) -> Time,
-        B: Fn(&[D]) -> V,
+        B: FnMut(&[D]) -> V,
     {
         let items = Vec::from_iter(items);
         if items.len() > n_buckets {
@@ -344,11 +341,11 @@ impl<V> SortedBlockIndex<V> {
     /// accepts an iterator over the items, a function to extract the key for each
     /// item, and a function to build a value from all the items associated with a
     /// given item
-    fn new<D: std::fmt::Debug, I, F, B>(n_buckets: usize, items: I, key: F, builder: B) -> Self
+    fn new<D: std::fmt::Debug, I, F, B>(n_buckets: usize, items: I, key: F, mut builder: B) -> Self
     where
         I: IntoIterator<Item = D>,
         F: Fn(&D) -> Time,
-        B: Fn(&[D]) -> V,
+        B: FnMut(&[D]) -> V,
     {
         let mut items = Vec::from_iter(items);
         let distribution = ecdf(items.iter().map(|d| key(d)));
@@ -482,11 +479,11 @@ impl<V> SortedIndex<V> {
     /// accepts an iterator over the items, a function to extract the key for each
     /// item, and a function to build a value from all the items associated with a
     /// given key
-    fn new<D: std::fmt::Debug, I, F, B>(items: I, key: F, builder: B) -> Self
+    fn new<D: std::fmt::Debug, I, F, B>(items: I, key: F, mut builder: B) -> Self
     where
         I: IntoIterator<Item = D>,
         F: Fn(&D) -> Time,
-        B: Fn(&[D]) -> V,
+        B: FnMut(&[D]) -> V,
     {
         let mut items = Vec::from_iter(items);
         items.sort_unstable_by_key(|x| key(x));
