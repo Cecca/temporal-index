@@ -96,6 +96,17 @@ fn main() -> Result<()> {
 
     for configurations in configurations {
         configurations.for_each(|experiment| {
+            let reporter = reporter::Reporter::new(conf_file_path, experiment.clone())?;
+            if !cmdline.rerun {
+                if let Some(sha) = reporter.already_run()? {
+                    debug!(
+                        "parameter configuration already run: {}, skipping",
+                        &sha[0..6]
+                    );
+                    return Ok(());
+                }
+            }
+
             let min_qps = experiment.min_qps;
             log_memory(&mut system);
             info!("{:-<60}", "");
@@ -117,17 +128,6 @@ fn main() -> Result<()> {
                 experiment.algorithm.borrow().version(),
                 experiment.algorithm.borrow().parameters()
             );
-
-            let reporter = reporter::Reporter::new(conf_file_path, experiment.clone())?;
-            if !cmdline.rerun {
-                if let Some(sha) = reporter.already_run()? {
-                    info!(
-                        "parameter configuration already run: {}, skipping",
-                        &sha[0..6]
-                    );
-                    return Ok(());
-                }
-            }
 
             let (elapsed_index, elapsed_run, index_size_bytes, answers) = {
                 let mut algorithm = experiment.algorithm.borrow_mut();
