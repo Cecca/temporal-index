@@ -24,6 +24,7 @@ serde_yaml = "0.8"
 itertools = "0.9"
 deepsize = "0.1"
 sysinfo = "0.15"
+# flame = "0.2"
 
 [dev-dependencies]
 paste = "1.0"

@@ -255,14 +255,13 @@ impl Algorithm for PeriodIndexPlusPlus {
 
 /// return a vector such that, at position i, we store the count of elements
 /// strictly less than i.
-fn ecdf<I: IntoIterator<Item = Time>>(values: I) -> Vec<u32> {
-    let mut ecdf = Vec::new();
+fn ecdf_by<T, K: Fn(&T) -> Time>(values: &[T], key_fn: K) -> Vec<u32> {
+    let max_key = values.iter().map(&key_fn).max().unwrap();
+    let mut ecdf = vec![0u32; max_key as usize + 1];
     let mut n = 0;
     for v in values {
-        if v as usize >= ecdf.len() {
-            ecdf.resize(v as usize + 1, 0);
-        }
-        ecdf[v as usize] += 1u32;
+        let k = key_fn(v);
+        ecdf[k as usize] += 1u32;
         n += 1;
     }
     let mut cumulative_count = 0u32;
@@ -348,7 +347,7 @@ impl<V> SortedBlockIndex<V> {
         B: FnMut(&[D]) -> V,
     {
         let mut items = Vec::from_iter(items);
-        let distribution = ecdf(items.iter().map(|d| key(d)));
+        let distribution = ecdf_by(&items, &key);
 
         let mut boundaries = Vec::new();
 
