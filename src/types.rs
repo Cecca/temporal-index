@@ -30,6 +30,7 @@ impl Interval {
         self.start <= point && point < self.end
     }
 
+    #[allow(dead_code)]
     pub fn contains_interval(&self, other: &Self) -> bool {
         self.start <= other.start && other.end <= self.end
     }

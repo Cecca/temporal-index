@@ -6,7 +6,7 @@ use std::iter::FromIterator;
 pub struct PeriodIndexPlusPlus {
     // num_buckets: usize,
     page_size: usize,
-    index: Option<RangeIndex<RangeIndex<Vec<Interval>>>>,
+    index: Option<SortedBlockIndex<SortedBlockIndex<Vec<Interval>>>>,
 }
 
 impl PeriodIndexPlusPlus {
@@ -48,14 +48,14 @@ impl Algorithm for PeriodIndexPlusPlus {
             .with_items_name("intervals")
             .start();
 
-        let index = RangeIndex::new(
+        let index = SortedBlockIndex::new(
             n_buckets_duration,
             dataset,
             |interval| interval.duration(),
             |by_duration| {
                 let n_buckets_start =
                     ((by_duration.len() + 1) as f64 / self.page_size as f64).ceil() as usize;
-                RangeIndex::new(
+                SortedBlockIndex::new(
                     n_buckets_start,
                     by_duration,
                     |interval| interval.start,
@@ -279,57 +279,6 @@ fn ecdf_by<T, K: Fn(&T) -> Time>(values: &[T], key_fn: K) -> Vec<u32> {
     ecdf
 }
 
-// Due to Rust's trait object's limitations we cannot use dynamic dispatch, so I
-// am using this enum as an approximation
-#[derive(DeepSizeOf)]
-enum RangeIndex<V> {
-    Plain(SortedIndex<V>),
-    Block(SortedBlockIndex<V>),
-}
-
-impl<V> RangeIndex<V> {
-    fn new<D: std::fmt::Debug, I, F, B>(n_buckets: usize, items: I, key: F, builder: B) -> Self
-    where
-        I: IntoIterator<Item = D>,
-        F: Fn(&D) -> Time,
-        B: FnMut(&[D]) -> V,
-    {
-        let items = Vec::from_iter(items);
-        if items.len() > n_buckets {
-            Self::Block(SortedBlockIndex::new(n_buckets, items, key, builder))
-        } else {
-            Self::Plain(SortedIndex::new(items, key, builder))
-        }
-    }
-
-    fn for_each<F: FnMut((Time, Time), &V)>(&self, action: F) {
-        match self {
-            Self::Plain(inner) => todo!(), // inner.for_each(action),
-            Self::Block(inner) => inner.for_each(action),
-        }
-    }
-    fn query_between<F: FnMut((Time, Time), &V)>(&self, min: Time, max: Time, action: F) {
-        match self {
-            Self::Plain(inner) => inner.query_between(min, max, action),
-            Self::Block(inner) => inner.query_between(min, max, action),
-        }
-    }
-
-    #[allow(dead_code)]
-    fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, action: F) {
-        match self {
-            Self::Plain(inner) => inner.query_ge(x, action),
-            Self::Block(inner) => inner.query_ge(x, action),
-        }
-    }
-    fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, action: F) {
-        match self {
-            Self::Plain(inner) => inner.query_le(x, action),
-            Self::Block(inner) => inner.query_le(x, action),
-        }
-    }
-}
-
 #[derive(DeepSizeOf)]
 struct SortedBlockIndex<V> {
     boundaries: Vec<Time>,
@@ -453,6 +402,7 @@ impl<V> SortedBlockIndex<V> {
         }
     }
 
+    #[allow(dead_code)]
     fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
         // let end = std::cmp::min(Self::index_for(x, &self.boundaries), self.values.len() - 1);
         // debug_assert!(end < self.values.len());
@@ -466,102 +416,6 @@ impl<V> SortedBlockIndex<V> {
         }
     }
 }
-
-#[derive(DeepSizeOf)]
-struct SortedIndex<V> {
-    keys: Vec<Time>,
-    values: Vec<V>,
-}
-
-#[allow(dead_code)]
-impl<V> SortedIndex<V> {
-    /// accepts an iterator over the items, a function to extract the key for each
-    /// item, and a function to build a value from all the items associated with a
-    /// given key
-    fn new<D: std::fmt::Debug, I, F, B>(items: I, key: F, mut builder: B) -> Self
-    where
-        I: IntoIterator<Item = D>,
-        F: Fn(&D) -> Time,
-        B: FnMut(&[D]) -> V,
-    {
-        let mut items = Vec::from_iter(items);
-        items.sort_unstable_by_key(|x| key(x));
-        let mut keys = Vec::from_iter(items.iter().map(|x| key(x)));
-        keys.dedup();
-
-        let mut values = Vec::new();
-        let mut start_index = 0;
-        let mut end_index = 0;
-        loop {
-            let current_key = key(&items[start_index]);
-            while end_index < items.len() && key(&items[end_index]) == current_key {
-                end_index += 1;
-            }
-            values.push(builder(&items[start_index..end_index]));
-            if end_index >= items.len() {
-                break;
-            }
-            start_index = end_index;
-        }
-
-        assert_eq!(keys.len(), values.len());
-
-        Self { keys, values }
-    }
-
-    // get the first position >= to the search key
-    fn index_for(&self, key: Time) -> usize {
-        // a linear search should be OK with few keys
-        if self.keys.len() < 128 {
-            let mut i = 0;
-            while i < self.keys.len() && self.keys[i] < key {
-                i += 1;
-            }
-            i
-        } else {
-            match self.keys.binary_search(&key) {
-                Ok(i) => i,
-                Err(i) => i,
-            }
-        }
-    }
-
-    fn for_each<F: FnMut(&V)>(&self, action: F) {
-        self.values.iter().for_each(action);
-    }
-
-    fn query_between<F: FnMut((Time, Time), &V)>(&self, min: Time, max: Time, mut action: F) {
-        let start = self.index_for(min);
-        let end = std::cmp::min(self.index_for(max), self.values.len() - 1);
-        debug_assert!(end < self.values.len());
-        let keys = self.keys[start..=end].iter().map(|t| (*t, *t + 1));
-        keys.zip(self.values[start..=end].iter())
-            .for_each(|(bounds, values)| action(bounds, values));
-    }
-
-    fn query_ge<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
-        for i in (0..self.keys.len()).rev() {
-            let lower_bound = if i > 0 { self.keys[i - 1] } else { 0 };
-            let upper_bound = self.keys[i];
-            if upper_bound < x {
-                break;
-            }
-            action((lower_bound, upper_bound), &self.values[i]);
-        }
-    }
-
-    fn query_le<F: FnMut((Time, Time), &V)>(&self, x: Time, mut action: F) {
-        for i in 0..self.keys.len() {
-            let lower_bound = if i > 0 { self.keys[i - 1] } else { 0 };
-            let upper_bound = self.keys[i];
-            if lower_bound > x {
-                break;
-            }
-            action((lower_bound, upper_bound), &self.values[i]);
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
