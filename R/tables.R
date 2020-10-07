@@ -16,9 +16,11 @@ table_query_stats <- function(connection, path, dataset_val, dataset_params_val,
            queryset == queryset_val, queryset_params == queryset_params_val)
   inner_join(main, stats) %>%
     collect() %>%
-    mutate(query_time = set_units(as.numeric(query_time_ns), "ns"),
+    mutate(dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[,2]),
+           query_time = set_units(as.numeric(query_time_ns), "ns"),
            normalized_query_time = query_time / set_units(query_count, "records"),
            precision = query_count / (query_examined)) %>%
+    filter(dataset_n == 10000000) %>%
     select(-query_time_ns)
 }
 

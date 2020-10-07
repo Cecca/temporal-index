@@ -20,6 +20,7 @@ plan <- drake_plan(
     ungroup() %>%
     mutate(
       queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
+      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[,2]),
       time_queries = set_units(time_query_ms, "ms"),
       time_index = set_units(time_index_ms, "ms"),
       total_time = time_index + time_queries,
@@ -29,7 +30,43 @@ plan <- drake_plan(
       output_throughput = output_throughput_ints_ns %>%
         set_units("records/ns") %>% set_units("records/s")
     ) %>%
+    filter(dataset_n == 10000000) %>%
     select(-time_query_ms, -time_index_ms)
+    ,
+
+  scalability_data = table_main(conn, file_in("temporal-index-results.sqlite")) %>%
+    filter(
+      hostname == "ironmaiden",
+      algorithm != "ebi-index",
+      algorithm != "linear-scan",
+      dataset == "random-uniform-zipf",
+      queryset == "random-uniform-zipf-uniform-uniform",
+      queryset_params == "seed=23512 n=5000 start_low=1 start_high=1000000000 dur_n=1000000000 dur_beta=1 durmin_low=1 durmin_high=10000 durmax_low=1 durmax_high=10000"
+    ) %>%
+    collect() %>%
+    mutate(
+      date = parse_datetime(date),
+      is_estimate = is_estimate > 0
+    ) %>%
+    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
+    slice(which.max(date)) %>%
+    ungroup() %>%
+    mutate(
+      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
+      time_queries = set_units(time_query_ms, "ms"),
+      time_index = set_units(time_index_ms, "ms"),
+      total_time = time_index + time_queries,
+      algorithm_wpar = interaction(algorithm, algorithm_params),
+      algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
+      qps = queryset_n / set_units(time_queries, "s"),
+      output_throughput = output_throughput_ints_ns %>%
+        set_units("records/ns") %>% set_units("records/s")
+    ) %>%
+    select(-time_query_ms, -time_index_ms) %>%
+    group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
+    slice(which.max(qps)) %>%
+    ungroup() %>%
+    get_params(dataset_params, "d_")
     ,
 
   best_qps = data %>% 
