@@ -216,13 +216,19 @@ duration part of the query gives the area where query answers lie.
 \end{theorem}
 \begin{proof}
     Computing the Empirical Cumulative Distribution Function for the duration measure can be done
-    by first sorting the intervals according to the duration and then scanning through the sorted interval
-    to compute the cumulative counts. A final scan allows to associate each interval to appropriate bucket.
+    in linear time:
+    first find the maximum duration;
+    then allocate an array of that many elements;
+    then iterate through all the intervals, increasing the count at the appropriate index;
+    then iterate through the array, computing the cumulative sum.
+    All the above operations can be done in linear time.
+    \cetodo{Maybe time linear in the maximum duration. The above arguments assumes that $\max d = \BO{n}$}
+    A final scan allows to associate each interval to appropriate bucket.
     These operations can thus be accomplished in time $\BO{n \log n}$.
     Each bucket is then further partitioned according to the start times.
     Let $n_i$ be the size of the $i$-th bucket.
     Then, partitioning it according to the cumulative distribution function
-    requires time $\BO{n_i \log n_i}$, following the same argument as above.
+    requires time $\BO{n_i}$, following the same argument as above.
     Therefore, the time for building the second level of the index is
     \[
         \BO{\sum_i n_i \log n_i}
@@ -237,30 +243,100 @@ can be made polynomially smaller than the input size.
     Given an index over a set of $n$ intervals, with page size $s$, the time for
     answering a range-duration query is
     \[
-        \BO{\frac{n}{s} + s^2 + k}
+        \BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
     \]
     where $k$ is the number of intervals matching the query predicate.
-    For $s = \BO{n^\epsilon}$, we have that the query time is
-    \[
-        \BO{n^\epsilon + k}
-    \]
+    % For $s = \BO{n^\epsilon}$, we have that the query time is
+    % \[
+    %     \BO{n^\epsilon + k}
+    % \]
 \end{theorem}
-\begin{proof}
-    Main points of the proof
+\begin{proof}[Proof draft]
+    First, let us establish some notation.
+    Let $e = (e_s, e_e)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
+    The intervals are arranged into a grid where the \emph{columns} are dictated by the
+    durations, and each column is further partitioned in cells according to the start time.
+    A cell $C$ is thus identified by a duration range $[d_{min}^C, d_{max}^C)$ and by a start time range
+    $[s^C_{min}, s^C_{max})$.
+    We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
+    Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
+    A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space.
+    For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
+
+    Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
     \begin{itemize}
-        \item Define \emph{heavy} and \emph{light} columns, with the former being columns with more than $s^2$ intervals.
-              All intervals in a heavy column share the same duration.
-        \item Within columns, define \emph{heavy} and \emph{light} cells, with the former having more than $s$ intervals in them.
-              All intervals in a heavy cell share the same starting point. Question: can we even have heavy cells?
-              I mean, we are under set semantics, so there are no duplicate intervals. In a heavy column, necessarily all
-              the intervals \emph{must} have distinct starting times, lest there are duplicate intervals. So there \emph{cannot} be
-              heavy cells in heavy columns.
-              What about heavy cells in light columns? That would mean that there are $> s$ intervals with the same starting points
-              but with distinct durations.
-              Since the bucket size for distances is $s^2$, all these intervals can be indeed fit into the same bucket
-              (think of intervals starting at 0 with durations $1, 2, \dots, s^2$).
-              So the answer is yes, you can have them but only in light columns.
+        \item \emph{All intervals in a heavy column have the same duration}.
+              If they didn't then we could split the column in two different columns
+              with fewer values.
+        \item \emph{All intervals in a heavy cell have the same start time}.
+              If they didn't then we could split the cell in smaller cells.
+        \item \emph{A heavy column does not contain heavy cells}. By the two
+              points above a heavy cell in a heavy column will contain intervals
+              with the same starting time and duration, i.e. copies of
+              the same intervals. Since we are under set semantics this cannot happen.
     \end{itemize}
+
+    The query time is comprised of two parts: first we have to index into the grid to find the correct
+    range of cells to query; second we have to filter the intervals in each cell to retrieve
+    the ones that are part of the answer.
+
+    As for finding the range of cells, we first have to find the first and last column by duration, which can be
+    done by binary search over the $n/s^2$ boundaries between columns in $\BO{n/s^2}$ time.
+    There can be $\BO{n / s^2}$ matching columns.
+    In each such column, to find the range of cells satisfying the predicate we have to to a binary search
+    over the $\BO{n/s}$ intervals in the column (we can have $\BO{n}$ intervals in a heavy column).
+    Therefore, the overall time to find the correct cells is
+    \[
+        \BO{\log\frac{n}{s^2} + \frac{n}{s^2} \log\frac{n}{s}} =
+        \BO{\frac{n}{s^2} \log\frac{n}{s}} =
+        \BO{\frac{n}{s} \log\frac{n}{s}}
+    \]
+
+    Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
+    \begin{enumerate}
+        \item Both the cell's durations range and start times range fall within the query polygon.
+              In such cell, the query constraints on the duration and the start time are satisfied by construction.
+              The algorithm considers just the intervals of $C$ which are part of the output (since it iterates over
+              the cell's intervals by decreasing end time).
+              Therefore, the time spent enumerating intervals from the cell is $\BO{k_C}$.
+        \item The cell's duration range satisfies the query constraint, but the starting time range doesn't.
+              If the duration colum containing the cell is heavy, then the cell cannot be heavy and the algorithm has to evaluate
+              $\BO{s}$ intervals.
+              Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
+              query constraint (otherwise we will not be looking at the cell at all).
+              Therefore, the scan of the intervals by decreasing end time visits just the $k_C$ output elements.
+        \item The cell's start time satisfies the query constraints, but the duration doesn't.
+              In this case we cannot be in a heavy column (which contains a single duration) and thus contains less than $s^2$ intervals.
+              If we are in a heavy cell, then all the intervals have the same
+              start time:
+              \begin{enumerate}
+                  \item If the first interval in
+                        increasing sorted order of end time (and hence duration)
+                        satisfies the duration constraint, scan the intervals by
+                        ascending end time, stopping as soon as the duration no longer
+                        satisfies the predicate
+                  \item Otherwise, do the same in decreasing order of end time
+              \end{enumerate}
+              In both cases the algorithm will visit just $k_C$ intervals.
+
+              If we are not in a heavy cell, then we need to visit all the $\BO{s}$ intervals.
+        \item The cell doesn't completely satisfy neither constraint. In this case neither the column nor the cell can be heavy,
+              therefore the algorithm must only evaluate $\BO{s}$ intervals.
+    \end{enumerate}
+    All the cells of type (1) account for at most $\BO{k}$ in terms of running time.
+    As for cells of type (2) there are at most $n/s^2$ of them. Overall they account for $\BO{\frac{n}{s}}$ interval evaluations.
+    Cells of type (3) are at most $s$. Therefore, overall they account for $\BO{s^2}$ interval evaluations.
+    Finally is then a constant number of cells of type (4) (which are at the corners of the query polygon).
+    These cells therefore account for at most $\BO{s}$ interval evaluations in total.
+    Overall, the time to evaluate the intervals in the cells is
+    \[
+        \BO{\frac{n}{s} + s^2 + k}
+    \]
+
+    Combining this last result with the time to find the range of cells to query, we have that the overall query time is
+    \[
+        \BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
+    \]
 \end{proof}
 
 \cetodo{Describe parallelization}
