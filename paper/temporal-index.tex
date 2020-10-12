@@ -95,14 +95,16 @@ intervals whose start time is $\le e_s$.
 \cetodo{What happens when there are more than $s^2$ elements in a bucket?
     This happens when there are more than $s^2$ elements with the same duration: they
     all fall in the same bucket.}
-\cetodo{We need to describe a way to efficiently compute the cumulative distribution function.}
-We partition the intervals in $n / s^2$ buckets: an interval $e$ is assigned to
-bucket $\lfloor CDF_d(|e|) \cdot n/2^s \rfloor$.
-In particular, we define the $i$-th bucket in the duration dimension as
+We partition the intervals in $n / s^2$ \emph{columns}: an interval $e$ is assigned to
+column $\lfloor CDF_d(|e|) \cdot n/2^s \rfloor$.
+In particular, we define the $i$-th column in the duration dimension as
 \[
     A_i^d = \{ e \in A | i = \lfloor CDF_d^A(|e|) \cdot |A|/2^s \rfloor \}
 \]
-Consider one such bucket $i$, and let $[\bar{d}_{min}, \bar{d}_{max}]$ be the
+Note that if there are more than $s^2$ intervals with the same duration,
+they will all be assigned to the same column.
+
+Consider one such column $i$, and let $[\bar{d}_{min}, \bar{d}_{max}]$ be the
 range of durations spanned by the intervals it contains.
 We further partition the intervals in $A_i^d$ according to the distribution
 of their starting times:
@@ -113,10 +115,15 @@ of their starting times:
 Our index is a grid built out of the cells $A_{i,j}^{d,s}$.
 In each cell, the intervals are sorted by decreasing end time.
 
-We can use a compact representation of the cumulative density function
-that is sufficient for indexing into this grid.
-Observe that since we always apply a floor operator to the result of the CDF
-we can just store the values of the CDF defining the start of a new bucket.
+Along with the intervals in the grid, we store the boundaries between
+the columns, as well as the boundaries between the cells in each
+column, in sorted arrays.
+This will allow, at query time, the efficient retrieval of the range
+of cells containing intervals that match a given query.
+% We can use a compact representation of the cumulative density function
+% that is sufficient for indexing into this grid.
+% Observe that since we always apply a floor operator to the result of the CDF
+% we can just store the values of the CDF defining the start of a new bucket.
 
 \subsection{Querying the index}
 
@@ -373,7 +380,10 @@ can be made polynomially smaller than the input size.
     \]
 \end{proof}
 
-\cetodo{Describe parallelization}
+The above theorem exposes a fundamental tradeoff of our data structure:
+using a smaller page size allows to improve the precision of the data structure
+(by looking at fewer intervals that are not part of the query output), while
+at the same time increasing the number of columns that need to be queried.
 
 \section{Experimental evaluation}
 
