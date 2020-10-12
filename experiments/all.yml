@@ -93,9 +93,9 @@
     # - PeriodIndex:
     #     num_buckets: [1024, 2048, 4096]
     #     num_levels: [4,32]
-    - PeriodIndexStar:
-        num_buckets: [1024, 2048, 4096]
-        num_levels: [4,32]
+    # - PeriodIndexStar:
+    #     num_buckets: [1024, 2048, 4096]
+    #     num_levels: [4,32]
     - PeriodIndexPlusPlus:
         page_size: [10, 50, 100, 500]
 
@@ -146,5 +146,5 @@
 
   algorithms:
     - PeriodIndexPlusPlus:
-        page_size: [100]
+        page_size: [100, 500, 1000, 50000, 10000]
     - BTree
