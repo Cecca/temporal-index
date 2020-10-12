@@ -3,18 +3,9 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 
-mod btree;
+mod algorithms;
 mod configuration;
 mod dataset;
-mod ebi;
-mod grid;
-mod grid3d;
-mod interval_tree;
-mod naive;
-mod nested_btree;
-mod nested_vecs;
-mod period_index;
-mod period_index_plusplus;
 mod reporter;
 #[cfg(test)]
 mod test;
