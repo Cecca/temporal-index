@@ -38,10 +38,18 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn index(&mut self, dataset: &[Interval]) {
+        use std::sync::{Arc, Mutex};
+
         self.clear();
         let n = dataset.len();
         let n_buckets_duration =
             ((n + 1) as f64 / (self.page_size * self.page_size) as f64).ceil() as usize;
+
+        let pl = progress_logger::ProgressLogger::builder()
+            .with_expected_updates(dataset.len() as u64)
+            .with_items_name("intervals")
+            .start();
+        let pl = Arc::new(Mutex::new(pl));
 
         let index = SortedBlockIndex::new_parallel(
             n_buckets_duration,
@@ -60,6 +68,7 @@ impl Algorithm for PeriodIndexPlusPlus {
                         intervals.sort_unstable_by_key(|x| x.end);
                         trace!(" .. {} intervals", intervals.len());
                         // pl.update(intervals.len() as u64);
+                        pl.lock().unwrap().update(intervals.len() as u64);
                         intervals
                     },
                 )
@@ -397,11 +406,6 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
             }
             start_index = end_index;
         }
-
-        // let mut pl = progress_logger::ProgressLogger::builder()
-        //     .with_expected_updates(intervals.len() as u64)
-        //     .with_items_name("intervals")
-        //     .start();
 
         // Now build the sub-indices in parallel
         let values: Vec<V> = slices
