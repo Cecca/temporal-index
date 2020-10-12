@@ -1,5 +1,6 @@
 use crate::types::*;
 use deepsize::DeepSizeOf;
+use std::cell::RefCell;
 use std::iter::FromIterator;
 
 #[derive(DeepSizeOf)]
@@ -259,9 +260,11 @@ impl Algorithm for PeriodIndexPlusPlus {
 
 /// return a vector such that, at position i, we store the count of elements
 /// strictly less than i.
-fn ecdf_by<T, K: Fn(&T) -> Time>(values: &[T], key_fn: K) -> Vec<u32> {
+fn ecdf_by<T, K: Fn(&T) -> Time>(values: &[T], key_fn: K, ecdf: &mut Vec<u32>) {
     let max_key = values.iter().map(&key_fn).max().unwrap();
-    let mut ecdf = vec![0u32; max_key as usize + 1];
+    ecdf.clear();
+    ecdf.resize(max_key as usize + 1, 0u32);
+    // let mut ecdf = vec![0u32; max_key as usize + 1];
     let mut n = 0;
     for v in values {
         let k = key_fn(v);
@@ -280,7 +283,11 @@ fn ecdf_by<T, K: Fn(&T) -> Time>(values: &[T], key_fn: K) -> Vec<u32> {
         cumulative_count
     );
 
-    ecdf
+    // ecdf
+}
+
+thread_local! {
+    static SCRATCH: RefCell<Vec<u32>> = RefCell::new(Vec::new());
 }
 
 #[derive(DeepSizeOf)]
@@ -290,6 +297,34 @@ struct SortedBlockIndex<V> {
 }
 
 impl<V: Send + Sync> SortedBlockIndex<V> {
+    fn compute_boundaries<D, F>(n_buckets: usize, items: &[D], key: F) -> Vec<u32>
+    where
+        F: Fn(&D) -> Time,
+    {
+        SCRATCH.with(|distribution| {
+            ecdf_by(&items, &key, &mut distribution.borrow_mut());
+
+            let mut boundaries = Vec::new();
+
+            let step = (items.len() as u32 / n_buckets as u32) + 1;
+            let mut count_threshold = step;
+            for (k, &count) in distribution.borrow().iter().enumerate() {
+                let time = k as u32;
+                if count > count_threshold {
+                    boundaries.push(time);
+                    count_threshold = count + step;
+                }
+            }
+            // push the last boundary
+            if boundaries.is_empty()
+                || (boundaries.last().unwrap() != &(distribution.borrow().len() as u32 - 1))
+            {
+                boundaries.push(distribution.borrow().len() as u32 - 1);
+            }
+            boundaries
+        })
+    }
+
     /// accepts an iterator over the items, a function to extract the key for each
     /// item, and a function to build a value from all the items associated with a
     /// given item
@@ -300,24 +335,48 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
         B: FnMut(&[D]) -> V,
     {
         let mut items = Vec::from_iter(items);
-        let distribution = ecdf_by(&items, &key);
+        let boundaries = Self::compute_boundaries(n_buckets, &items, &key);
+        // let boundaries = SCRATCH.with(|distribution| {
+        //     ecdf_by(&items, &key, &mut distribution.borrow_mut());
 
-        let mut boundaries = Vec::new();
+        //     let mut boundaries = Vec::new();
 
-        let step = (items.len() as u32 / n_buckets as u32) + 1;
-        let mut count_threshold = step;
-        for (k, &count) in distribution.iter().enumerate() {
-            let time = k as u32;
-            if count > count_threshold {
-                boundaries.push(time);
-                count_threshold = count + step;
-            }
-        }
-        // push the last boundary
-        if boundaries.is_empty() || (boundaries.last().unwrap() != &(distribution.len() as u32 - 1))
-        {
-            boundaries.push(distribution.len() as u32 - 1);
-        }
+        //     let step = (items.len() as u32 / n_buckets as u32) + 1;
+        //     let mut count_threshold = step;
+        //     for (k, &count) in distribution.borrow().iter().enumerate() {
+        //         let time = k as u32;
+        //         if count > count_threshold {
+        //             boundaries.push(time);
+        //             count_threshold = count + step;
+        //         }
+        //     }
+        //     // push the last boundary
+        //     if boundaries.is_empty()
+        //         || (boundaries.last().unwrap() != &(distribution.borrow().len() as u32 - 1))
+        //     {
+        //         boundaries.push(distribution.borrow().len() as u32 - 1);
+        //     }
+        //     boundaries
+        // });
+
+        // let distribution = ecdf_by(&items, &key);
+
+        // let mut boundaries = Vec::new();
+
+        // let step = (items.len() as u32 / n_buckets as u32) + 1;
+        // let mut count_threshold = step;
+        // for (k, &count) in distribution.iter().enumerate() {
+        //     let time = k as u32;
+        //     if count > count_threshold {
+        //         boundaries.push(time);
+        //         count_threshold = count + step;
+        //     }
+        // }
+        // // push the last boundary
+        // if boundaries.is_empty() || (boundaries.last().unwrap() != &(distribution.len() as u32 - 1))
+        // {
+        //     boundaries.push(distribution.len() as u32 - 1);
+        // }
 
         // go over all the items, sorted by key, define the ranges and build the
         // inner values
@@ -367,24 +426,25 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
         use rayon::prelude::*;
 
         let mut items = Vec::from_iter(items);
-        let distribution = ecdf_by(&items, &key);
+        let boundaries = Self::compute_boundaries(n_buckets, &items, &key);
+        // let distribution = ecdf_by(&items, &key);
 
-        let mut boundaries = Vec::new();
+        // let mut boundaries = Vec::new();
 
-        let step = (items.len() as u32 / n_buckets as u32) + 1;
-        let mut count_threshold = step;
-        for (k, &count) in distribution.iter().enumerate() {
-            let time = k as u32;
-            if count > count_threshold {
-                boundaries.push(time);
-                count_threshold = count + step;
-            }
-        }
-        // push the last boundary
-        if boundaries.is_empty() || (boundaries.last().unwrap() != &(distribution.len() as u32 - 1))
-        {
-            boundaries.push(distribution.len() as u32 - 1);
-        }
+        // let step = (items.len() as u32 / n_buckets as u32) + 1;
+        // let mut count_threshold = step;
+        // for (k, &count) in distribution.iter().enumerate() {
+        //     let time = k as u32;
+        //     if count > count_threshold {
+        //         boundaries.push(time);
+        //         count_threshold = count + step;
+        //     }
+        // }
+        // // push the last boundary
+        // if boundaries.is_empty() || (boundaries.last().unwrap() != &(distribution.len() as u32 - 1))
+        // {
+        //     boundaries.push(distribution.len() as u32 - 1);
+        // }
 
         // go over all the items, sorted by key, define the ranges and build the
         // inner values
