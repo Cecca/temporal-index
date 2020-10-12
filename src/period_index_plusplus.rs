@@ -1,11 +1,9 @@
 use crate::types::*;
 use deepsize::DeepSizeOf;
-use std::cell::RefCell;
 use std::iter::FromIterator;
 
 #[derive(DeepSizeOf)]
 pub struct PeriodIndexPlusPlus {
-    // num_buckets: usize,
     page_size: usize,
     index: Option<SortedBlockIndex<SortedBlockIndex<Vec<Interval>>>>,
 }
@@ -35,42 +33,33 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        14
+        15
     }
 
     fn index(&mut self, dataset: &[Interval]) {
-        use std::sync::{Arc, Mutex};
-
         self.clear();
-        let n = dataset.len();
-        let n_buckets_duration =
-            ((n + 1) as f64 / (self.page_size * self.page_size) as f64).ceil() as usize;
 
-        // TODO get rid of this copy?
         let mut dataset: Vec<Interval> = Vec::from_iter(dataset.iter().copied());
 
-        let pl = progress_logger::ProgressLogger::builder()
+        let mut pl = progress_logger::ProgressLogger::builder()
             .with_expected_updates(dataset.len() as u64)
             .with_items_name("intervals")
             .start();
-        let pl = Arc::new(Mutex::new(pl));
 
-        let index = SortedBlockIndex::new_parallel(
-            n_buckets_duration,
+        let index = SortedBlockIndex::new(
+            self.page_size * self.page_size,
             &mut dataset,
             |interval| interval.duration(),
             |by_duration| {
-                let n_buckets_start =
-                    ((by_duration.len() + 1) as f64 / self.page_size as f64).ceil() as usize;
                 SortedBlockIndex::new(
-                    n_buckets_start,
+                    self.page_size,
                     by_duration,
                     |interval| interval.start,
                     |by_start| {
                         let mut intervals =
                             Vec::from_iter(by_start.iter().map(|interval| *interval));
                         intervals.sort_unstable_by_key(|x| x.end);
-                        pl.lock().unwrap().update(intervals.len() as u64);
+                        pl.update(intervals.len() as u64);
                         intervals
                     },
                 )
@@ -259,38 +248,6 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 }
 
-/// return a vector such that, at position i, we store the count of elements
-/// strictly less than i.
-fn ecdf_by<T, K: Fn(&T) -> Time>(values: &[T], key_fn: K, ecdf: &mut Vec<u32>) {
-    let max_key = values.iter().map(&key_fn).max().unwrap();
-    ecdf.clear();
-    ecdf.resize(max_key as usize + 1, 0u32);
-    // let mut ecdf = vec![0u32; max_key as usize + 1];
-    let mut n = 0;
-    for v in values {
-        let k = key_fn(v);
-        ecdf[k as usize] += 1u32;
-        n += 1;
-    }
-    let mut cumulative_count = 0u32;
-    for count in ecdf.iter_mut() {
-        cumulative_count += *count;
-        *count = cumulative_count;
-    }
-    assert!(
-        n == cumulative_count,
-        "n is {}, while the cumulative count is {}",
-        n,
-        cumulative_count
-    );
-
-    // ecdf
-}
-
-thread_local! {
-    static SCRATCH: RefCell<Vec<u32>> = RefCell::new(Vec::new());
-}
-
 #[derive(DeepSizeOf)]
 struct SortedBlockIndex<V> {
     boundaries: Vec<Time>,
@@ -298,136 +255,57 @@ struct SortedBlockIndex<V> {
 }
 
 impl<V: Send + Sync> SortedBlockIndex<V> {
-    fn compute_boundaries<D, F>(n_buckets: usize, items: &[D], key: F) -> Vec<u32>
-    where
-        F: Fn(&D) -> Time,
-    {
-        SCRATCH.with(|distribution| {
-            ecdf_by(&items, &key, &mut distribution.borrow_mut());
-
-            let mut boundaries = Vec::new();
-
-            let step = (items.len() as u32 / n_buckets as u32) + 1;
-            let mut count_threshold = step;
-            for (k, &count) in distribution.borrow().iter().enumerate() {
-                let time = k as u32;
-                if count > count_threshold {
-                    boundaries.push(time);
-                    count_threshold = count + step;
-                }
-            }
-            // push the last boundary
-            if boundaries.is_empty()
-                || (boundaries.last().unwrap() != &(distribution.borrow().len() as u32 - 1))
-            {
-                boundaries.push(distribution.borrow().len() as u32 - 1);
-            }
-            boundaries
-        })
-    }
-
     /// accepts an iterator over the items, a function to extract the key for each
     /// item, and a function to build a value from all the items associated with a
     /// given item
     fn new<D: std::fmt::Debug, F, B>(
-        n_buckets: usize,
+        bucket_size: usize,
         items: &mut [D],
         key: F,
         mut builder: B,
     ) -> Self
     where
-        // I: IntoIterator<Item = D>,
         F: Fn(&D) -> Time,
         B: FnMut(&mut [D]) -> V,
     {
-        let boundaries = Self::compute_boundaries(n_buckets, &items, &key);
-
-        // go over all the items, sorted by key, define the ranges and build the
-        // inner values
         let mut values = Vec::new();
-        items.sort_unstable_by_key(|x| key(x));
-        let mut start_index = 0;
-        let mut end_index = 0;
-        loop {
-            let current_group = Self::index_for(key(&items[start_index]), &boundaries);
-            while end_index < items.len()
-                && Self::index_for(key(&items[end_index]), &boundaries) == current_group
-            {
-                end_index += 1;
-            }
-            values.push(builder(&mut items[start_index..end_index]));
-            if end_index >= items.len() {
-                break;
-            }
-            start_index = end_index;
-        }
+        let mut boundaries = Vec::new();
 
-        assert_eq!(
-            values.len(),
-            boundaries.len(),
-            "num_buckets: {}, n: {}",
-            n_buckets,
-            items.len()
-        );
-
-        Self {
-            boundaries,
-            values: values,
-        }
-    }
-
-    fn new_parallel<D: std::fmt::Debug + Send + Sync + Clone, F, B>(
-        n_buckets: usize,
-        items: &mut [D],
-        key: F,
-        builder: B,
-    ) -> Self
-    where
-        F: Fn(&D) -> Time,
-        B: Fn(&mut [D]) -> V + Sync + Send,
-    {
-        use rayon::prelude::*;
-
-        let boundaries = Self::compute_boundaries(n_buckets, &items, &key);
-
-        // go over all the items, sorted by key, define the ranges and build the
-        // inner values
-        // assert!(items.is_sorted_by_key(&key));
         items.sort_unstable_by_key(&key);
-        let mut start_index = 0;
-        let mut end_index = 0;
-        let mut slices = Vec::new();
-        loop {
-            let current_group = Self::index_for(key(&items[start_index]), &boundaries);
-            while end_index < items.len()
-                && Self::index_for(key(&items[end_index]), &boundaries) == current_group
-            {
-                end_index += 1;
-            }
-            // values.push(builder(&items[start_index..end_index]));
-            slices.push((start_index, end_index));
-            if end_index >= items.len() {
-                break;
-            }
-            start_index = end_index;
+
+        let mut current_index = 0;
+        while current_index < items.len() {
+            let end_index = if current_index + bucket_size >= items.len() {
+                // this is the last bucket
+                items.len()
+            } else {
+                let lookahead = current_index + bucket_size;
+                let lookahead_key = key(&items[lookahead]);
+                let mut end_index = lookahead;
+                if lookahead_key == key(&items[current_index]) {
+                    // we are in a heavy bucket, skip to the end
+                    while end_index < items.len() && key(&items[end_index]) == lookahead_key {
+                        end_index += 1;
+                    }
+                } else {
+                    // we are not in a heavy bucket, go back until the previous key
+                    while end_index >= current_index && key(&items[end_index]) == lookahead_key {
+                        end_index -= 1;
+                    }
+                    end_index += 1;
+                }
+                end_index
+            };
+            let boundary = if end_index == items.len() {
+                std::u32::MAX
+            } else {
+                key(&items[end_index])
+            };
+            boundaries.push(boundary);
+            values.push(builder(&mut items[current_index..end_index]));
+            // jump to the beginning of the next bucket
+            current_index = end_index;
         }
-
-        // Now build the sub-indices in parallel
-        let values: Vec<V> = slices
-            .par_iter()
-            .map(|(start, end)| {
-                let mut elems: Vec<D> = Vec::from(&items[*start..*end]);
-                builder(&mut elems)
-            })
-            .collect();
-
-        assert_eq!(
-            values.len(),
-            boundaries.len(),
-            "num_buckets: {}, n: {}",
-            n_buckets,
-            items.len()
-        );
 
         Self {
             boundaries,
@@ -440,7 +318,7 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
     fn index_for(key: Time, boundaries: &[Time]) -> usize {
         if boundaries.len() < 128 {
             let mut i = 0;
-            while i < boundaries.len() && boundaries[i] < key {
+            while i < boundaries.len() && boundaries[i] <= key {
                 i += 1;
             }
             i
