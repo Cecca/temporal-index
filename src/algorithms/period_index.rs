@@ -1,6 +1,7 @@
 use crate::types::*;
 use anyhow::Result;
 use deepsize::DeepSizeOf;
+use std::collections::BTreeMap;
 
 #[derive(DeepSizeOf)]
 struct Cell {
@@ -97,30 +98,41 @@ impl Cell {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct Bucket {
     time_range: Interval,
+    cell_durations: Vec<(u32, DurationRange)>,
     /// Two dimensional arrangement of cells: each level holds cells
-    /// for intervals of different duration
-    cells: Vec<Vec<Cell>>,
+    /// for intervals of different duration.
+    ///
+    /// In the original paper (SSTD19) the description says that
+    /// empty buckets are skipped using linked lists. However this prevents to
+    /// directly index into the correct buckets, falling back to a linear scan.
+    /// Therefore, we use a BTree to represent this sparse collection of buckets.
+    cells: Vec<BTreeMap<usize, Cell>>,
     n: u32,
+}
+
+impl DeepSizeOf for Bucket {
+    fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
+        self.cells.iter().fold(0, |sum, level| {
+            sum + level.iter().fold(0, |sum, (key, val)| {
+                sum + key.deep_size_of_children(context) + val.deep_size_of_children(context)
+            })
+        })
+    }
 }
 
 impl Bucket {
     fn new(time_range: Interval, num_levels: u32) -> Self {
         let mut cells = Vec::with_capacity(num_levels as usize);
+        let mut cell_durations = Vec::with_capacity(num_levels as usize);
         let mut duration = time_range.duration();
         let mut duration_range = DurationRange::new(duration, std::u32::MAX);
         let mut level_count = 0;
         while duration > 0 && level_count < num_levels {
             trace!("level {}, duration range {:?}", level_count, duration_range);
-            let mut level = Vec::new();
-            let mut start = time_range.start;
-            while start < time_range.end {
-                let cell = Cell::new(Interval::new(start, duration), duration_range.clone());
-                level.push(cell);
-                start += duration;
-            }
+            let level: BTreeMap<usize, Cell> = BTreeMap::new();
+            cell_durations.push((duration, duration_range));
             cells.push(level);
             duration /= 2;
             duration_range.max = duration_range.min;
@@ -130,12 +142,11 @@ impl Bucket {
 
         // adjust lower bound on duration for the last level
         let last_idx = cells.len() - 1;
-        for cell in cells[last_idx].iter_mut() {
-            cell.duration_range.min = 0;
-        }
+        cell_durations[last_idx].1.min = 0;
 
         Self {
             time_range,
+            cell_durations,
             cells,
             n: 0,
         }
@@ -156,26 +167,39 @@ impl Bucket {
 
     #[inline]
     fn cells_for(&self, level: usize, interval: Interval) -> (usize, usize) {
-        let cell_duration = self.cells[level][0].time_range.duration();
+        let cell_duration = self.cell_durations[level].0;
         let start = if interval.start < self.time_range.start {
             0
         } else {
             ((interval.start - self.time_range.start) / cell_duration) as usize
         };
-        let end = if interval.end > self.time_range.end {
-            self.cells[level].len() - 1
-        } else {
-            ((interval.end - self.time_range.start) / cell_duration) as usize
-        };
-        (start, std::cmp::min(end, self.cells[level].len() - 1))
+        // let end = if interval.end > self.time_range.end {
+        //     self.cells[level].len() - 1
+        // } else {
+        //     ((interval.end - self.time_range.start) / cell_duration) as usize
+        // };
+        // (start, std::cmp::min(end, self.cells[level].len() - 1))
+        (
+            start,
+            ((interval.end - self.time_range.start) / cell_duration) as usize,
+        )
     }
 
     fn insert(&mut self, interval: Interval) {
+        let bucket_anchor = self.time_range.start;
         let level = self.level_for(interval.duration());
+        let (cell_duration, duration_range) = self.cell_durations[level];
         let (start, end) = self.cells_for(level, interval);
 
         let mut cnt = 0;
-        for cell in self.cells[level][start..=end].iter_mut() {
+        let level_cells = &mut self.cells[level];
+        for i in start..=end {
+            let cell = level_cells.entry(i).or_insert_with(|| {
+                Cell::new(
+                    Interval::new(bucket_anchor + (cell_duration * i as u32), cell_duration),
+                    duration_range,
+                )
+            });
             if cell.time_range.overlaps(&interval) {
                 cell.insert(interval);
                 cnt += 1;
@@ -198,7 +222,7 @@ impl Bucket {
         let mut cnt = 0;
         for level in level_min..=level_max {
             let (start, end) = self.cells_for(level, range);
-            for cell in self.cells[level][start..=end].iter() {
+            for (_, cell) in self.cells[level].range(start..=end) {
                 cnt += cell.query_range_duration(range, duration, action);
             }
         }
@@ -209,7 +233,7 @@ impl Bucket {
         let mut cnt = 0;
         for level in 0..self.cells.len() {
             let (start, end) = self.cells_for(level, range);
-            for cell in self.cells[level][start..=end].iter() {
+            for (_, cell) in self.cells[level].range(start..=end) {
                 cnt += cell.query_range_only(range, action);
             }
         }
@@ -221,34 +245,11 @@ impl Bucket {
         let level_max = self.level_for(duration.min);
         let mut cnt = 0;
         for level in level_min..=level_max {
-            for cell in self.cells[level].iter() {
+            for (_, cell) in self.cells[level].iter() {
                 cnt += cell.query_duration_only(&duration, action);
             }
         }
         cnt
-    }
-
-    fn count_empty_cells(&self) -> usize {
-        self.cells
-            .iter()
-            .map(|level| {
-                level
-                    .iter()
-                    .filter(|cell| cell.intervals.is_empty())
-                    .count()
-            })
-            .sum()
-    }
-
-    fn count_cells(&self) -> usize {
-        self.cells.iter().map(|level| level.len()).sum()
-    }
-
-    fn count_intervals(&self) -> usize {
-        self.cells
-            .iter()
-            .map(|level| level.iter().map(|cs| cs.intervals.len()).sum::<usize>())
-            .sum()
     }
 }
 
@@ -312,7 +313,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        13
+        14
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -383,15 +384,11 @@ impl Algorithm for PeriodIndex {
         }
         pl.stop();
         let size = self.deep_size_of();
-        let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
-        let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
         info!(
-            "Allocated for index: {} bytes ({} Mb) - {} buckets ({}/{} empty cells)",
+            "Allocated for index: {} bytes ({} Mb) - {} buckets",
             size,
             size / (1024 * 1024),
             self.buckets.len(),
-            empty_cells,
-            num_cells
         );
 
         debug!(
@@ -449,14 +446,15 @@ impl Algorithm for PeriodIndex {
         self.n = 0;
     }
 
-    fn reporter_hook(&self, reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
-        let bucket_info = self
-            .buckets
-            .iter()
-            .enumerate()
-            .map(|(index, bucket)| (index, bucket.count_intervals()));
-        reporter.report_period_index_buckets(bucket_info)
-    }
+    // fn reporter_hook(&self, reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
+    //     // let bucket_info = self
+    //     //     .buckets
+    //     //     .iter()
+    //     //     .enumerate()
+    //     //     .map(|(index, bucket)| (index, bucket.count_intervals()));
+    //     // reporter.report_period_index_buckets(bucket_info)
+    //     Ok(())
+    // }
 }
 
 #[derive(DeepSizeOf)]
@@ -519,7 +517,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn version(&self) -> u8 {
-        7
+        8
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -626,14 +624,14 @@ impl Algorithm for PeriodIndexStar {
         self.boundaries.clear();
     }
 
-    fn reporter_hook(&self, reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
-        let bucket_info = self
-            .buckets
-            .iter()
-            .enumerate()
-            .map(|(index, bucket)| (index, bucket.count_intervals()));
-        reporter.report_period_index_buckets(bucket_info)
-    }
+    // fn reporter_hook(&self, reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {
+    //     let bucket_info = self
+    //         .buckets
+    //         .iter()
+    //         .enumerate()
+    //         .map(|(index, bucket)| (index, bucket.count_intervals()));
+    //     reporter.report_period_index_buckets(bucket_info)
+    // }
 }
 
 fn ecdf<I: IntoIterator<Item = Time>>(times: I) -> Vec<u32> {
