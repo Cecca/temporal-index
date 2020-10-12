@@ -233,6 +233,39 @@ duration part of the query gives the area where query answers lie.
     \]
 \end{proof}
 
+\begin{figure}
+    \begin{tikzpicture}[scale=0.15, xscale=1.5]
+        % Axes
+        \draw [<->] (0,40) node (yaxis) [above] {$start$}
+        |- (60,0) node (xaxis) [right] {$duration$};
+        % %ticks
+        % \foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
+        % \foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
+
+        % Vertical ticks
+        \foreach \duration in {5, 15, 22, 27, 50} \draw (\duration, 0) -- (\duration, 35);
+
+        % Start groups
+        \foreach \start in {10, 20, 35} \draw (0, \start) -- (5,\start);
+        \foreach \start in {5, 25, 35} \draw (5, \start) -- (15,\start);
+        \foreach \start in {8, 16, 35} \draw (15, \start) -- (22,\start);
+        \foreach \start in {20, 28, 35} \draw (22, \start) -- (27,\start);
+        \foreach \start in {10, 15, 35} \draw (27, \start) -- (50,\start);
+        % \foreach \start in {20, 30, 35} \draw (50, \start) -- (80,\start);
+
+        % Query polygon: e_s=10 e_end=30
+
+        \draw[dashed, red] (60, 30) -- (10, 30) -- (40, 0);
+        \draw[dashed, red] (13, 0) -- (13,40);
+        \draw[dashed, red] (30, 0) -- (30,40);
+        \draw[red, thick] (13,30) -- (30, 30) -- (30, 10) -- (13, 27) -- (13,30);
+
+    \end{tikzpicture}
+    \Description{}
+    \caption{Query polygon and grid on the dimension-start time plane.}
+    \label{fig:example-polygon}
+\end{figure}
+
 The following theorem ensures that, by setting the page size $s$ appropriately, the query time
 can be made polynomially smaller than the input size.
 \begin{theorem}
