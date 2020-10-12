@@ -34,7 +34,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn version(&self) -> u8 {
-        13
+        14
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -43,12 +43,7 @@ impl Algorithm for PeriodIndexPlusPlus {
         let n_buckets_duration =
             ((n + 1) as f64 / (self.page_size * self.page_size) as f64).ceil() as usize;
 
-        let mut pl = progress_logger::ProgressLogger::builder()
-            .with_expected_updates(dataset.len() as u64)
-            .with_items_name("intervals")
-            .start();
-
-        let index = SortedBlockIndex::new(
+        let index = SortedBlockIndex::new_parallel(
             n_buckets_duration,
             dataset,
             |interval| interval.duration(),
@@ -64,7 +59,7 @@ impl Algorithm for PeriodIndexPlusPlus {
                             Vec::from_iter(by_start.iter().map(|interval| ***interval));
                         intervals.sort_unstable_by_key(|x| x.end);
                         trace!(" .. {} intervals", intervals.len());
-                        pl.update(intervals.len() as u64);
+                        // pl.update(intervals.len() as u64);
                         intervals
                     },
                 )
@@ -285,7 +280,7 @@ struct SortedBlockIndex<V> {
     values: Vec<V>,
 }
 
-impl<V> SortedBlockIndex<V> {
+impl<V: Send + Sync> SortedBlockIndex<V> {
     /// accepts an iterator over the items, a function to extract the key for each
     /// item, and a function to build a value from all the items associated with a
     /// given item
@@ -334,6 +329,85 @@ impl<V> SortedBlockIndex<V> {
             }
             start_index = end_index;
         }
+
+        assert_eq!(
+            values.len(),
+            boundaries.len(),
+            "num_buckets: {}, n: {}",
+            n_buckets,
+            items.len()
+        );
+
+        Self {
+            boundaries,
+            values: values,
+        }
+    }
+
+    fn new_parallel<D: std::fmt::Debug + Send + Sync, I, F, B>(
+        n_buckets: usize,
+        items: I,
+        key: F,
+        builder: B,
+    ) -> Self
+    where
+        I: IntoIterator<Item = D>,
+        F: Fn(&D) -> Time,
+        B: Fn(&[D]) -> V + Sync + Send,
+    {
+        use rayon::prelude::*;
+
+        let mut items = Vec::from_iter(items);
+        let distribution = ecdf_by(&items, &key);
+
+        let mut boundaries = Vec::new();
+
+        let step = (items.len() as u32 / n_buckets as u32) + 1;
+        let mut count_threshold = step;
+        for (k, &count) in distribution.iter().enumerate() {
+            let time = k as u32;
+            if count > count_threshold {
+                boundaries.push(time);
+                count_threshold = count + step;
+            }
+        }
+        // push the last boundary
+        if boundaries.is_empty() || (boundaries.last().unwrap() != &(distribution.len() as u32 - 1))
+        {
+            boundaries.push(distribution.len() as u32 - 1);
+        }
+
+        // go over all the items, sorted by key, define the ranges and build the
+        // inner values
+        items.sort_unstable_by_key(|x| key(x));
+        let mut start_index = 0;
+        let mut end_index = 0;
+        let mut slices = Vec::new();
+        loop {
+            let current_group = Self::index_for(key(&items[start_index]), &boundaries);
+            while end_index < items.len()
+                && Self::index_for(key(&items[end_index]), &boundaries) == current_group
+            {
+                end_index += 1;
+            }
+            // values.push(builder(&items[start_index..end_index]));
+            slices.push((start_index, end_index));
+            if end_index >= items.len() {
+                break;
+            }
+            start_index = end_index;
+        }
+
+        // let mut pl = progress_logger::ProgressLogger::builder()
+        //     .with_expected_updates(intervals.len() as u64)
+        //     .with_items_name("intervals")
+        //     .start();
+
+        // Now build the sub-indices in parallel
+        let values: Vec<V> = slices
+            .par_iter()
+            .map(|(start, end)| builder(&items[*start..*end]))
+            .collect();
 
         assert_eq!(
             values.len(),

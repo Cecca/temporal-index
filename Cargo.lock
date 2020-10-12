@@ -780,6 +780,7 @@ dependencies = [
  "progress-logger",
  "rand",
  "rand_xoshiro",
+ "rayon",
  "regex",
  "rusqlite",
  "serde",
