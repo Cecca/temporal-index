@@ -55,7 +55,7 @@ impl Algorithm for PeriodIndexPlusPlus {
             .start();
         let pl = Arc::new(Mutex::new(pl));
 
-        let index = SortedBlockIndex::new(
+        let index = SortedBlockIndex::new_parallel(
             n_buckets_duration,
             &mut dataset,
             |interval| interval.duration(),
@@ -376,7 +376,7 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
         }
     }
 
-    fn new_parallel<D: std::fmt::Debug + Send + Sync, F, B>(
+    fn new_parallel<D: std::fmt::Debug + Send + Sync + Clone, F, B>(
         n_buckets: usize,
         items: &mut [D],
         key: F,
@@ -414,8 +414,11 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
 
         // Now build the sub-indices in parallel
         let values: Vec<V> = slices
-            .iter()
-            .map(|(start, end)| builder(&mut items[*start..*end]))
+            .par_iter()
+            .map(|(start, end)| {
+                let mut elems: Vec<D> = Vec::from(&items[*start..*end]);
+                builder(&mut elems)
+            })
             .collect();
 
         assert_eq!(
