@@ -215,20 +215,16 @@ duration part of the query gives the area where query answers lie.
     Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
 \end{theorem}
 \begin{proof}
-    Computing the Empirical Cumulative Distribution Function for the duration measure can be done
-    in linear time:
-    first find the maximum duration;
-    then allocate an array of that many elements;
-    then iterate through all the intervals, increasing the count at the appropriate index;
-    then iterate through the array, computing the cumulative sum.
-    All the above operations can be done in linear time.
-    \cetodo{Maybe time linear in the maximum duration. The above arguments assumes that $\max d = \BO{n}$}
-    A final scan allows to associate each interval to appropriate bucket.
-    These operations can thus be accomplished in time $\BO{n \log n}$.
+    Computing the Empirical Cumulative Distribution Function for the duration can be done by first sorting
+    the intervals by duration, then by counting the lengths of same-duration groups, and finally
+    computing the cumulative sum of these counts.
+    Sorting takes $\BO{n\log n}$, all the other operation require linear time.
+    A final linear scan of all the intervals allows to associate each interval to appropriate bucket.
+
     Each bucket is then further partitioned according to the start times.
     Let $n_i$ be the size of the $i$-th bucket.
     Then, partitioning it according to the cumulative distribution function
-    requires time $\BO{n_i}$, following the same argument as above.
+    requires time $\BO{n_i \log n_i}$, following the same argument as above.
     Therefore, the time for building the second level of the index is
     \[
         \BO{\sum_i n_i \log n_i}
@@ -260,6 +256,8 @@ can be made polynomially smaller than the input size.
     $[s^C_{min}, s^C_{max})$.
     We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
     Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
+    Recall that the algorithm may create a heavy column or cell when it cannot break down a group of intervals
+    because they all share the same duration or start time.
     A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space.
     For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
 
@@ -294,7 +292,9 @@ can be made polynomially smaller than the input size.
 
     Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
     \begin{enumerate}
-        \item Both the cell's durations range and start times range fall within the query polygon.
+        \item %$d_{min}^C \le d_{min} \le d_{max} < d_{max}^C$ and
+              %$s_{min}^C < e_e$
+              Both the cell's durations range and start times range fall within the query polygon.
               In such cell, the query constraints on the duration and the start time are satisfied by construction.
               The algorithm considers just the intervals of $C$ which are part of the output (since it iterates over
               the cell's intervals by decreasing end time).
@@ -306,26 +306,27 @@ can be made polynomially smaller than the input size.
               query constraint (otherwise we will not be looking at the cell at all).
               Therefore, the scan of the intervals by decreasing end time visits just the $k_C$ output elements.
         \item The cell's start time satisfies the query constraints, but the duration doesn't.
-              In this case we cannot be in a heavy column (which contains a single duration) and thus contains less than $s^2$ intervals.
-              If we are in a heavy cell, then all the intervals have the same
-              start time:
-              \begin{enumerate}
-                  \item If the first interval in
-                        increasing sorted order of end time (and hence duration)
-                        satisfies the duration constraint, scan the intervals by
-                        ascending end time, stopping as soon as the duration no longer
-                        satisfies the predicate
-                  \item Otherwise, do the same in decreasing order of end time
-              \end{enumerate}
-              In both cases the algorithm will visit just $k_C$ intervals.
+              In this case we cannot be in a heavy column (which contains a single duration) and thus
+              the column containing the cell contains at most $s^2$ intervals.
+              %   If we are in a heavy cell, then all the intervals have the same
+              %   start time:
+              %   \begin{enumerate}
+              %       \item If the first interval in
+              %             increasing sorted order of end time (and hence duration)
+              %             satisfies the duration constraint, scan the intervals by
+              %             ascending end time, stopping as soon as the duration no longer
+              %             satisfies the predicate
+              %       \item Otherwise, do the same in decreasing order of end time
+              %   \end{enumerate}
+              %   In both cases the algorithm will visit just $k_C$ intervals.
 
-              If we are not in a heavy cell, then we need to visit all the $\BO{s}$ intervals.
+              %   If we are not in a heavy cell, then we need to visit all the $\BO{s}$ intervals.
         \item The cell doesn't completely satisfy neither constraint. In this case neither the column nor the cell can be heavy,
               therefore the algorithm must only evaluate $\BO{s}$ intervals.
     \end{enumerate}
     All the cells of type (1) account for at most $\BO{k}$ in terms of running time.
     As for cells of type (2) there are at most $n/s^2$ of them. Overall they account for $\BO{\frac{n}{s}}$ interval evaluations.
-    Cells of type (3) are at most $s$. Therefore, overall they account for $\BO{s^2}$ interval evaluations.
+    Cells of type (3) contain at most $s^2$ intervals. Therefore, overall they account for $\BO{s^2}$ interval evaluations.
     Finally is then a constant number of cells of type (4) (which are at the corners of the query polygon).
     These cells therefore account for at most $\BO{s}$ interval evaluations in total.
     Overall, the time to evaluate the intervals in the cells is
