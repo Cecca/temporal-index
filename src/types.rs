@@ -3,10 +3,16 @@ use progress_logger::ProgressLogger;
 
 pub type Time = u32;
 
-#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, DeepSizeOf)]
+#[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq, DeepSizeOf)]
 pub struct Interval {
     pub start: Time,
     pub end: Time,
+}
+
+impl std::fmt::Debug for Interval {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{} -{}> {})", self.start, self.duration(), self.end)
+    }
 }
 
 impl Interval {
