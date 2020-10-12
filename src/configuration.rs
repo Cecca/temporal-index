@@ -1,12 +1,5 @@
-use crate::btree;
+use crate::algorithms::*;
 use crate::dataset::*;
-use crate::ebi;
-use crate::grid;
-use crate::grid3d;
-use crate::interval_tree;
-use crate::naive;
-use crate::period_index;
-use crate::period_index_plusplus::*;
 use crate::types::*;
 use anyhow::{Context, Result};
 use itertools::iproduct;
@@ -123,12 +116,11 @@ impl AlgorithmConfiguration {
             }
             Self::NestedBTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
-                    Rc::new(RefCell::new(crate::nested_btree::NestedBTree::default()));
+                    Rc::new(RefCell::new(NestedBTree::default()));
                 Box::new(Some(algo).into_iter())
             }
             Self::NestedVecs => {
-                let algo: Rc<RefCell<dyn Algorithm>> =
-                    Rc::new(RefCell::new(crate::nested_vecs::NestedVecs::default()));
+                let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(NestedVecs::default()));
                 Box::new(Some(algo).into_iter())
             }
             Self::IntervalTree => {

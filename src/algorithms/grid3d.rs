@@ -1,4 +1,4 @@
-use crate::grid::Grid;
+use super::grid::Grid;
 use crate::types::*;
 use deepsize::DeepSizeOf;
 use std::collections::BTreeMap;
