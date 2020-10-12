@@ -1,15 +1,7 @@
 use paste::paste;
 
-use crate::btree::BTree;
+use crate::algorithms::*;
 use crate::dataset::*;
-use crate::grid::Grid;
-use crate::grid3d::Grid3D;
-use crate::interval_tree::IntervalTree;
-use crate::naive::LinearScan;
-use crate::nested_btree::NestedBTree;
-use crate::nested_vecs::NestedVecs;
-use crate::period_index::{PeriodIndex, PeriodIndexStar};
-use crate::period_index_plusplus::PeriodIndexPlusPlus;
 use crate::types::*;
 use itertools::Itertools;
 use std::collections::BTreeSet;
