@@ -55,7 +55,7 @@ impl Algorithm for PeriodIndexPlusPlus {
             .start();
         let pl = Arc::new(Mutex::new(pl));
 
-        let index = SortedBlockIndex::new_parallel(
+        let index = SortedBlockIndex::new(
             n_buckets_duration,
             &mut dataset,
             |interval| interval.duration(),
@@ -338,7 +338,7 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
     where
         // I: IntoIterator<Item = D>,
         F: Fn(&D) -> Time,
-        B: FnMut(&[D]) -> V,
+        B: FnMut(&mut [D]) -> V,
     {
         let boundaries = Self::compute_boundaries(n_buckets, &items, &key);
 
@@ -355,7 +355,7 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
             {
                 end_index += 1;
             }
-            values.push(builder(&items[start_index..end_index]));
+            values.push(builder(&mut items[start_index..end_index]));
             if end_index >= items.len() {
                 break;
             }
