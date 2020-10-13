@@ -64,7 +64,6 @@ plan <- drake_plan(
     ) %>%
     select(-time_query_ms, -time_index_ms) %>%
     group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
-    slice(which.max(qps)) %>%
     ungroup() %>%
     get_params(dataset_params, "d_")
     ,
