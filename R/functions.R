@@ -403,7 +403,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
         )
       ) %>%
       ungroup() %>%
-      mutate(bin = logsnap(drop_units({{ metric }}), 20)) %>%
+      mutate(bin = logsnap(drop_units({{ metric }}), 10)) %>%
       mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params)) %>%
       mutate(labelshow = str_c(
         dataset, dataset_params, "\n",
