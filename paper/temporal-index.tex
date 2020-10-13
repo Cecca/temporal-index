@@ -1,4 +1,4 @@
-\documentclass[manuscript,nonacm,timestamp]{acmart}
+\documentclass[nonacm,timestamp]{acmart}
 
 \usepackage{todonotes}
 \newcommand{\cetodo}[1]{\todo[inline,color=teal!30]{#1}}
@@ -386,6 +386,38 @@ using a smaller page size allows to improve the precision of the data structure
 at the same time increasing the number of columns that need to be queried.
 
 \section{Experimental evaluation}
+
+In this section we compare experimentally our proposed index with alternative approaches.
+In particular, we aim to answer the following questions:
+\begin{enumerate}
+    \item How robust are the indices over different workloads?
+    \item What are the aspects changing the query time the most?
+    \item How does the page size parameter affect the performance of the index?
+    \item How do the indices scale with respect to the size of the dataset?
+\end{enumerate}
+
+To this end, we implemented our index, as well as some baseline competitors,
+using Rust 1.44.0. Our implementation, which is open source and available
+at~\url{TODO}, allows to easily tune the parameters to explore
+different questions~\cite{shameless-plug}.
+The experiments presented in this section have been run on a machine
+equipped with XXX Gb of memory and a YYY processor.
+
+Both datasets and querysets used in this study are generated at random
+under different distributions to test different workloads.
+As for the datasets, we test start times distributed both uniformly
+between 0 and $n$, and clustered around 10 random points.
+The durations we test are distributed according to a Zipf distribution
+with $\beta = 1$.
+As for the querysets, we consider the same distributions for the intervals
+used for the overlap part of the query. For duration ranges, we consider uniformly
+distributed endpoints in different ranges.
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{images/overview-qps.png}
+    \caption{\label{fig:overview-qps}}
+    \Description{Overview of the performance of the algortihms.}
+\end{figure}
 
 \bibliographystyle{plain}
 \bibliography{references}

@@ -307,7 +307,8 @@ plan <- drake_plan(
 
   overview_qps = {
     p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
-    save_png(p, file_out("imgs/overview-qps.png"))
+    save_png(p, file_out("paper/images/overview-qps.png"),
+             width=6, height=4)
     girafe(
       ggobj=p, 
       width_svg=10,
