@@ -14,4 +14,5 @@ suppressPackageStartupMessages({
     library(tidytext)
     library(ggiraph)
     library(dtplyr)
+    library(data.table)
 })

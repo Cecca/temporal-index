@@ -238,7 +238,7 @@ drake::readd(overview_qps)
 ### By output throughput
 
 ```{r fig.fullwidth=F}
-drake::readd(overview_output_throughput)
+#drake::readd(overview_output_throughput)
 ```
 
 The `period-index++` index ranks the best, but only by a small margin. Note,

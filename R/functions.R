@@ -333,7 +333,7 @@ scale_fill_algorithm <- function() {
   )
   colors <- colors(length(algorithms))
   names(colors) <- algorithms
-  scale_fill_manual(values=colors)
+  scale_fill_manual(values=colors, aesthetics = c("fill", "color"))
 }
 
 build_plot_label <- function(dataset) {
