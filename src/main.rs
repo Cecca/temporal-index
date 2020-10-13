@@ -63,7 +63,7 @@ fn main() -> Result<()> {
 
     let mut system = System::new();
     pretty_env_logger::formatted_builder()
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(log::LevelFilter::Debug)
         .try_init()?;
     let cmdline: Cmdline = argh::from_env();
 
