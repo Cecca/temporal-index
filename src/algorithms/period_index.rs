@@ -7,6 +7,8 @@ struct Cell {
     time_range: Interval,
     duration_range: DurationRange,
     intervals: Vec<Interval>,
+    /// index of the next non empty cell in the level
+    next_nonempty: Option<usize>,
 }
 
 impl Cell {
@@ -15,7 +17,16 @@ impl Cell {
             time_range,
             duration_range,
             intervals: Vec::new(),
+            next_nonempty: None,
         }
+    }
+
+    fn set_next(&mut self, idx: usize) {
+        self.next_nonempty.replace(idx);
+    }
+
+    fn is_empty(&self) -> bool {
+        self.intervals.is_empty()
     }
 
     fn insert(&mut self, interval: Interval) {
@@ -141,6 +152,21 @@ impl Bucket {
         }
     }
 
+    /// Set the indices to skip empty cells across all the levels
+    fn fix_levels(&mut self) {
+        for level in self.cells.iter_mut() {
+            let mut next_nonempty: Option<usize> = None;
+            for i in (0..level.len()).rev() {
+                if let Some(idx) = next_nonempty {
+                    level[i].set_next(idx);
+                }
+                if !level[i].is_empty() {
+                    next_nonempty.replace(i);
+                }
+            }
+        }
+    }
+
     #[inline]
     fn level_for(&self, duration: Time) -> usize {
         std::cmp::min(
@@ -198,9 +224,20 @@ impl Bucket {
         let mut cnt = 0;
         for level in level_min..=level_max {
             let (start, end) = self.cells_for(level, range);
-            for cell in self.cells[level][start..=end].iter() {
+            let cells = &self.cells[level];
+            let mut i = start;
+            while i <= end {
+                let cell = &cells[i];
                 cnt += cell.query_range_duration(range, duration, action);
+                if let Some(next) = cell.next_nonempty {
+                    i = next;
+                } else {
+                    break;
+                }
             }
+            // for cell in self.cells[level][start..=end].iter() {
+            //     cnt += cell.query_range_duration(range, duration, action);
+            // }
         }
         cnt
     }
@@ -209,9 +246,20 @@ impl Bucket {
         let mut cnt = 0;
         for level in 0..self.cells.len() {
             let (start, end) = self.cells_for(level, range);
-            for cell in self.cells[level][start..=end].iter() {
+            let cells = &self.cells[level];
+            let mut i = start;
+            while i <= end {
+                let cell = &cells[i];
                 cnt += cell.query_range_only(range, action);
+                if let Some(next) = cell.next_nonempty {
+                    i = next;
+                } else {
+                    break;
+                }
             }
+            // for cell in self.cells[level][start..=end].iter() {
+            //     cnt += cell.query_range_only(range, action);
+            // }
         }
         cnt
     }
@@ -221,9 +269,20 @@ impl Bucket {
         let level_max = self.level_for(duration.min);
         let mut cnt = 0;
         for level in level_min..=level_max {
-            for cell in self.cells[level].iter() {
+            let cells = &self.cells[level];
+            let mut i = 0;
+            while i < cells.len() {
+                let cell = &cells[i];
                 cnt += cell.query_duration_only(&duration, action);
+                if let Some(next) = cell.next_nonempty {
+                    i = next;
+                } else {
+                    break;
+                }
             }
+            // for cell in self.cells[level].iter() {
+            //     cnt += cell.query_duration_only(&duration, action);
+            // }
         }
         cnt
     }
@@ -382,6 +441,10 @@ impl Algorithm for PeriodIndex {
             pl.update_light(1u64);
         }
         pl.stop();
+        info!("Setting jump pointers");
+        for bucket in self.buckets.iter_mut() {
+            bucket.fix_levels();
+        }
         let size = self.deep_size_of();
         let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
         let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
@@ -571,13 +634,23 @@ impl Algorithm for PeriodIndexStar {
             pl.update_light(1u64);
         }
         pl.stop();
+        info!("Setting jump pointers");
+        for bucket in self.buckets.iter_mut() {
+            bucket.fix_levels();
+        }
 
         let size = self.deep_size_of();
+        let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
+        let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
+        let perc_empty = (empty_cells as f64) / (num_cells as f64) * 100.0;
         info!(
-            "Allocated for index: {} bytes ({} Mb) - {} buckets ",
+            "Allocated for index: {} bytes ({} Mb) - {} buckets - {} empty over {} cells ({:.2}%)",
             size,
             size / (1024 * 1024),
-            self.buckets.len()
+            self.buckets.len(),
+            empty_cells,
+            num_cells,
+            perc_empty
         );
     }
 
