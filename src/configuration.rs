@@ -43,6 +43,9 @@ pub enum AlgorithmConfiguration {
     PeriodIndexPlusPlus {
         page_size: Vec<usize>,
     },
+    GridFile {
+        side_cells: Vec<usize>,
+    },
     Grid {
         num_buckets: Vec<usize>,
     },
@@ -88,6 +91,12 @@ impl AlgorithmConfiguration {
                         period_index::PeriodIndexStar::new(*nb, *nl)
                             .expect("error in configured algorithm"),
                     )) as Rc<RefCell<dyn Algorithm>>
+                });
+                Box::new(iter)
+            }
+            Self::GridFile { side_cells } => {
+                let iter = side_cells.iter().map(|side_cells| {
+                    Rc::new(RefCell::new(GridFile::new(*side_cells))) as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
             }

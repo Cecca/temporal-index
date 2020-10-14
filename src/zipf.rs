@@ -33,8 +33,6 @@
 //!
 //! [ref]: https://github.com/apache/commons-rng/blob/6a1b0c16090912e8fc5de2c1fb5bd8490ac14699/commons-rng-sampling/src/main/java/org/apache/commons/rng/sampling/distribution/RejectionInversionZipfSampler.java
 
-#![warn(rust_2018_idioms)]
-
 use rand::Rng;
 
 /// Random number generator that generates Zipf-distributed random numbers using rejection

@@ -51,6 +51,8 @@
     #     num_levels: [4,32]
     - PeriodIndexPlusPlus:
         page_size: [100]
+    - GridFile:
+        side_cells: [100]
     # - Grid3D:
     #     num_buckets: [16]
     # - Grid:
