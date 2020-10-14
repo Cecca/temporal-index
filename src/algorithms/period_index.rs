@@ -350,10 +350,18 @@ impl PeriodIndex {
         if !self.span.expect("uninitialized index").overlaps(&interval) {
             return None;
         }
-        let start = ((std::cmp::max(0, interval.start - self.anchor_point))
-            / self.bucket_length.expect("uninitialized index")) as usize;
-        let end = ((std::cmp::max(0, interval.end - self.anchor_point))
-            / self.bucket_length.expect("uninitialized index")) as usize;
+        let start = if interval.start < self.anchor_point {
+            0
+        } else {
+            ((std::cmp::max(0, interval.start - self.anchor_point))
+                / self.bucket_length.expect("uninitialized index")) as usize
+        };
+        let end = if interval.end < self.anchor_point {
+            0
+        } else {
+            ((std::cmp::max(0, interval.end - self.anchor_point))
+                / self.bucket_length.expect("uninitialized index")) as usize
+        };
         Some((start, end))
     }
 }

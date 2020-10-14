@@ -7,6 +7,8 @@ pub struct GridFile {
     /// index by duration (first dimension) and then by start time
     /// the end itme is correlated, so we don't build an index in that dimension
     inner: Vec<Vec<Vec<Interval>>>,
+    duration_anchor: Option<u32>,
+    start_anchor: Option<u32>,
     durations_per_cell: Option<usize>,
     starts_per_cell: Option<usize>,
     max_durations: Vec<u32>,
@@ -23,9 +25,33 @@ impl GridFile {
         Self {
             side_cells,
             inner: Vec::new(),
+            duration_anchor: None,
+            start_anchor: None,
             durations_per_cell: None,
             starts_per_cell: None,
             max_durations: Vec::new(),
+        }
+    }
+
+    #[inline(always)]
+    fn map_time(&self, t: u32) -> usize {
+        let ns = self.starts_per_cell.unwrap();
+        let start_anchor = self.start_anchor.unwrap();
+        if t < start_anchor {
+            0
+        } else {
+            std::cmp::min((t - start_anchor) as usize / ns, self.side_cells)
+        }
+    }
+
+    #[inline(always)]
+    fn map_duration(&self, d: u32) -> usize {
+        let nd = self.durations_per_cell.unwrap();
+        let duration_anchor = self.duration_anchor.unwrap();
+        if d < duration_anchor {
+            0
+        } else {
+            std::cmp::min((d - duration_anchor) as usize / nd, self.side_cells)
         }
     }
 
@@ -35,26 +61,18 @@ impl GridFile {
         duration: DurationRange,
         mut action: F,
     ) -> u32 {
-        let nd = self.durations_per_cell.unwrap();
-        let ns = self.starts_per_cell.unwrap();
-        let d_start = duration.min as usize / nd;
-        let d_end = duration.max as usize / nd;
-        let s_end = range.end as usize / ns;
+        let d_start = self.map_duration(duration.min);
+        let d_end = self.map_duration(duration.max);
+        let s_end = self.map_time(range.end);
 
         let mut cnt = 0;
         for (i, row) in self.inner[d_start..=d_end].iter().enumerate() {
             let i = i + d_start;
-            let s_start = if range.start > self.max_durations[i] {
-                (range.start - self.max_durations[i]) as usize / ns
-            } else {
+            let s_start = if range.start < self.max_durations[i] {
                 0
-            };
-            let s_end = if s_end >= row.len() {
-                row.len() - 1
             } else {
-                s_end
+                self.map_time(range.start - self.max_durations[i])
             };
-            // assert!(s_start <= s_end, "{:?} {}", range, self.max_durations[i]);
             for cell in row[s_start..=s_end].iter() {
                 for interval in cell {
                     cnt += 1;
@@ -68,20 +86,14 @@ impl GridFile {
     }
 
     fn query_range<F: FnMut(&Interval)>(&self, range: Interval, mut action: F) -> u32 {
-        let ns = self.starts_per_cell.unwrap();
-        let s_end = range.end as usize / ns;
+        let s_end = self.map_time(range.end);
 
         let mut cnt = 0;
         for (i, row) in self.inner.iter().enumerate() {
-            let s_start = if range.start > self.max_durations[i] {
-                (range.start - self.max_durations[i]) as usize / ns
-            } else {
+            let s_start = if range.start < self.max_durations[i] {
                 0
-            };
-            let s_end = if s_end >= row.len() {
-                row.len() - 1
             } else {
-                s_end
+                self.map_time(range.start - self.max_durations[i])
             };
             for cell in row[s_start..=s_end].iter() {
                 for interval in cell {
@@ -96,9 +108,8 @@ impl GridFile {
     }
 
     fn query_duration<F: FnMut(&Interval)>(&self, duration: DurationRange, mut action: F) -> u32 {
-        let nd = self.durations_per_cell.unwrap();
-        let d_start = duration.min as usize / nd;
-        let d_end = duration.max as usize / nd;
+        let d_start = self.map_duration(duration.min);
+        let d_end = self.map_duration(duration.max);
 
         let mut cnt = 0;
         for row in self.inner[d_start..=d_end].iter() {
@@ -160,6 +171,8 @@ impl Algorithm for GridFile {
             .unwrap()
             .start;
 
+        self.duration_anchor.replace(min_duration);
+        self.start_anchor.replace(min_start_time);
         let span_duration = max_duration - min_duration;
         self.durations_per_cell
             .replace((span_duration as f64 / side_cells as f64).ceil() as usize);
@@ -170,8 +183,17 @@ impl Algorithm for GridFile {
         let durations_per_cell = self.durations_per_cell.unwrap();
         let starts_per_cell = self.starts_per_cell.unwrap();
         for interval in dataset {
-            let d_idx = interval.duration() as usize / durations_per_cell;
-            let s_idx = interval.start as usize / starts_per_cell;
+            let d_idx = self.map_duration(interval.duration());
+            let s_idx = self.map_time(interval.start);
+            assert!(d_idx < self.inner.len());
+            assert!(
+                s_idx < self.inner[d_idx].len(),
+                "{} = {} / {} >= {}",
+                s_idx,
+                interval.start,
+                starts_per_cell,
+                self.inner[d_idx].len()
+            );
             self.inner[d_idx][s_idx].push(interval.clone());
         }
         self.max_durations[0] = min_duration + durations_per_cell as u32;
@@ -199,5 +221,7 @@ impl Algorithm for GridFile {
         self.starts_per_cell.take();
         self.durations_per_cell.take();
         self.max_durations.clear();
+        self.duration_anchor.take();
+        self.start_anchor.take();
     }
 }
