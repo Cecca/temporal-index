@@ -94,7 +94,7 @@
     #     num_buckets: [1024, 2048, 4096]
     #     num_levels: [4,32]
     - PeriodIndexStar:
-        num_buckets: [1024, 2048, 4096]
+        num_buckets: [64, 128, 1024, 2048, 4096]
         num_levels: [4,32]
     - PeriodIndexPlusPlus:
         page_size: [10, 50, 100, 500]
