@@ -421,7 +421,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        16
+        17
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -632,7 +632,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn version(&self) -> u8 {
-        10
+        11
     }
 
     fn index(&mut self, dataset: &[Interval]) {
