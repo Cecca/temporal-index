@@ -671,6 +671,7 @@ impl Algorithm for PeriodIndexStar {
         self.boundaries.push(bucket.time_range.end);
         self.buckets.push(bucket);
 
+        info!("Start inserting intervals");
         let mut pl = progress_logger::ProgressLogger::builder()
             .with_items_name("intervals")
             .with_expected_updates(dataset.len() as u64)
