@@ -109,15 +109,20 @@ impl Cell {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct Bucket {
     time_range: Interval,
     /// Two dimensional arrangement of cells: each level holds cells
     /// for intervals of different duration
-    cells: Vec<Vec<(usize, Cell)>>,
+    cells: Vec<BTreeMap<usize, Cell>>,
     duration_ranges: Vec<DurationRange>,
     durations: Vec<Time>,
     n: u32,
+}
+
+impl DeepSizeOf for Bucket {
+    fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
+        0
+    }
 }
 
 // impl DeepSizeOf for Bucket {
@@ -143,7 +148,7 @@ impl Bucket {
             trace!("level {}, duration range {:?}", level_count, duration_range);
             duration_ranges.push(duration_range);
             durations.push(duration);
-            let level = Vec::new();
+            let level = BTreeMap::new();
             cells.push(level);
             duration /= 2;
             duration_range.max = duration_range.min;
@@ -222,22 +227,22 @@ impl Bucket {
                 duration_for_level,
             );
             if cell_time_range.overlaps(&interval) {
-                // let cell = self.cells[level]
-                //     .entry(idx)
-                //     .or_insert_with(|| Cell::new(cell_time_range, duration_range_for_level));
-                // cell.insert(interval);
-                match self.cells[level].binary_search_by_key(&idx, |p| p.0) {
-                    Ok(i) => {
-                        let cell = &mut self.cells[level][i].1;
-                        cell.insert(interval);
-                    }
-                    Err(i) => {
-                        // create the cell, which was previously empty
-                        let mut cell = Cell::new(cell_time_range, duration_range_for_level);
-                        cell.insert(interval);
-                        self.cells[level].insert(i, (idx, cell));
-                    }
-                }
+                let cell = self.cells[level]
+                    .entry(idx)
+                    .or_insert_with(|| Cell::new(cell_time_range, duration_range_for_level));
+                cell.insert(interval);
+                // match self.cells[level].binary_search_by_key(&idx, |p| p.0) {
+                //     Ok(i) => {
+                //         let cell = &mut self.cells[level][i].1;
+                //         cell.insert(interval);
+                //     }
+                //     Err(i) => {
+                //         // create the cell, which was previously empty
+                //         let mut cell = Cell::new(cell_time_range, duration_range_for_level);
+                //         cell.insert(interval);
+                //         self.cells[level].insert(i, (idx, cell));
+                //     }
+                // }
             }
         }
         self.n += 1;
@@ -257,19 +262,19 @@ impl Bucket {
         let mut cnt = 0;
         for level in level_min..=level_max {
             let (start, end) = self.cells_for(level, range);
-            let mut i = self.cells[level]
-                .binary_search_by_key(&start, |p| p.0)
-                .or_else::<usize, _>(|i: usize| Ok(i))
-                .unwrap();
+            // let mut i = self.cells[level]
+            //     .binary_search_by_key(&start, |p| p.0)
+            //     .or_else::<usize, _>(|i: usize| Ok(i))
+            //     .unwrap();
             let cells = &self.cells[level];
-            // for (idx, cell) in cells.range(start..=end) {
-            //     cnt += cell.query_range_duration(range, duration, action);
-            // }
-            while i < cells.len() && cells[i].0 <= end {
-                let cell = &cells[i].1;
+            for (_idx, cell) in cells.range(start..=end) {
                 cnt += cell.query_range_duration(range, duration, action);
-                i += 1;
             }
+            // while i < cells.len() && cells[i].0 <= end {
+            //     let cell = &cells[i].1;
+            //     cnt += cell.query_range_duration(range, duration, action);
+            //     i += 1;
+            // }
         }
         cnt
     }
@@ -279,18 +284,18 @@ impl Bucket {
         for level in 0..self.cells.len() {
             let (start, end) = self.cells_for(level, range);
             let cells = &self.cells[level];
-            let mut i = self.cells[level]
-                .binary_search_by_key(&start, |p| p.0)
-                .or_else::<usize, _>(|i: usize| Ok(i))
-                .unwrap();
-            // for (idx, cell) in cells.range(start..=end) {
-            //     cnt += cell.query_range_only(range, action);
-            // }
-            while i < cells.len() && cells[i].0 <= end {
-                let cell = &cells[i].1;
+            // let mut i = self.cells[level]
+            //     .binary_search_by_key(&start, |p| p.0)
+            //     .or_else::<usize, _>(|i: usize| Ok(i))
+            //     .unwrap();
+            for (_idx, cell) in cells.range(start..=end) {
                 cnt += cell.query_range_only(range, action);
-                i += 1;
             }
+            // while i < cells.len() && cells[i].0 <= end {
+            //     let cell = &cells[i].1;
+            //     cnt += cell.query_range_only(range, action);
+            //     i += 1;
+            // }
         }
         cnt
     }
@@ -301,20 +306,20 @@ impl Bucket {
         let mut cnt = 0;
         for level in level_min..=level_max {
             let cells = &self.cells[level];
-            // for (idx, cell) in cells {
-            //     cnt += cell.query_duration_only(&duration, action);
-            // }
-            let mut i = 0;
-            while i < cells.len() {
-                let cell = &cells[i].1;
+            for (_idx, cell) in cells {
                 cnt += cell.query_duration_only(&duration, action);
-                i += 1;
-                // if let Some(next) = cell.next_nonempty {
-                //     i = next;
-                // } else {
-                //     break;
-                // }
             }
+            // let mut i = 0;
+            // while i < cells.len() {
+            //     let cell = &cells[i].1;
+            //     cnt += cell.query_duration_only(&duration, action);
+            //     i += 1;
+            //     // if let Some(next) = cell.next_nonempty {
+            //     //     i = next;
+            //     // } else {
+            //     //     break;
+            //     // }
+            // }
         }
         cnt
     }
