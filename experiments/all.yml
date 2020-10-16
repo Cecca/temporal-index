@@ -9,46 +9,10 @@
         start_times:
           - Uniform: { low: 1, high: 10000000 }
           - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
-          # - Clustered: { n: 100, high: 10000000, std_dev: 100000 }
-          # - Clustered: { n: 100, high: 10000000, std_dev: 1000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
-          # - Zipf: { n: 10000000, beta: 2 }
 
   queries:
-    # - Mixed:
-    #   - Random:
-    #       seed: [23512]
-    #       n: [600]
-    #       range:
-    #         - Pair: [
-    #             Uniform: { low: 1, high: 10000000 },
-    #             Zipf: { n: 10000000, beta: 1 }
-    #         ]
-    #         - Free
-    #       duration:
-    #         # Long duration low selectivity
-    #         - Pair: [
-    #             Uniform: { low: 1, high: 10000 },
-    #             Uniform: { low: 1, high: 10000 },
-    #         ]
-    #         # Short duration high selectivity
-    #         - Pair: [
-    #             Uniform: { low: 1, high: 100 },
-    #             Uniform: { low: 1, high: 100 },
-    #         ]
-    #         # Short duration low selectivity
-    #         - Pair: [
-    #             Uniform: { low: 1, high: 100 },
-    #             Uniform: { low: 1, high: 10000 },
-    #         ]
-    #         # Long duration high selectivity
-    #         - Pair: [
-    #             Uniform: { low: 1, high: 10000 },
-    #             Uniform: { low: 1, high: 100 },
-    #         ]
-    #         - Free
-    # The above queries in isolation
     - Random:
         seed: [23512]
         n: [5000]
@@ -141,3 +105,9 @@
     - PeriodIndexPlusPlus:
         page_size: [100, 500, 1000, 50000, 10000, 100000, 1000000, 10000000]
     - BTree
+    - GridFile:
+        side_cells: [100, 1000, 10000]
+    - PeriodIndexStar:
+        num_buckets: [64, 128, 1024, 2048, 4096]
+        num_levels: [4,32]
+
