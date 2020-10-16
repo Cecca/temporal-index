@@ -1,5 +1,6 @@
 \documentclass[nonacm,timestamp]{acmart}
 
+\usepackage{tcolorbox}
 \usepackage{todonotes}
 \newcommand{\cetodo}[1]{\todo[inline,color=teal!30]{#1}}
 
@@ -413,10 +414,44 @@ As for the querysets, we consider the same distributions for the intervals
 used for the overlap part of the query. For duration ranges, we consider uniformly
 distributed endpoints in different ranges.
 
+\begin{tcolorbox}
+    \textbf{A note on my implementation of period-index-$\star$}.\\
+    In~\cite{BehrendDGSVRK_SSTD19_period-index}, there is a note about how to save on
+    empty cells, which are the vast majority in all the experiments we try (from 50\% up to 99\%).
+    In the paper, there is the suggestion to use a linked structure, with non-empty buckets linked to one another.
+    However, as I see it, this would imply that we lose the ability to index into the first non-empty bucket
+    containing potentially overlapping intervals.
+    Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
+
+    Given this, my implementation uses an array to hold all the cells, event the empty ones,
+    thus allowing to directly index into it.
+    Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
+    Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
+\end{tcolorbox}
+
 \begin{figure}
     \includegraphics[width=\textwidth]{images/overview-qps.png}
-    \caption{\label{fig:overview-qps}}
+    \caption{Overview of the performance of the tested index structures
+        over a variety of workloads and datasets. All the datasets have 10 million
+        points and, for each workload, we perform 5\,000 queries.\label{fig:overview-qps}}
     \Description{Overview of the performance of the algortihms.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{images/selectivity_vs_time.png}
+    \caption{Relationship between the query selectivity and query time, for different
+        types of queries and index structures. For the sake of readability, we concentrate
+        on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
+    \Description{Time versus selectivity}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{images/scalability.png}
+    \caption{Scalability of the index structures for the increasing dataset sizes, up to one billion intervals.
+        Each point corresponds to the best configuration of the given data structure for a particular dataset size.
+        \label{fig:scalability}}
+    \Description{Scalability figure, showing that our proposed approach has superior performance for all tested
+        dataset sizes, and scales gracefully.}
 \end{figure}
 
 \bibliographystyle{plain}

@@ -321,15 +321,16 @@ scale_fill_algorithm <- function() {
   colors <- ggthemes::tableau_color_pal(type="regular")
   algorithms <- c(
     "BTree",
-    "period-index",
+    # "period-index",
     "period-index-*",
     "period-index++",
-    "grid",
-    "grid3D",       
+    # "grid",
+    # "grid3D",       
     "interval-tree", 
-    "linear-scan",  
-    "NestedBTree",  
-    "NestedVecs"
+    # "linear-scan",  
+    # "NestedBTree",  
+    # "NestedVecs"
+    "grid-file"
   )
   colors <- colors(length(algorithms))
   names(colors) <- algorithms
@@ -525,4 +526,44 @@ save_png <- function(ggobj, filename, width = 10, height = 6) {
          width = width,
          height = height)
   knitr::include_graphics(here(filename))
+}
+
+plot_distribution_all <- function(querystats) {
+  plotdata <- querystats %>% 
+    as_tibble() %>% 
+    mutate(query_time_ns = as.double(query_time_ns))
+  slowest <- plotdata %>%
+    group_by(algorithm, workload_type, start_times_distribution) %>%
+    slice_max(query_time_ns, prop=.05) %>%
+    ungroup()
+
+  ggplot(slowest, aes(x=query_time_ns, y=algorithm, fill=workload_type)) + 
+    geom_density_ridges(scale=0.9, alpha=0.5, 
+                        rel_min_height=0.01,
+                        show.legend=FALSE) + 
+    # geom_point(mapping=aes(color=workload_type),
+    #            data=slowest,
+    #            shape="|") +
+    scale_x_continuous(labels=scales::number_format(scale=0.001, suffix="")) + 
+    facet_grid(vars(start_times_distribution), vars(workload_type), 
+               scales="free_x") + 
+    labs(x="query time", y="algorithm") +
+    theme_ridges() + 
+    theme(legend.position="bottom")
+}
+
+plot_top_query_times <- function(querystats) {
+  querystats %>% 
+    filter(group_rank == max(group_rank)) %>% 
+    arrange(algorithm) %>%
+    ggplot(aes(x=workload_type, y=group_query_time, fill=algorithm)) + 
+    geom_col(position="dodge") + 
+    geom_text(aes(label=scales::percent(fraction_total_query_time),
+                  y=group_query_time + 1000),
+               hjust=0,
+               position=position_dodge(.9)) +
+    facet_wrap(vars(start_times_distribution)) +
+    scale_fill_algorithm() +
+    coord_flip() +
+    theme_tufte()
 }
