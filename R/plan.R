@@ -5,6 +5,7 @@ install_symbolic_unit("records")
 
 plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
+    as_tibble() %>%
     filter(
       hostname == "ironmaiden",
       algorithm != "ebi-index",
@@ -15,7 +16,6 @@ plan <- drake_plan(
       algorithm != "NestedBTree",
       !str_detect(queryset, "Mixed"),
     ) %>%
-    as.data.table() %>%
     mutate(
       date = parse_datetime(date),
       is_estimate = is_estimate > 0
@@ -36,9 +36,123 @@ plan <- drake_plan(
       #   set_units("records/ns") %>% set_units("records/s")
     ) %>%
     filter(dataset_n == 10000000) %>%
-    select(-time_query_ms, -time_index_ms) %>%
-    as.data.table()
+    select(-time_query_ms, -time_index_ms)
     ,
+  
+  queries = target(
+    table_query_stats(conn, file_in("temporal-index-results.sqlite")) %>%
+      mutate(precision = as.double(query_count) / as.double(query_examined)) %>%
+      as.data.table(),
+    format = "fst_dt"
+  ),
+
+  best = target(
+    data %>%
+      lazy_dt() %>%
+      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
+      slice(which.max(qps)) %>%
+      ungroup() %>%
+      mutate(
+        workload_type = case_when(
+          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-None-uniform-uniform" ~ "duration",
+          queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "Mixed" ~ "mixed",
+          TRUE ~ "Unknown"
+        )
+      ) %>%
+      mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
+      as.data.table(),
+    format = "fst_dt"
+  ),
+
+  query_stats = target(
+    {
+      base_data <- best %>%
+        lazy_dt() %>%
+        filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
+        inner_join(queries) 
+      
+      total_times <- base_data %>%
+        group_by(start_times_distribution, algorithm, workload_type) %>%
+        summarise(total_query_time = sum(query_time_ns))
+
+      ranking <- base_data %>%
+        group_by(start_times_distribution, algorithm, workload_type) %>%
+        arrange(query_time_ns) %>%
+        mutate(
+          group_rank = ntile(query_time_ns, 50)
+        ) %>%
+        group_by(start_times_distribution, algorithm, workload_type, group_rank) %>%
+        summarise(group_query_time = sum(query_time_ns))
+
+      inner_join(ranking, total_times) %>%
+        mutate(fraction_total_query_time = group_query_time / total_query_time) %>%
+        as.data.table()
+    },
+    format = "fst_dt",
+  ),
+
+  querystats_plot = {
+    p <- data %>% 
+      lazy_dt() %>%
+      mutate(
+        workload_type = case_when(
+          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-None-uniform-uniform" ~ "duration",
+          queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "Mixed" ~ "mixed",
+          TRUE ~ "Unknown"
+        )
+      ) %>%
+      filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
+      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
+      slice(which.max(qps)) %>%
+      ungroup() %>%
+      mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
+      inner_join(queries) %>%
+      plot_distribution_all()
+    save_png(p, "paper/images/querytimes-distribution.png",
+             width=9, height=4)
+  },
+
+  data_selectivity_vs_queries = lazy_dt(best) %>%
+      mutate(
+        workload_type = case_when(
+          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-None-uniform-uniform" ~ "duration",
+          queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "Mixed" ~ "mixed",
+          TRUE ~ "Unknown"
+        )
+      ) %>%
+      mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
+      filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
+      inner_join(lazy_dt(queries)) %>%
+      as_tibble() %>%
+      mutate(
+        query_time = set_units(as.double(query_time_ns), "ns") %>% set_units("ms"),
+        selectivity = query_count / dataset_n
+      ) %>%
+      filter(selectivity <= .2) %>%
+      group_by(algorithm, start_times_distribution) %>%
+      filter(row_number(query_time) < n() - 100),
+
+  plot_selectivity_vs_query_time = {
+    p <- data_selectivity_vs_queries %>%
+      ggplot(aes(x=selectivity, y=drop_units(query_time), color=workload_type)) +
+      geom_point(size=.1, alpha=0.5) +
+      facet_grid(vars(start_times_distribution), vars(algorithm), scales="fixed") +
+      scale_y_continuous() +
+      scale_x_continuous(breaks=c(0,0.1,0.2), labels=scales::number_format(accuracy=0.1)) +
+      labs(x="selectivity",
+           y="query time (ms)",
+           color="query type") +
+      theme_bw()
+
+    save_png(p, file_out("paper/images/selectivity_vs_time.png"),
+             width=10, height=4)
+  },
 
   scalability_data = table_main(conn, file_in("temporal-index-results.sqlite")) %>%
     filter(
@@ -86,7 +200,8 @@ plan <- drake_plan(
         scale_y_log10() +
         scale_fill_algorithm() +
         theme_tufte()
-    save_png(p, file_out("imgs/scalability.png"))
+    save_png(p, file_out("paper/images/scalability.png"),
+             width=10, height=4)
   },
 
   best_qps = data %>% 
@@ -299,7 +414,7 @@ plan <- drake_plan(
   overview_qps = {
     p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
     save_png(p, file_out("paper/images/overview-qps.png"),
-             width=6, height=4)
+             width=8, height=5)
     girafe(
       ggobj=p, 
       width_svg=10,
