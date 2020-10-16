@@ -121,7 +121,12 @@ struct Bucket {
 
 impl DeepSizeOf for Bucket {
     fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
-        0
+        let btree_size = |btree: &BTreeMap<usize, Cell>| {
+            btree.iter().fold(0, |sum, (key, val)| {
+                sum + key.deep_size_of_children(context) + val.deep_size_of_children(context)
+            })
+        };
+        self.cells.iter().map(btree_size).sum()
     }
 }
 
