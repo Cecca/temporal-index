@@ -1,6 +1,7 @@
 use crate::types::*;
 use anyhow::Result;
 use deepsize::DeepSizeOf;
+use std::collections::BTreeMap;
 
 #[derive(DeepSizeOf)]
 struct Cell {
@@ -21,13 +22,13 @@ impl Cell {
         }
     }
 
-    fn set_next(&mut self, idx: usize) {
-        self.next_nonempty.replace(idx);
-    }
+    // fn set_next(&mut self, idx: usize) {
+    //     self.next_nonempty.replace(idx);
+    // }
 
-    fn is_empty(&self) -> bool {
-        self.intervals.is_empty()
-    }
+    // fn is_empty(&self) -> bool {
+    //     self.intervals.is_empty()
+    // }
 
     fn insert(&mut self, interval: Interval) {
         debug_assert!(
@@ -113,25 +114,36 @@ struct Bucket {
     time_range: Interval,
     /// Two dimensional arrangement of cells: each level holds cells
     /// for intervals of different duration
-    cells: Vec<Vec<Cell>>,
+    cells: Vec<Vec<(usize, Cell)>>,
+    duration_ranges: Vec<DurationRange>,
+    durations: Vec<Time>,
     n: u32,
 }
+
+// impl DeepSizeOf for Bucket {
+//     fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
+//         let btree_size = |btree: &BTreeMap<usize, Cell>| {
+//             btree.iter().fold(0, |sum, (key, val)| {
+//                 sum + key.deep_size_of_children(context) + val.deep_size_of_children(context)
+//             })
+//         };
+//         self.cells.iter().map(btree_size).sum()
+//     }
+// }
 
 impl Bucket {
     fn new(time_range: Interval, num_levels: u32) -> Self {
         let mut cells = Vec::with_capacity(num_levels as usize);
+        let mut duration_ranges = Vec::new();
+        let mut durations = Vec::new();
         let mut duration = time_range.duration();
         let mut duration_range = DurationRange::new(duration, std::u32::MAX);
         let mut level_count = 0;
         while duration > 0 && level_count < num_levels {
             trace!("level {}, duration range {:?}", level_count, duration_range);
-            let mut level = Vec::new();
-            let mut start = time_range.start;
-            while start < time_range.end {
-                let cell = Cell::new(Interval::new(start, duration), duration_range.clone());
-                level.push(cell);
-                start += duration;
-            }
+            duration_ranges.push(duration_range);
+            durations.push(duration);
+            let level = Vec::new();
             cells.push(level);
             duration /= 2;
             duration_range.max = duration_range.min;
@@ -140,32 +152,32 @@ impl Bucket {
         }
 
         // adjust lower bound on duration for the last level
-        let last_idx = cells.len() - 1;
-        for cell in cells[last_idx].iter_mut() {
-            cell.duration_range.min = 0;
-        }
+        let last_idx = duration_ranges.len() - 1;
+        duration_ranges[last_idx].min = 1;
 
         Self {
             time_range,
             cells,
+            duration_ranges,
+            durations,
             n: 0,
         }
     }
 
-    /// Set the indices to skip empty cells across all the levels
-    fn fix_levels(&mut self) {
-        for level in self.cells.iter_mut() {
-            let mut next_nonempty: Option<usize> = None;
-            for i in (0..level.len()).rev() {
-                if let Some(idx) = next_nonempty {
-                    level[i].set_next(idx);
-                }
-                if !level[i].is_empty() {
-                    next_nonempty.replace(i);
-                }
-            }
-        }
-    }
+    // /// Set the indices to skip empty cells across all the levels
+    // fn fix_levels(&mut self) {
+    //     for level in self.cells.iter_mut() {
+    //         let mut next_nonempty: Option<usize> = None;
+    //         for i in (0..level.len()).rev() {
+    //             if let Some(idx) = next_nonempty {
+    //                 level[i].set_next(idx);
+    //             }
+    //             if !level[i].is_empty() {
+    //                 next_nonempty.replace(i);
+    //             }
+    //         }
+    //     }
+    // }
 
     #[inline]
     fn level_for(&self, duration: Time) -> usize {
@@ -182,33 +194,54 @@ impl Bucket {
 
     #[inline]
     fn cells_for(&self, level: usize, interval: Interval) -> (usize, usize) {
-        let cell_duration = self.cells[level][0].time_range.duration();
+        let cell_duration = self.durations[level];
         let start = if interval.start < self.time_range.start {
             0
         } else {
             ((interval.start - self.time_range.start) / cell_duration) as usize
         };
-        let end = if interval.end > self.time_range.end {
-            self.cells[level].len() - 1
-        } else {
-            ((interval.end - self.time_range.start) / cell_duration) as usize
-        };
-        (start, std::cmp::min(end, self.cells[level].len() - 1))
+        // let end = if interval.end > self.time_range.end {
+        //     self.cells[level].len() - 1
+        // } else {
+        //     ((interval.end - self.time_range.start) / cell_duration) as usize
+        // };
+        let end = ((interval.end - self.time_range.start) / cell_duration) as usize;
+        (start, end)
     }
 
     fn insert(&mut self, interval: Interval) {
         let level = self.level_for(interval.duration());
+        let duration_range_for_level = self.duration_ranges[level];
+        let duration_for_level = self.durations[level];
         let (start, end) = self.cells_for(level, interval);
 
-        let mut cnt = 0;
-        for cell in self.cells[level][start..=end].iter_mut() {
-            if cell.time_range.overlaps(&interval) {
-                cell.insert(interval);
-                cnt += 1;
+        // let mut cnt = 0;
+        for idx in start..=end {
+            let cell_time_range = Interval::new(
+                self.time_range.start + idx as u32 * duration_for_level,
+                duration_for_level,
+            );
+            if cell_time_range.overlaps(&interval) {
+                // let cell = self.cells[level]
+                //     .entry(idx)
+                //     .or_insert_with(|| Cell::new(cell_time_range, duration_range_for_level));
+                // cell.insert(interval);
+                match self.cells[level].binary_search_by_key(&idx, |p| p.0) {
+                    Ok(i) => {
+                        let cell = &mut self.cells[level][i].1;
+                        cell.insert(interval);
+                    }
+                    Err(i) => {
+                        // create the cell, which was previously empty
+                        let mut cell = Cell::new(cell_time_range, duration_range_for_level);
+                        cell.insert(interval);
+                        self.cells[level].insert(i, (idx, cell));
+                    }
+                }
             }
         }
         self.n += 1;
-        assert!(cnt > 0);
+        // assert!(cnt > 0);
     }
 
     fn query_range_duration<F: FnMut(&Interval)>(
@@ -224,20 +257,19 @@ impl Bucket {
         let mut cnt = 0;
         for level in level_min..=level_max {
             let (start, end) = self.cells_for(level, range);
+            let mut i = self.cells[level]
+                .binary_search_by_key(&start, |p| p.0)
+                .or_else::<usize, _>(|i: usize| Ok(i))
+                .unwrap();
             let cells = &self.cells[level];
-            let mut i = start;
-            while i <= end {
-                let cell = &cells[i];
-                cnt += cell.query_range_duration(range, duration, action);
-                if let Some(next) = cell.next_nonempty {
-                    i = next;
-                } else {
-                    break;
-                }
-            }
-            // for cell in self.cells[level][start..=end].iter() {
+            // for (idx, cell) in cells.range(start..=end) {
             //     cnt += cell.query_range_duration(range, duration, action);
             // }
+            while i < cells.len() && cells[i].0 <= end {
+                let cell = &cells[i].1;
+                cnt += cell.query_range_duration(range, duration, action);
+                i += 1;
+            }
         }
         cnt
     }
@@ -247,19 +279,18 @@ impl Bucket {
         for level in 0..self.cells.len() {
             let (start, end) = self.cells_for(level, range);
             let cells = &self.cells[level];
-            let mut i = start;
-            while i <= end {
-                let cell = &cells[i];
-                cnt += cell.query_range_only(range, action);
-                if let Some(next) = cell.next_nonempty {
-                    i = next;
-                } else {
-                    break;
-                }
-            }
-            // for cell in self.cells[level][start..=end].iter() {
+            let mut i = self.cells[level]
+                .binary_search_by_key(&start, |p| p.0)
+                .or_else::<usize, _>(|i: usize| Ok(i))
+                .unwrap();
+            // for (idx, cell) in cells.range(start..=end) {
             //     cnt += cell.query_range_only(range, action);
             // }
+            while i < cells.len() && cells[i].0 <= end {
+                let cell = &cells[i].1;
+                cnt += cell.query_range_only(range, action);
+                i += 1;
+            }
         }
         cnt
     }
@@ -270,19 +301,20 @@ impl Bucket {
         let mut cnt = 0;
         for level in level_min..=level_max {
             let cells = &self.cells[level];
-            let mut i = 0;
-            while i < cells.len() {
-                let cell = &cells[i];
-                cnt += cell.query_duration_only(&duration, action);
-                if let Some(next) = cell.next_nonempty {
-                    i = next;
-                } else {
-                    break;
-                }
-            }
-            // for cell in self.cells[level].iter() {
+            // for (idx, cell) in cells {
             //     cnt += cell.query_duration_only(&duration, action);
             // }
+            let mut i = 0;
+            while i < cells.len() {
+                let cell = &cells[i].1;
+                cnt += cell.query_duration_only(&duration, action);
+                i += 1;
+                // if let Some(next) = cell.next_nonempty {
+                //     i = next;
+                // } else {
+                //     break;
+                // }
+            }
         }
         cnt
     }
@@ -293,7 +325,7 @@ impl Bucket {
             .map(|level| {
                 level
                     .iter()
-                    .filter(|cell| cell.intervals.is_empty())
+                    .filter(|cell| cell.1.intervals.is_empty())
                     .count()
             })
             .sum()
@@ -306,7 +338,7 @@ impl Bucket {
     fn count_intervals(&self) -> usize {
         self.cells
             .iter()
-            .map(|level| level.iter().map(|cs| cs.intervals.len()).sum::<usize>())
+            .map(|level| level.iter().map(|cs| cs.1.intervals.len()).sum::<usize>())
             .sum()
     }
 }
@@ -379,7 +411,7 @@ impl Algorithm for PeriodIndex {
     }
 
     fn version(&self) -> u8 {
-        15
+        16
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -450,9 +482,9 @@ impl Algorithm for PeriodIndex {
         }
         pl.stop();
         info!("Setting jump pointers");
-        for bucket in self.buckets.iter_mut() {
-            bucket.fix_levels();
-        }
+        // for bucket in self.buckets.iter_mut() {
+        //     bucket.fix_levels();
+        // }
         let size = self.deep_size_of();
         let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
         let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
@@ -590,7 +622,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn version(&self) -> u8 {
-        9
+        10
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -643,9 +675,9 @@ impl Algorithm for PeriodIndexStar {
         }
         pl.stop();
         info!("Setting jump pointers");
-        for bucket in self.buckets.iter_mut() {
-            bucket.fix_levels();
-        }
+        // for bucket in self.buckets.iter_mut() {
+        //     bucket.fix_levels();
+        // }
 
         let size = self.deep_size_of();
         let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
