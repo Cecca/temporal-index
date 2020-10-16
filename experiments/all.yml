@@ -52,7 +52,7 @@
     - IntervalTree
     - PeriodIndexStar:
         num_buckets: [64, 128, 1024, 2048, 4096]
-        num_levels: [4,32]
+        num_levels: [32, 128]
     - PeriodIndexPlusPlus:
         page_size: [10, 50, 100, 500]
 
@@ -109,5 +109,5 @@
         side_cells: [100, 1000, 10000]
     - PeriodIndexStar:
         num_buckets: [64, 128, 1024, 2048, 4096]
-        num_levels: [4,32]
+        num_levels: [32, 128]
 
