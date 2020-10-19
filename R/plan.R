@@ -378,8 +378,10 @@ plan <- drake_plan(
       scale_x_continuous(trans="log10", limits=c(10,400)) +
       scale_y_continuous(limits=c(0,NA)) +
       scale_color_workload() +
-      facet_grid(vars(workload_type)) +
-      theme(legend.position='none')) %>%
+      facet_grid(vars(workload_type), vars(start_times_distribution), scales="free_y") +
+      theme_bw() +
+      theme(legend.position='none',
+            strip.background = element_blank())) %>%
       save_png("paper/images/param_dependency.png")
 
 )
