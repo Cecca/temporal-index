@@ -337,6 +337,19 @@ scale_fill_algorithm <- function() {
   scale_fill_manual(values=colors, aesthetics = c("fill", "color"))
 }
 
+scale_color_workload <- function() {
+  colors <- RColorBrewer::brewer.pal(n=8, name="Set2")
+  colors <- ggthemes::tableau_color_pal(type="regular")
+  workloads <- c(
+    "both",
+    "time",
+    "duration"
+  )
+  colors <- colors(length(workloads))
+  names(colors) <- workloads
+  scale_fill_manual(values=colors, aesthetics = c("fill", "color"))
+}
+
 build_plot_label <- function(dataset) {
   assert_that(distinct(dataset, dataset) %>% nrow() == 1)
   assert_that(distinct(dataset, dataset_params) %>% nrow() == 1)

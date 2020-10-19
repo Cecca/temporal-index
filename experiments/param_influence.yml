@@ -1,0 +1,34 @@
+---
+
+# Experiments on the influence of parameters
+- datasets:
+    - Random:
+        seed: [123]
+        n: 
+          - 10000000
+        start_times:
+          - Uniform: { low: 1, high: 10000000 }
+        durations:
+          - Zipf: { n: 10000000, beta: 1 }
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [20000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 10000000 },
+              Zipf: { n: 10000000, beta: 1 }
+          ]
+          - Free
+        duration:
+          # Long duration low selectivity
+          - Pair: [
+              Uniform: { low: 1, high: 10000 },
+              Uniform: { low: 1, high: 10000 },
+          ]
+          - Free
+
+  algorithms:
+    - PeriodIndexPlusPlus:
+        page_size: [1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
