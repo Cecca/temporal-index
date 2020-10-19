@@ -15,7 +15,7 @@
   queries:
     - Random:
         seed: [23512]
-        n: [5000]
+        n: [5000, 20000]
         range:
           - Pair: [
               Uniform: { low: 1, high: 10000000 },
@@ -76,7 +76,7 @@
   queries:
     - Random:
         seed: [23512]
-        n: [5000]
+        n: [5000, 20000]
         range:
           - Pair: [
               Uniform: { low: 1, high: 1000000000 },
@@ -88,21 +88,21 @@
               Uniform: { low: 1, high: 10000 },
               Uniform: { low: 1, high: 10000 },
           ]
-          # Short duration high selectivity
-          - Pair: [
-              Uniform: { low: 1, high: 100 },
-              Uniform: { low: 1, high: 100 },
-          ]
-          # Short duration low selectivity
-          - Pair: [
-              Uniform: { low: 1, high: 100 },
-              Uniform: { low: 1, high: 10000 },
-          ]
-          # Long duration high selectivity
-          - Pair: [
-              Uniform: { low: 1, high: 10000 },
-              Uniform: { low: 1, high: 100 },
-          ]
+          # # Short duration high selectivity
+          # - Pair: [
+          #     Uniform: { low: 1, high: 100 },
+          #     Uniform: { low: 1, high: 100 },
+          # ]
+          # # Short duration low selectivity
+          # - Pair: [
+          #     Uniform: { low: 1, high: 100 },
+          #     Uniform: { low: 1, high: 10000 },
+          # ]
+          # # Long duration high selectivity
+          # - Pair: [
+          #     Uniform: { low: 1, high: 10000 },
+          #     Uniform: { low: 1, high: 100 },
+          # ]
 
   algorithms:
     - PeriodIndexPlusPlus:
@@ -111,6 +111,6 @@
     - GridFile:
         side_cells: [100, 1000, 10000]
     - PeriodIndexStar:
-        num_buckets: [32, 64, 128]
-        num_levels: [4096]
+        num_buckets: [32]
+        num_levels: [4]
 
