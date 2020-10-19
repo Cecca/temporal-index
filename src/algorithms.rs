@@ -8,6 +8,7 @@ pub mod naive;
 pub mod nested_btree;
 pub mod nested_vecs;
 pub mod period_index;
+pub mod period_index_old;
 pub mod period_index_plusplus;
 
 pub use btree::*;
@@ -20,4 +21,5 @@ pub use naive::*;
 pub use nested_btree::*;
 pub use nested_vecs::*;
 pub use period_index::*;
+pub use period_index_old::*;
 pub use period_index_plusplus::*;
