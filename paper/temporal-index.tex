@@ -400,7 +400,7 @@ In particular, we aim to answer the following questions:
 To this end, we implemented our index, as well as some baseline competitors,
 using Rust 1.44.0. Our implementation, which is open source and available
 at~\url{TODO}, allows to easily tune the parameters to explore
-different questions~\cite{shameless-plug}.
+different questions.
 The experiments presented in this section have been run on a machine
 equipped with XXX Gb of memory and a YYY processor.
 
@@ -423,10 +423,15 @@ distributed endpoints in different ranges.
     containing potentially overlapping intervals.
     Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
 
-    Given this, my implementation uses an array to hold all the cells, event the empty ones,
-    thus allowing to directly index into it.
-    Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
-    Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
+    Given this, my implementation uses an array for each level to hold all the
+    \emph{non-empty} cells together with their index. Therefore, indexing is accomplished
+    by binary searching for the smallest useful index and then scanning from there.
+    Of course insertion is now more expensive, because we have to insert into vectors
+    in middle positions, and also indexing is slower, but we can deal with larger datasets.
+    % Given this, my implementation uses an array to hold all the cells, event the empty ones,
+    % thus allowing to directly index into it.
+    % Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
+    % Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
 \end{tcolorbox}
 
 \begin{figure}
@@ -449,6 +454,7 @@ distributed endpoints in different ranges.
     \includegraphics[width=\textwidth]{images/scalability.png}
     \caption{Scalability of the index structures for the increasing dataset sizes, up to one billion intervals.
         Each point corresponds to the best configuration of the given data structure for a particular dataset size.
+        The workload is of range-duration queries.
         \label{fig:scalability}}
     \Description{Scalability figure, showing that our proposed approach has superior performance for all tested
         dataset sizes, and scales gracefully.}
