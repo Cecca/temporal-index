@@ -375,7 +375,7 @@ plan <- drake_plan(
             color=workload_type)) +
       geom_point() +
       geom_line() +
-      scale_x_continuous(trans="log10", limits=c(10,400)) +
+      scale_x_continuous(trans="log10", limits=c(10,NA)) +
       scale_y_continuous(limits=c(0,NA)) +
       scale_color_workload() +
       facet_grid(vars(workload_type), vars(start_times_distribution), scales="free_y") +
