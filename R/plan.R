@@ -45,7 +45,7 @@ plan <- drake_plan(
       )
     ) %>%
     mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-    filter(dataset_n == 10000000) %>%
+    filter(dataset_n == 10000000, queryset_n == 5000) %>%
     select(-time_query_ms, -time_index_ms)
     ,
   
@@ -76,32 +76,32 @@ plan <- drake_plan(
     format = "fst_dt"
   ),
 
-  query_stats = target(
-    {
-      base_data <- best %>%
-        lazy_dt() %>%
-        filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
-        inner_join(queries) 
+  # query_stats = target(
+  #   {
+  #     base_data <- best %>%
+  #       lazy_dt() %>%
+  #       filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
+  #       inner_join(queries) 
       
-      total_times <- base_data %>%
-        group_by(start_times_distribution, algorithm, workload_type) %>%
-        summarise(total_query_time = sum(query_time_ns))
+  #     total_times <- base_data %>%
+  #       group_by(start_times_distribution, algorithm, workload_type) %>%
+  #       summarise(total_query_time = sum(query_time_ns))
 
-      ranking <- base_data %>%
-        group_by(start_times_distribution, algorithm, workload_type) %>%
-        arrange(query_time_ns) %>%
-        mutate(
-          group_rank = ntile(query_time_ns, 50)
-        ) %>%
-        group_by(start_times_distribution, algorithm, workload_type, group_rank) %>%
-        summarise(group_query_time = sum(query_time_ns))
+  #     ranking <- base_data %>%
+  #       group_by(start_times_distribution, algorithm, workload_type) %>%
+  #       arrange(query_time_ns) %>%
+  #       mutate(
+  #         group_rank = ntile(query_time_ns, 50)
+  #       ) %>%
+  #       group_by(start_times_distribution, algorithm, workload_type, group_rank) %>%
+  #       summarise(group_query_time = sum(query_time_ns))
 
-      inner_join(ranking, total_times) %>%
-        mutate(fraction_total_query_time = group_query_time / total_query_time) %>%
-        as.data.table()
-    },
-    format = "fst_dt",
-  ),
+  #     inner_join(ranking, total_times) %>%
+  #       mutate(fraction_total_query_time = group_query_time / total_query_time) %>%
+  #       as.data.table()
+  #   },
+  #   format = "fst_dt",
+  # ),
 
   querystats_plot = {
     p <- data %>% 
@@ -367,5 +367,19 @@ plan <- drake_plan(
     ) %>%
     mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
     get_params(algorithm_params, ""),
+
+  
+  plot_algo_param_dep = (ggplot(data_algo_param_dep, 
+        aes(x=page_size, 
+            y=drop_units(qps),
+            color=workload_type)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(trans="log10", limits=c(10,400)) +
+      scale_y_continuous(limits=c(0,NA)) +
+      scale_color_workload() +
+      facet_grid(vars(workload_type)) +
+      theme(legend.position='none')) %>%
+      save_png("paper/images/param_dependency.png")
 
 )
