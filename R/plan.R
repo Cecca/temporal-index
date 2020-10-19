@@ -339,15 +339,33 @@ plan <- drake_plan(
     )
   },
 
-  data_algo_param_dep = data %>%
+  data_algo_param_dep = table_main(conn, file_in("temporal-index-results.sqlite")) %>%
+    as_tibble() %>%
     filter(
       algorithm == "period-index++",
-      queryset_params %in% c(
-        "seed=23512 n=5000  durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100",
-        "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100",
-        "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 "
-      ),
     ) %>%
+    mutate(
+      date = parse_datetime(date),
+      is_estimate = is_estimate > 0
+    ) %>%
+    mutate(
+      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
+      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[,2]),
+      time_queries = set_units(time_query_ms, "ms"),
+      time_index = set_units(time_index_ms, "ms"),
+      total_time = time_index + time_queries,
+      qps = queryset_n / set_units(time_queries, "s")
+    ) %>%
+    filter(queryset_n == 20000, dataset_n == 10000000) %>%
+    mutate(
+      workload_type = case_when(
+        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+        queryset == "random-None-uniform-uniform" ~ "duration",
+        queryset == "random-uniform-zipf-None" ~ "time",
+        TRUE ~ "Unknown"
+      )
+    ) %>%
+    mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
     get_params(algorithm_params, ""),
 
 )
