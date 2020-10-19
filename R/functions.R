@@ -323,6 +323,7 @@ scale_fill_algorithm <- function() {
     "BTree",
     # "period-index",
     "period-index-*",
+    "period-index-old-*",
     "period-index++",
     # "grid",
     # "grid3D",       
