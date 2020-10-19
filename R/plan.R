@@ -35,6 +35,16 @@ plan <- drake_plan(
       # output_throughput = output_throughput_ints_ns %>%
       #   set_units("records/ns") %>% set_units("records/s")
     ) %>%
+    mutate(
+      workload_type = case_when(
+        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+        queryset == "random-None-uniform-uniform" ~ "duration",
+        queryset == "random-uniform-zipf-None" ~ "time",
+        queryset == "Mixed" ~ "mixed",
+        TRUE ~ "Unknown"
+      )
+    ) %>%
+    mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
     filter(dataset_n == 10000000) %>%
     select(-time_query_ms, -time_index_ms)
     ,
@@ -212,7 +222,7 @@ plan <- drake_plan(
   historical_variations = table_history(conn, file_in("temporal-index-results.sqlite")) %>%
     group_by(algorithm, workload) %>% 
     arrange(algorithm_version, date) %>% 
-    transmute(algorithm_version, date, variation = time_query_ms / lag(time_query_ms)) %>% 
+    transmute(algorithm_version, date, time_query_ms, diff = time_query_ms - lag(time_query_ms), variation = time_query_ms / lag(time_query_ms)) %>% 
     ungroup() %>%
     arrange(algorithm, workload, algorithm_version, date)
   ,
@@ -240,67 +250,6 @@ plan <- drake_plan(
       ungroup()
     inner_join(mingroup, maxgroup)
   },
-
-  # query_stats_both = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
-  #                                      dataset_val = "random-uniform-zipf",
-  #                                      dataset_params_val = "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-  #                                      queryset_val = "random-uniform-zipf-uniform-uniform",
-  #                                      queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
-  # query_stats_range = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
-  #                                      dataset_val = "random-uniform-zipf",
-  #                                      dataset_params_val = "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-  #                                      queryset_val = "random-uniform-zipf-None",
-  #                                      queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 "),
-  # query_stats_duration = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
-  #                                      dataset_val = "random-uniform-zipf",
-  #                                      dataset_params_val = "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-  #                                      queryset_val = "random-None-uniform-uniform",
-  #                                      queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
-
-  # query_stats_both_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
-  #                                      dataset_val = "random-clustered-zipf",
-  #                                      dataset_params_val = "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-  #                                      queryset_val = "random-uniform-zipf-uniform-uniform",
-  #                                      queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
-  # query_stats_range_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
-  #                                      dataset_val = "random-clustered-zipf",
-  #                                      dataset_params_val = "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-  #                                      queryset_val = "random-uniform-zipf-None",
-  #                                      queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 "),
-  # query_stats_duration_clustered = table_query_stats(conn, file_in("temporal-index-results.sqlite"),
-  #                                      dataset_val = "random-clustered-zipf",
-  #                                      dataset_params_val = "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-  #                                      queryset_val = "random-None-uniform-uniform",
-  #                                      queryset_params_val = "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100"),
-
-  # plot_latency_both = query_stats_both %>% distribution_latency(),
-  # plot_normalized_latency_both = query_stats_both %>% distribution_normalized_latency(),
-  # plots_latencies_both = {
-  #   p <- plot_grid(plot_latency_both, plot_normalized_latency_both)
-  #   save_png(p, "imgs/latencies_both.png")
-  # },
-
-  # plot_latency_both_clustered = query_stats_both_clustered %>% distribution_latency(),
-  # plot_normalized_latency_both_clustered = query_stats_both_clustered %>% distribution_normalized_latency(),
-  # plots_latencies_both_clustered = {
-  #   p <- plot_grid(plot_latency_both_clustered, plot_normalized_latency_both_clustered)
-  #   save_png(p, "imgs/latencies_both_clustered.png")
-  # },
-
-  # plot_latency_range = query_stats_range %>% distribution_latency(),
-  # plot_normalized_latency_range = query_stats_range %>% distribution_normalized_latency(),
-  # # plot_overhead_range = query_stats_range %>% distribution_overhead(),
-
-  # plot_latency_duration = query_stats_duration %>% distribution_latency(),
-  # plot_normalized_latency_duration = query_stats_duration %>% distribution_normalized_latency(),
-  # # plot_overhead_duration = query_stats_duration %>% distribution_overhead(),
-
-  # period_index_buckets = table_period_index_buckets(conn, file_in("temporal-index-results.sqlite"),
-  #                                                   dataset_val = "random-uniform-zipf",
-  #                                                   dataset_params_val = "123:10000000_1:10000000_10000000:1",
-  #                                                   queryset_val = "random-uniform-zipf-uniform-uniform",
-  #                                                   queryset_params_val = "23512:5000_1:10000000_10000000:1_1:100_1:100"),
-
 
   plot_both_uniform = data %>%
     filter(
@@ -375,42 +324,6 @@ plan <- drake_plan(
     barchart_qps() %>%
     save_png(file_out("imgs/qps_duration_only_clustered.png")),
 
-  # ## Uniform distribution of start times
-  # distribution_start_time = get_histograms("dataset-start-times", "experiments/all.yml") %>%
-  #   filter(parameters == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
-  # distribution_duration = get_histograms("dataset-durations", "experiments/all.yml") %>%
-  #   filter(parameters == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
-  # dataset_intervals = get_dump("dataset", "experiments/all.yml") %>%
-  #   filter(parameters == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", name == "random-uniform-zipf"),
-  # plot_dataset_intervals = draw_dataset(dataset_intervals),
-  # plot_distribution_start_time = plot_histogram(distribution_start_time, "start time"),
-  # plot_distribution_duration = plot_point_distribution(distribution_duration, "duration"),
-  # plot_distribution = cowplot::plot_grid(
-  #     plot_distribution_start_time,
-  #     plot_distribution_duration,
-  #     plot_dataset_intervals,
-  #     ncol=3
-  #   ) %>%
-  #   save_png("imgs/distribution_plots.png", width=10, height=4),
-
-  # ## Clustered distribution of start times
-  # distribution_start_time_clustered = get_histograms("dataset-start-times", "experiments/all.yml") %>%
-  #   filter(parameters == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
-  # distribution_duration_clustered = get_histograms("dataset-durations", "experiments/all.yml") %>%
-  #   filter(parameters == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
-  # dataset_intervals_clustered = get_dump("dataset", "experiments/all.yml") %>%
-  #   filter(parameters == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1"),
-  # plot_dataset_intervals_clustered = draw_dataset(dataset_intervals_clustered),
-  # plot_distribution_start_time_clustered = plot_histogram(distribution_start_time_clustered, "start time"),
-  # plot_distribution_duration_clustered = plot_point_distribution(distribution_duration_clustered, "duration"),
-  # plot_distribution_clustered = cowplot::plot_grid(
-  #     plot_distribution_start_time_clustered,
-  #     plot_distribution_duration_clustered,
-  #     plot_dataset_intervals_clustered,
-  #     ncol=3
-  #   ) %>%
-  #   save_png("imgs/distribution_plots_clustered.png", width=10, height=4),
-
   overview_qps = {
     p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
     save_png(p, file_out("paper/images/overview-qps.png"),
@@ -426,26 +339,15 @@ plan <- drake_plan(
     )
   },
 
-
-  # overview_output_throughput = {
-  #   p <- plot_overview2(data, output_throughput, xlab="output throughput (records/s)",
-  #                       annotations_selector=which.min)
-  #   save_png(p, file_out("imgs/overview-output-thoughput.png"))
-  #   girafe(
-  #     ggobj=p, 
-  #     width_svg=10,
-  #     height_svg=6,
-  #     options = list(
-  #       opts_hover(css = "r:4; opacity: 1.0;"),
-  #       opts_hover_inv(css = "opacity: 0.2;")
-  #     ) 
-  #   )
-  # },
-
-  # report = rmarkdown::render(
-  #   knitr_in("R/report.Rmd"),
-  #   output_file = file_out("report.html"),
-  #   output_dir = "."
-  # ),
+  data_algo_param_dep = data %>%
+    filter(
+      algorithm == "period-index++",
+      queryset_params %in% c(
+        "seed=23512 n=5000  durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100",
+        "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 durmin_low=1 durmin_high=100 durmax_low=1 durmax_high=100",
+        "seed=23512 n=5000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 "
+      ),
+    ) %>%
+    get_params(algorithm_params, ""),
 
 )
