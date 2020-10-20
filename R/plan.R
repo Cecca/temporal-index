@@ -14,6 +14,7 @@ plan <- drake_plan(
       algorithm != "grid3D",
       algorithm != "NestedVecs",
       algorithm != "NestedBTree",
+      algorithm != "period-index-old-*",
       !str_detect(queryset, "Mixed"),
     ) %>%
     mutate(
@@ -45,7 +46,7 @@ plan <- drake_plan(
       )
     ) %>%
     mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-    filter(dataset_n == 10000000, queryset_n == 20000) %>%
+    filter(dataset_n == 10000000, queryset_n == 5000) %>%
     select(-time_query_ms, -time_index_ms)
     ,
   
@@ -359,7 +360,7 @@ plan <- drake_plan(
     get_params(queryset_params, "q_") %>%
     filter(
       queryset_n == 20000, 
-      dataset_n == 10000000,
+      dataset_n %in% c(10000000),
       (q_durmin_high == 10000 | is.na(q_durmin_high)),
       (q_durmax_high == 10000 | is.na(q_durmax_high))
     ) %>%
@@ -377,12 +378,11 @@ plan <- drake_plan(
   
   plot_algo_param_dep = (ggplot(data_algo_param_dep, 
         aes(x=page_size, 
-            y=drop_units(qps),
-            color=queryset_params)) +
+            y=drop_units(qps))) +
       geom_point() +
       geom_line() +
       scale_x_continuous(trans="log10", limits=c(10,NA)) +
-      scale_y_continuous(limits=c(0,NA)) +
+      scale_y_continuous(limits=c(NA,NA)) +
       #scale_color_workload() +
       facet_grid(vars(workload_type), vars(start_times_distribution), scales="free_y") +
       theme_bw() +
