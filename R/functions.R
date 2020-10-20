@@ -505,7 +505,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
                  shape=15,
                  color="white") +
       geom_point_interactive(aes(data_id=data_id, 
-                                 shape=is_estimate, 
+                                #  shape=is_estimate, 
                                  tooltip=algorithm_params),
                              size=1.4) +
       geom_text_interactive(aes(x=algo_id - 0.1 , y=bin, data_id=data_id, 
@@ -580,8 +580,4 @@ plot_top_query_times <- function(querystats) {
     scale_fill_algorithm() +
     coord_flip() +
     theme_tufte()
-}
-
-eq_or_na <- function(col, val) {
-  {{ col }} == val | is.na(col)
 }

@@ -9,6 +9,12 @@
 \newcommand{\BO}[1]{O\left(#1\right)}
 \renewcommand{\epsilon}{\varepsilon}
 
+\usepackage{xspace}
+\newcommand{\algo}[1]{\textsc{#1}}
+\newcommand{\ours}{\algo{period-index++}\xspace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \title{Indexing temporal relations for range-duration queries}
 
 \begin{abstract}
@@ -391,10 +397,10 @@ at the same time increasing the number of columns that need to be queried.
 In this section we compare experimentally our proposed index with alternative approaches.
 In particular, we aim to answer the following questions:
 \begin{enumerate}
-    \item How robust are the indices over different workloads?
-    \item What are the aspects changing the query time the most?
-    \item How does the page size parameter affect the performance of the index?
-    \item How do the indices scale with respect to the size of the dataset?
+    \item How robust are the indices over different workloads? (Section~\ref{sec:overview})
+    \item How are query times distributed? (Section~\ref{sec:query-inspect})
+    \item How does the page size parameter affect the performance of the index? (Section~\ref{sec:param-dep})
+    \item How do the indices scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
 \end{enumerate}
 
 To this end, we implemented our index, as well as some baseline competitors,
@@ -434,6 +440,9 @@ distributed endpoints in different ranges.
     % Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
 \end{tcolorbox}
 
+\subsection{Robustness of index structures across different workloads}
+\label{sec:overview}
+
 \begin{figure}
     \includegraphics[width=\textwidth]{images/overview-qps.png}
     \caption{Overview of the performance of the tested index structures
@@ -442,6 +451,37 @@ distributed endpoints in different ranges.
     \Description{Overview of the performance of the algortihms.}
 \end{figure}
 
+In the first set of experiments, we generate datasets of 10 million intervals each,
+using different start time and duration distributions. Similarly we generate several different
+query workloads.
+Figure~\ref{fig:overview-qps} reports on the performance, in terms of queries per second, of
+different index structures under the different combinations of dataset/query workload.
+For index structures that take parameters, we report on the best configuration for each
+combination of dataset and query workload.
+
+Each dot in the figure represents the performance of an index structure on a given
+combination of dataset and query workload. For readability, the scale of the plot
+is logarithmic, and points are snapped to a grid, so that points representing configurations
+with similar performance are stacked on top of one another.
+\cetodo{I have to prepare the online interactive version.}
+The online interactive version of the plot allows to get a detailed comparison
+by hovering on points.
+
+From the plot we can see that \ours has better median performance across all the tested
+workloads, and also higher minimum and maximum throughput.
+Since it builds an index on the durations of the intervals,
+the \algo{b-tree} performs poorly on query workloads constraining only the time range, since
+in this case the query falls back to a scan of the entire dataset.
+Similarly, the \algo{interval-tree} performs poorly on query workloads constraining
+only the duration.
+
+We also observe that the \algo{grid-file} performs consistently works than \ours,
+despite being both grid-based structures. This shows the benefit of a data structure
+that is adaptive with respect to the data.
+
+\subsection{Distribution of query times against selectivity}
+\label{sec:query-inspect}
+
 \begin{figure}
     \includegraphics[width=\textwidth]{images/selectivity_vs_time.png}
     \caption{Relationship between the query selectivity and query time, for different
@@ -449,6 +489,50 @@ distributed endpoints in different ranges.
         on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
     \Description{Time versus selectivity}
 \end{figure}
+
+\subsection{Dependency on the page size parameter}
+\label{sec:param-dep}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{images/param_dependency.png}
+    \caption{Dependency of the performance, in terms of queries per second, on the
+        page size parameter.
+        \label{fig:param-dependency}}
+    \Description{}
+\end{figure}
+
+To test the dependency of the query time on the \emph{page size} parameter, we consider
+a dataset with 10 million intervals with starting times both uniformly
+distributed between 0 and 10 million and clustered around 10 random centers,
+and durations distributed according to a
+Zipf's law with $\beta = 1$.
+As for the query workload, we consider batches of 20\,000 queries with both a time and duration component,
+only the duration component and only the time component.
+
+Figure~\ref{fig:param-dependency} reports the results of varying the page size of the
+index under these different workloads, in terms of queries per second.
+Interestingly, we observe different trends for different query workloads.
+First, consider queries that constrain both the time and the duration.
+For both the distributions of start times that we consider, the peak performance
+is around page size 100.
+This behavior, with the performance increasing to a peak and then decreasing, is in line with
+our complexity analysis of the query time.
+
+If we move our attention, instead, to queries constraining only the duration, we see
+that increasing the page size is detrimental, with performance staying approximately the
+same up until around page size 100.
+This is also in line with our expectations: a larger page size means a coarser partitioning
+of the dataset.
+All the intervals in cells in the same duration column are considered as being part of the output,
+therefore having less duration columns forces each query to evaluate more non-matching intervals,
+thus increasing the running time.
+
+Conversely, the performance improves with the page size when the queries constrain only
+the time range. In this case having fewer duration columns means that fewer groups of cells
+will need to be queried, thus improving performance.
+
+\section{Scalability with respect to the input size}
+\label{sec:scalability}
 
 \begin{figure}
     \includegraphics[width=\textwidth]{images/scalability.png}
@@ -460,14 +544,7 @@ distributed endpoints in different ranges.
         dataset sizes, and scales gracefully.}
 \end{figure}
 
-\begin{figure}
-    \includegraphics[width=\textwidth]{images/param_dependency.png}
-    \caption{Dependency of the performance, in terms of queries per second, on the
-        page size parameter.
-        TODO: change the size parameter to see if the peak of the curve moves
-        \label{fig:param-dependency}}
-    \Description{}
-\end{figure}
+
 
 \bibliographystyle{plain}
 \bibliography{references}
