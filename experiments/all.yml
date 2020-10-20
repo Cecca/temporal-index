@@ -15,7 +15,7 @@
   queries:
     - Random:
         seed: [23512]
-        n: [5000, 20000]
+        n: [5000]
         range:
           - Pair: [
               Uniform: { low: 1, high: 10000000 },
