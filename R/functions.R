@@ -581,3 +581,7 @@ plot_top_query_times <- function(querystats) {
     coord_flip() +
     theme_tufte()
 }
+
+eq_or_na <- function(col, val) {
+  {{ col }} == val | is.na(col)
+}
