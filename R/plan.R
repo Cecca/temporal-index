@@ -45,7 +45,7 @@ plan <- drake_plan(
       )
     ) %>%
     mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-    filter(dataset_n == 10000000, queryset_n == 5000) %>%
+    filter(dataset_n == 10000000, queryset_n == 20000) %>%
     select(-time_query_ms, -time_index_ms)
     ,
   
@@ -251,78 +251,78 @@ plan <- drake_plan(
     inner_join(mingroup, maxgroup)
   },
 
-  plot_both_uniform = data %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset == "random-uniform-zipf",
-      dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-      queryset == "random-uniform-zipf-uniform-uniform",
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-    barchart_qps() %>%
-    save_png(file_out("imgs/qps_both_uniform.png")),
+  # plot_both_uniform = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-uniform-zipf",
+  #     dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+  #     queryset == "random-uniform-zipf-uniform-uniform",
+  #   ) %>%
+  #   get_params(queryset_params, "q_") %>%
+  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_both_uniform.png")),
 
-  plot_range_only_uniform = data %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset == "random-uniform-zipf",
-      dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-      queryset == "random-uniform-zipf-None",
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    inline_print() %>%
-    mutate(workload = interaction(q_start_low, q_start_high, q_dur_n, q_dur_beta)) %>%
-    barchart_qps() %>%
-    save_png(file_out("imgs/qps_time_only_uniform.png")),
+  # plot_range_only_uniform = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-uniform-zipf",
+  #     dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+  #     queryset == "random-uniform-zipf-None",
+  #   ) %>%
+  #   get_params(queryset_params, "q_") %>%
+  #   inline_print() %>%
+  #   mutate(workload = interaction(q_start_low, q_start_high, q_dur_n, q_dur_beta)) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_time_only_uniform.png")),
 
-  plot_duration_only_uniform = data %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset == "random-uniform-zipf",
-     dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-      queryset == "random-None-uniform-uniform",
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-    barchart_qps() %>%
-    save_png(file_out("imgs/qps_duration_only_uniform.png")),
+  # plot_duration_only_uniform = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-uniform-zipf",
+  #    dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+  #     queryset == "random-None-uniform-uniform",
+  #   ) %>%
+  #   get_params(queryset_params, "q_") %>%
+  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_duration_only_uniform.png")),
 
-  plot_both_clustered = data %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset == "random-clustered-zipf",
-      dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-      queryset == "random-uniform-zipf-uniform-uniform",
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-    barchart_qps() %>%
-    save_png(file_out("imgs/qps_both_clustered.png")),
+  # plot_both_clustered = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-clustered-zipf",
+  #     dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
+  #     queryset == "random-uniform-zipf-uniform-uniform",
+  #   ) %>%
+  #   get_params(queryset_params, "q_") %>%
+  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_both_clustered.png")),
 
-  plot_range_only_clustered = data %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset == "random-clustered-zipf",
-      dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-      queryset == "random-uniform-zipf-None",
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    mutate(workload = interaction(q_start_low, q_start_high, q_dur_n, q_dur_beta)) %>%
-    barchart_qps() %>%
-    save_png(file_out("imgs/qps_time_only_clustered.png")),
+  # plot_range_only_clustered = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-clustered-zipf",
+  #     dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
+  #     queryset == "random-uniform-zipf-None",
+  #   ) %>%
+  #   get_params(queryset_params, "q_") %>%
+  #   mutate(workload = interaction(q_start_low, q_start_high, q_dur_n, q_dur_beta)) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_time_only_clustered.png")),
 
-  plot_duration_only_clustered = data %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset == "random-clustered-zipf",
-      dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-      queryset == "random-None-uniform-uniform",
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-    barchart_qps() %>%
-    save_png(file_out("imgs/qps_duration_only_clustered.png")),
+  # plot_duration_only_clustered = data %>%
+  #   filter(
+  #     hostname == "ironmaiden",
+  #     dataset == "random-clustered-zipf",
+  #     dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
+  #     queryset == "random-None-uniform-uniform",
+  #   ) %>%
+  #   get_params(queryset_params, "q_") %>%
+  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
+  #   barchart_qps() %>%
+  #   save_png(file_out("imgs/qps_duration_only_clustered.png")),
 
   overview_qps = {
     p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
@@ -356,7 +356,13 @@ plan <- drake_plan(
       total_time = time_index + time_queries,
       qps = queryset_n / set_units(time_queries, "s")
     ) %>%
-    filter(queryset_n == 20000, dataset_n == 10000000) %>%
+    get_params(queryset_params, "q_") %>%
+    filter(
+      queryset_n == 20000, 
+      dataset_n == 10000000,
+      (q_durmin_high == 10000 | is.na(q_durmin_high)),
+      (q_durmax_high == 10000 | is.na(q_durmax_high))
+    ) %>%
     mutate(
       workload_type = case_when(
         queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
@@ -372,15 +378,16 @@ plan <- drake_plan(
   plot_algo_param_dep = (ggplot(data_algo_param_dep, 
         aes(x=page_size, 
             y=drop_units(qps),
-            color=workload_type)) +
+            color=queryset_params)) +
       geom_point() +
       geom_line() +
       scale_x_continuous(trans="log10", limits=c(10,NA)) +
       scale_y_continuous(limits=c(0,NA)) +
-      scale_color_workload() +
+      #scale_color_workload() +
       facet_grid(vars(workload_type), vars(start_times_distribution), scales="free_y") +
       theme_bw() +
-      theme(legend.position='none',
+      theme(legend.position='bottom',
+            legend.direction='vertical',
             strip.background = element_blank())) %>%
       save_png("paper/images/param_dependency.png")
 
