@@ -4,27 +4,82 @@
 <head>
     <meta charset="utf-8">
     <title>Overview of the results</title>
+    <link href="styles.min.css" rel="stylesheet">
     <script type="text/javascript" src="d3.js"></script>
 </head>
 
-<body>
+<body class="bg-gray-100">
+    <section class="pt-8 pb-8 w-11/12 mx-auto">
+        <p>
+            The plots below report the performance of all the
+            tested data structures on all the workloads we tried.
+        </p>
+        <p>Hovering on a point will show a bar chart with a detailed
+            comparison of the performance of the algorithms
+            for that particular combination of dataset
+            and workload.
+        </p>
+    </section>
+
+    <div class="mx-auto w-11/12 grid grid-cols-3 gap-1">
+        <div class="mx-auto col-span-2 flex flex-col gap-3">
+            <div class="bg-white rounded shadow p-8">
+                <svg id="dotsSvg" class="w-full" height=500></svg>
+            </div>
+            <div class="bg-white rounded shadow p-8">
+                <svg id="barsSvg" class="w-full" height=200></svg>
+            </div>
+        </div>
+
+        <div class="col-span-1 bg-white rounded shadow p-8 grid grid-rows-2">
+            <div>
+                <h1 class="text-lg text-gray-700">Dataset parameters</h1>
+                <p id="datasetType" class="font-semibold"></p>
+                <ul id="datasetParameters"></ul>
+            </div>
+
+            <div>
+                <h1 class="text-lg text-gray-700">Queryset parameters</h1>
+                <p id="querysetType" class="font-semibold"></p>
+                <ul id="querysetParameters"></ul>
+            </div>
+        </div>
+    </div>
+
     <script type="text/javascript">
-        var width = 1000;
-        var height = 600;
         var margin = {
             "left": 100,
-            "right": 10,
+            "right": 40,
             "top": 10,
             "bottom": 20,
         };
         var radiusAtRest = 4;
         var dataset;
-        var svg = d3.select("body")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
+        var svgDots = d3.select("#dotsSvg");
+        var bbox = document.querySelector("#dotsSvg").getBoundingClientRect();
+        var svgDotsDims = {
+            "width": bbox.width,
+            "height": bbox.height,
+        };
+        console.log(svgDotsDims);
+        var svgBars = d3.select("#barsSvg");
+        var bbox = document.querySelector("#barsSvg").getBoundingClientRect();
+        var svgBarsDims = {
+            "width": bbox.width,
+            "height": bbox.height,
+        };
+        // .append("svg")
+        // .attr("width", width)
+        // .attr("height", height);
+        var xAxisBars, yAxisBars;
+        var gx = svgBars.append("g")
+            .attr("transform", "translate(0," + (svgBarsDims.height - margin.bottom) + ")")
+        var gy = svgBars.append("g")
+            .attr("transform", "translate(" + (margin.left) + ", 0)")
+
         var lastId = 0;
         var classIds = {};
+        var classIdData = {};
 
         function logsnap(x, step) {
             return Math.floor(10 ** (Math.ceil(Math.log10(x) * step) / step));
@@ -43,7 +98,7 @@
 
         }
 
-        function drawBars(drawGroup, barsData, xScale, yScale) {
+        function drawBoxPlots(drawGroup, barsData, xScale, yScale) {
             var barsLong = drawGroup.append("g");
             var barsShort = drawGroup.append("g");
             var medianPoints = drawGroup.append("g");
@@ -122,22 +177,102 @@
                 .attr("font-size", "smaller");
         }
 
-        function addInteractions(dots, text) {
+        function drawBars(drawGroup, currentClass, xScale, yScale) {
+            const t = svgBars.transition().duration(500);
+
+            var plotData = d3.filter(dataset, d => d.classId == currentClass);
+            console.log(plotData);
+
+            var maxQps = d3.max(plotData, function (d) { return d.qps });
+            console.log("maximum QPS " + maxQps);
+
+            xScale
+                .domain([
+                    d3.min(plotData, function (d) { return d.qps; }),
+                    d3.max(plotData, function (d) { return d.qps })
+                ])
+                .nice();
+            gx.transition(t)
+                .call(xAxisBars);
+
+            yScale
+                .domain(plotData.sort((a, b) => b.qps - a.qps).map(function (d) { return d.algorithm }));
+            gy.transition(t)
+                .call(yAxisBars);
+
+            console.log(yScale.bandwidth());
+
+            drawGroup.selectAll("text").remove();
+            drawGroup.selectAll("rect").remove();
+            drawGroup.selectAll("rect")
+                .data(plotData)
+                .enter()
+                .append("rect")
+                .attr("fill", "steelblue")
+                .attr("x", d => xScale(0))
+                .attr("y", d => yScale(d.algorithm))
+                .attr("height", yScale.bandwidth())
+                .transition(t)
+                .attr("width", d => xScale(d.qps) - xScale(0));
+
+            drawGroup.selectAll("text")
+                .data(plotData)
+                .enter()
+                .append("text")
+                .text(d => d3.format(",.0f")(d.qps))
+                .attr("fill", "white")
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("y", d => yScale(d.algorithm) + yScale.bandwidth() / 2)
+                .attr("dy", "0.35em")
+                .attr("dx", -4)
+                .transition(t)
+                .attr("x", d => xScale(d.qps))
+                .call(text => text.filter(d => xScale(d.qps) - xScale(0) < xScale(maxQps) / 6) // short bars
+                    .attr("dx", +4)
+                    .attr("fill", "black")
+                    .attr("text-anchor", "start"));
+
+            // report the configuration of the dataset
+            var ul = d3.select("#datasetParameters");
+            ul.selectAll("li").remove();
+            var params = classIdData[currentClass].dataset_params.split(" ").filter(s => s.length > 0);
+            ul.selectAll("li")
+                .data(params)
+                .enter()
+                .append("li")
+                .text(d => d);
+            document.getElementById("datasetType").textContent = classIdData[currentClass].dataset;
+
+            // report the configuration of the queryset
+            var ul = d3.select("#querysetParameters");
+            ul.selectAll("li").remove();
+            var params = classIdData[currentClass].queryset_params.split(" ").filter(s => s.length > 0);
+            ul.selectAll("li")
+                .data(params)
+                .enter()
+                .append("li")
+                .text(d => d);
+            document.getElementById("querysetType").textContent = classIdData[currentClass].queryset;
+        }
+
+        function addInteractions(dots, text, barsGroup, xScale, yScale) {
             dots.selectAll("circle")
                 .on("mouseover", function (e, d) {
-                    dots.selectAll("circle")
-                        .transition()
-                        .attr("r", radiusAtRest)
-                        .style("opacity", 0.2);
-                    svg.selectAll("." + d.classId)
+                    // dots.selectAll("circle")
+                    //     .transition()
+                    //     .attr("r", radiusAtRest)
+                    //     .style("opacity", 0);
+                    svgDots.selectAll("." + d.classId)
                         .transition()
                         .attr("r", radiusAtRest * 2)
                         .style("opacity", 1);
+                    drawBars(barsGroup, d.classId, xScale, yScale);
                 })
                 .on("mouseout", function () {
                     dots.selectAll("circle")
                         .transition()
-                        .style("opacity", 1)
+                        // .style("opacity", 1)
                         .attr("r", radiusAtRest);
                     text.selectAll("text")
                         .transition()
@@ -157,12 +292,18 @@
                 if (!(k in classIds)) {
                     lastId += 1;
                     classIds[k] = "___cls" + lastId;
+                    classIdData[classIds[k]] = {
+                        "queryset_params": d.queryset_params,
+                        "queryset": d.queryset,
+                        "dataset_params": d.dataset_params,
+                        "dataset": d.dataset
+                    }
                 }
                 return classIds[k];
             }
 
             dataset = dataset.map(function (d) {
-                d.bin = logsnap(d.qps, 20);
+                d.bin = logsnap(d.qps, 10);
                 d.classId = getClassId(d);
                 if (/random-None-.*-.*/.test(d.queryset)) {
                     d.query_workload = "duration only";
@@ -195,24 +336,36 @@
                     d3.max(dataset, function (d) { return d.qps })
                 ])
                 .nice()
-                .range([margin.left, width - margin.right]);
-            console.log(xScale.domain());
+                .range([margin.left, svgDotsDims.width - margin.right]);
             var xAxis = d3.axisBottom(xScale)
                 .tickFormat(d3.format(","))
                 .tickValues([1, 10, 100, 1000, 10000, 100000]);
-            svg.append("g")
-                .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+            svgDots.append("g")
+                .attr("transform", "translate(0," + (svgDotsDims.height - margin.bottom) + ")")
                 .call(xAxis);
+
+            var xScaleLin = d3.scaleLinear()
+                // .nice()
+                .range([margin.left, svgBarsDims.width - margin.right]);
+            xAxisBars = d3.axisBottom(xScaleLin)
+                .tickFormat(d3.format(","));
+            gx.call(xAxisBars);
 
             // Y scale/axis
             var yScale = d3.scalePoint()
                 .domain(stats.sort((a, b) => b.median - a.median).map(function (d) { return d.algorithm }))
-                .range([margin.top, height - margin.bottom])
+                .range([margin.top, svgDotsDims.height - margin.bottom])
                 .padding(1);
             var yAxis = d3.axisLeft(yScale);
-            svg.append("g")
+            svgDots.append("g")
                 .attr("transform", "translate(" + (margin.left) + ", 0)")
                 .call(yAxis);
+
+            var yScaleBand = d3.scaleBand()
+                .range([margin.top, svgBarsDims.height - margin.bottom])
+                .padding(0.1);
+            yAxisBars = d3.axisLeft(yScaleBand);
+            gy.call(yAxisBars);
 
             // Color scale
             var colorScale = d3.scaleOrdinal()
@@ -230,28 +383,25 @@
                 }).flat();
 
             // text
-            var text = svg.append("g");
+            var text = svgDots.append("g");
             drawText(text, grouped, xScale, yScale);
 
             // draw dots
-            var dots = svg.append("g");
+            var dots = svgDots.append("g");
             drawDots(dots, grouped, xScale, yScale, colorScale);
 
-            var bars = svg.append("g");
-            drawBars(bars, stats, xScale, yScale);
+            var boxPlots = svgDots.append("g");
+            drawBoxPlots(boxPlots, stats, xScale, yScale);
 
             // draw legend
-            var legend = svg.append("g")
+            var legend = svgDots.append("g")
                 .attr("transform", "translate(" + (margin.left + 10) + ", " + (margin.top) + ")");
             drawLegend(legend, colorScale);
 
-            const brush = d3.brushX()
-                .extent([[margin.left, 0.5], [width - margin.right, height - margin.bottom + 0.5]])
-                .on("brush", brushed);
-            const gb = svg.append("g")
-                .call(brush);
+            // add the interactions, which draw the bars on demand
+            var bars = svgBars.append("g");
+            addInteractions(dots, text, bars, xScaleLin, yScaleBand);
 
-            addInteractions(dots, text);
         }
 
         d3.csv("best.csv", d3.autoType).then(function (data) {
