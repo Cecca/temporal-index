@@ -13,6 +13,11 @@
 \newcommand{\algo}[1]{\textsc{#1}}
 \newcommand{\ours}{\algo{period-index++}\xspace}
 
+%% Commands defining notation for query types
+\newcommand{\qrd}{\textsc{rd}\xspace}
+\newcommand{\qdo}{\textsc{do}\xspace}
+\newcommand{\qro}{\textsc{ro}\xspace}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title{Indexing temporal relations for range-duration queries}
@@ -407,6 +412,7 @@ To this end, we implemented our index, as well as some baseline competitors,
 using Rust 1.44.0. Our implementation, which is open source and available
 at~\url{TODO}, allows to easily tune the parameters to explore
 different questions.
+All algorithms have been moderately optimized.
 The experiments presented in this section have been run on a machine
 equipped with XXX Gb of memory and a YYY processor.
 
@@ -419,6 +425,9 @@ with $\beta = 1$.
 As for the querysets, we consider the same distributions for the intervals
 used for the overlap part of the query. For duration ranges, we consider uniformly
 distributed endpoints in different ranges.
+In the remainder of the paper, we denote queries constraining both the time range and the
+duration with \qrd (Range-Duration queries), queries constraining only the time range with
+\qro (Range-Only queries) and queries constraining just the duration with \qrd (Duration-Only queries).
 
 \begin{tcolorbox}
     \textbf{A note on my implementation of period-index-$\star$}.\\
@@ -463,9 +472,8 @@ Each dot in the figure represents the performance of an index structure on a giv
 combination of dataset and query workload. For readability, the scale of the plot
 is logarithmic, and points are snapped to a grid, so that points representing configurations
 with similar performance are stacked on top of one another.
-\cetodo{I have to prepare the online interactive version.}
-The online interactive version of the plot allows to get a detailed comparison
-by hovering on points.
+The online interactive version\footnote{https://cecca.github.io/temporal-index/} of the plot allows 
+to get a detailed comparison of the performance of the index structures.
 
 From the plot we can see that \ours has better median performance across all the tested
 workloads, and also higher minimum and maximum throughput.
@@ -475,9 +483,12 @@ in this case the query falls back to a scan of the entire dataset.
 Similarly, the \algo{interval-tree} performs poorly on query workloads constraining
 only the duration.
 
-We also observe that the \algo{grid-file} performs consistently works than \ours,
+We also observe that the \algo{grid-file} performs consistently worse than \ours,
 despite being both grid-based structures. This shows the benefit of a data structure
 that is adaptive with respect to the data.
+
+On duration-only query workloads, \algo{b-tree} is always the best performing index, with
+\ours being just slightly slower.
 
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
@@ -489,6 +500,41 @@ that is adaptive with respect to the data.
         on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
     \Description{Time versus selectivity}
 \end{figure}
+
+\cetodo{\algo{period-index-$\star$} is running, I'm waiting for the results}
+
+We investigate the relationship between the selectivity of the queries (i.e. the fraction of the 
+input that satisfies them) and the time taken by different data structures to answer them.
+Ideally, a data structure should answer the queries in time linearly dependent on the selectivity.
+
+\cetodo{I have to report the parameters of the dataset}
+Figure~\ref{fig:time-vs-selectivity} reports, for all the queries from different workloads
+on the same dataset with selectivity at most $20\%$.
+From the figure, we observe that \ours indeed shows the ideal behavior, irrespective from the
+query type.
+This is consistent with the theoretical analysis: the query time depends on the
+output size, and in practice the overhead for cell inspection can be amortized with
+the correct parameter choice (more on that in the next section).
+Moreover, \ours is able to answer queries in a more timely fashion, compared to the other indices.
+
+If we consider the \algo{b-tree}, instead, we observe that \qdo queries 
+follow indeed the ideal behaviour, whereas queries \qrd queries
+are answered with varying efficiency, depending on how selective is the time range component of the query.
+We don't report on \qro queries for the \algo{b-tree}, since they are answered by simple enumeration.
+
+The \algo{interval-tree} shows a behavior similar to the \algo{b-tree}, with \qro queries
+being the ones that are efficiently answered.
+
+As for the \algo{grid-file}, the query times are more scattered: the efficiency of a query
+in this case is in fact dependent on the density of the cells being considered.
+
+\cetodo{Should detail a little bit more on this.}
+Finally, \algo{period-index$\star$} answers queries with mixed performance, possibly as an effect of intervals
+being replicated across several cells.
+Furthermore, despite being adaptive in the start time distribution, this data structure is not adaptive
+in the duration, which explains the mixed performance of queries constraining the duration.
+\cetodo{I know that buckets decrease the duration in levels with powers of 2, but if the power law distribution
+of the actual intervals does not match this progression, \algo{period-index$\star$ is out of luck.}}
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
@@ -506,19 +552,19 @@ a dataset with 10 million intervals with starting times both uniformly
 distributed between 0 and 10 million and clustered around 10 random centers,
 and durations distributed according to a
 Zipf's law with $\beta = 1$.
-As for the query workload, we consider batches of 20\,000 queries with both a time and duration component,
-only the duration component and only the time component.
+As for the query workload, we consider batches of 20\,000 \qrd, \qro, and \qdo queries.
+\cetodo{We consider more queries for stability in the estimate. With 5000 queries the curves look more noisy.}
 
 Figure~\ref{fig:param-dependency} reports the results of varying the page size of the
 index under these different workloads, in terms of queries per second.
 Interestingly, we observe different trends for different query workloads.
-First, consider queries that constrain both the time and the duration.
+First, consider \qrd queries.
 For both the distributions of start times that we consider, the peak performance
 is around page size 100.
 This behavior, with the performance increasing to a peak and then decreasing, is in line with
 our complexity analysis of the query time.
 
-If we move our attention, instead, to queries constraining only the duration, we see
+If we move our attention, instead, to \qdo queries, we see
 that increasing the page size is detrimental, with performance staying approximately the
 same up until around page size 100.
 This is also in line with our expectations: a larger page size means a coarser partitioning
@@ -527,8 +573,8 @@ All the intervals in cells in the same duration column are considered as being p
 therefore having less duration columns forces each query to evaluate more non-matching intervals,
 thus increasing the running time.
 
-Conversely, the performance improves with the page size when the queries constrain only
-the time range. In this case having fewer duration columns means that fewer groups of cells
+Conversely, the performance improves with the page size for \qro queries. 
+In this case having fewer duration columns means that fewer groups of cells
 will need to be queried, thus improving performance.
 
 \section{Scalability with respect to the input size}
@@ -544,6 +590,12 @@ will need to be queried, thus improving performance.
         dataset sizes, and scales gracefully.}
 \end{figure}
 
+To test the scalability of the data structures, we consider datasets of up to one billion elements, running
+5\,000 \qrd queries.
+Figure~\ref{fig:scalability} reports the performance of the best configuration of each algorithm,
+showing that the performance degrades gracefully as the dataset size increases, for all the data structures
+involved in the comparison.
+For all tested sizes, \ours is about one order of magnitude faster than the second-best data structure.
 
 
 \bibliographystyle{plain}

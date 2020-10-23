@@ -145,6 +145,7 @@ plan <- drake_plan(
         query_time = set_units(as.double(query_time_ns), "ns") %>% set_units("ms"),
         selectivity = query_count / dataset_n
       ) %>%
+      filter(if_else(algorithm == "interval-tree", workload_type != "duration", TRUE)) %>%
       filter(selectivity <= .2) %>%
       group_by(algorithm, start_times_distribution) %>%
       filter(row_number(query_time) < n() - 100),
