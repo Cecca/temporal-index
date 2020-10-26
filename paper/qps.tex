@@ -1,0 +1,33 @@
+\begin{table}[H]
+\centering\begingroup\fontsize{8}{10}\selectfont
+
+\begin{tabular}{rrrrrr}
+\toprule
+queryset & period-index++ & BTree & grid-file & period-index-* & interval-tree\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Uniform start times}}\\
+\hspace{1em}- 100 100 & 1,099 & \underline{1,109} & 39 & 35 & 12\\
+\hspace{1em}- 100 10000 & 213 & 215 & 39 & 25 & 10\\
+\hspace{1em}- 10000 100 & 27,473 & \underline{28,090} & 110 & 51 & 13\\
+\hspace{1em}- 10000 10000 & 1,094 & \underline{1,098} & 99 & 41 & 12\\
+\hspace{1em}10000000 - - & \underline{590} & 10 & 513 & 261 & 227\\
+\hspace{1em}10000000 100 100 & 21,552 & 792 & 866 & 720 & 243\\
+\hspace{1em}10000000 100 10000 & 4,156 & 129 & 846 & 561 & 238\\
+\hspace{1em}10000000 10000 100 & 250,000 & 17,483 & 2,427 & 998 & 254\\
+\hspace{1em}10000000 10000 10000 & 19,455 & 594 & 2,063 & 949 & 245\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Clustered start times}}\\
+\hspace{1em}- 100 100 & 1,098 & 1,108 & 39 & 36 & 17\\
+\hspace{1em}- 100 10000 & 213 & \underline{215} & 38 & 26 & 16\\
+\hspace{1em}- 10000 100 & 27,624 & \underline{28,090} & 102 & 93 & 17\\
+\hspace{1em}- 10000 10000 & 1,094 & 1,097 & 94 & 52 & 17\\
+\hspace{1em}10000000 - - & 547 & 10 & 522 & 216 & 296\\
+\hspace{1em}10000000 100 100 & \underline{24,752} & 1,489 & 936 & 762 & 330\\
+\hspace{1em}10000000 100 10000 & \underline{4,382} & 201 & 910 & 577 & 316\\
+\hspace{1em}10000000 10000 100 & \underline{277,778} & 26,738 & 2,627 & 1,657 & 351\\
+\hspace{1em}10000000 10000 10000 & \underline{21,739} & 893 & 2,260 & 1,084 & 338\\
+\bottomrule
+\end{tabular}
+\endgroup{}
+\end{table}
