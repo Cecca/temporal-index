@@ -1,4 +1,4 @@
-\documentclass[nonacm,timestamp]{acmart}
+\documentclass[sigconf,nonacm]{acmart}
 
 \usepackage{tcolorbox}
 \usepackage{todonotes}
@@ -20,6 +20,25 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% The following content must be adapted for the final version
+% paper-specific
+\newcommand\vldbdoi{XX.XX/XXX.XX}
+\newcommand\vldbpages{XXX-XXX}
+% issue-specific
+\newcommand\vldbvolume{14}
+\newcommand\vldbissue{1}
+\newcommand\vldbyear{2020}
+% should be fine as it is
+\newcommand\vldbauthors{\authors}
+\newcommand\vldbtitle{\shorttitle} 
+% leave empty if no availability url should be set
+\newcommand\vldbavailabilityurl{http://vldb.org/pvldb/format_vol14.html}
+% whether page numbers should be shown or not, use 'plain' for review versions, 'empty' for camera ready
+\newcommand\vldbpagestyle{plain} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
 \title{Indexing temporal relations for range-duration queries}
 
 \begin{abstract}
@@ -27,8 +46,33 @@ We present a learned index for temporal intervals, supporting range-duration
 queries .
 \end{abstract}
 
-\begin{document}
 \maketitle
+
+%%% do not modify the following VLDB block %%
+%%% VLDB block start %%%
+\pagestyle{\vldbpagestyle}
+\begingroup\small\noindent\raggedright\textbf{PVLDB Reference Format:}\\
+\vldbauthors. \vldbtitle. PVLDB, \vldbvolume(\vldbissue): \vldbpages, \vldbyear.\\
+\href{https://doi.org/\vldbdoi}{doi:\vldbdoi}
+\endgroup
+\begingroup
+\renewcommand\thefootnote{}\footnote{\noindent
+This work is licensed under the Creative Commons BY-NC-ND 4.0 International License. Visit \url{https://creativecommons.org/licenses/by-nc-nd/4.0/} to view a copy of this license. For any use beyond those covered by this license, obtain permission by emailing \href{mailto:info@vldb.org}{info@vldb.org}. Copyright is held by the owner/author(s). Publication rights licensed to the VLDB Endowment. \\
+\raggedright Proceedings of the VLDB Endowment, Vol. \vldbvolume, No. \vldbissue\ %
+ISSN 2150-8097. \\
+\href{https://doi.org/\vldbdoi}{doi:\vldbdoi} \\
+}\addtocounter{footnote}{-1}\endgroup
+%%% VLDB block end %%%
+
+%%% do not modify the following VLDB block %%
+%%% VLDB block start %%%
+\ifdefempty{\vldbavailabilityurl}{}{
+\vspace{.3cm}
+\begingroup\small\noindent\raggedright\textbf{PVLDB Artifact Availability:}\\
+The source code, data, and/or other artifacts have been made available at \url{\vldbavailabilityurl}.
+\endgroup
+}
+%%% VLDB block end %%%
 
 \section{Introduction}
 
@@ -180,7 +224,7 @@ As for the query, the dashed lines mark the range of intervals overlapping
 the query intervals. Intersecting this area with the diagonals enclosing the
 duration part of the query gives the area where query answers lie.
 
-\begin{figure}
+\begin{figure*}
     \begin{tikzpicture}[xscale=.2, yscale=.15]
         % Axes
         \draw [<->] (0,60) node (yaxis) [above] {$end$}
@@ -224,7 +268,7 @@ duration part of the query gives the area where query answers lie.
         a query. Note that points with the same duration fall on the same diagonal.
         \label{fig:grid-query}}
     \Description{}
-\end{figure}
+\end{figure*}
 
 \cetodo{Intervals within a "safe" region are not eve checked, just reported}
 
@@ -252,7 +296,7 @@ duration part of the query gives the area where query answers lie.
     \]
 \end{proof}
 
-\begin{figure}
+\begin{figure*}
     \begin{tikzpicture}[scale=0.15, xscale=1.5]
         % Axes
         \draw [<->] (0,40) node (yaxis) [above] {$start$}
@@ -283,7 +327,7 @@ duration part of the query gives the area where query answers lie.
     \Description{}
     \caption{Query polygon and grid on the dimension-start time plane.}
     \label{fig:example-polygon}
-\end{figure}
+\end{figure*}
 
 The following theorem ensures that, by setting the page size $s$ appropriately, the query time
 can be made polynomially smaller than the input size.
@@ -452,17 +496,17 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 \subsection{Robustness of index structures across different workloads}
 \label{sec:overview}
 
-\begin{figure}
+\begin{figure*}
     \includegraphics[width=\textwidth]{images/overview-qps.png}
     \caption{Overview of the performance of the tested index structures
         over a variety of workloads and datasets. All the datasets have 10 million
         points and, for each workload, we perform 5\,000 queries.\label{fig:overview-qps}}
     \Description{Overview of the performance of the algortihms.}
-\end{figure}
+\end{figure*}
 
-\begin{table}
+\begin{table*}
   \input{qps.tex}
-\end{table}
+\end{table*}
 
 In the first set of experiments, we generate datasets of 10 million intervals each,
 using different start time and duration distributions. Similarly we generate several different
@@ -497,13 +541,13 @@ On duration-only query workloads, \algo{b-tree} is always the best performing in
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
 
-\begin{figure}
+\begin{figure*}
     \includegraphics[width=\textwidth]{images/selectivity_vs_time.png}
     \caption{Relationship between the query selectivity and query time, for different
         types of queries and index structures. For the sake of readability, we concentrate
         on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
     \Description{Time versus selectivity}
-\end{figure}
+\end{figure*}
 
 \cetodo{\algo{period-index-$\star$} is running, I'm waiting for the results}
 
@@ -543,13 +587,13 @@ of the actual intervals does not match this progression, \algo{period-index$\sta
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
 
-\begin{figure}
+\begin{figure*}
     \includegraphics[width=\textwidth]{images/param_dependency.png}
     \caption{Dependency of the performance, in terms of queries per second, on the
         page size parameter.
         \label{fig:param-dependency}}
     \Description{}
-\end{figure}
+\end{figure*}
 
 To test the dependency of the query time on the \emph{page size} parameter, we consider
 a dataset with 10 million intervals with starting times both uniformly
@@ -584,7 +628,7 @@ will need to be queried, thus improving performance.
 \section{Scalability with respect to the input size}
 \label{sec:scalability}
 
-\begin{figure}
+\begin{figure*}
     \includegraphics[width=\textwidth]{images/scalability.png}
     \caption{Scalability of the index structures for the increasing dataset sizes, up to one billion intervals.
         Each point corresponds to the best configuration of the given data structure for a particular dataset size.
@@ -592,7 +636,7 @@ will need to be queried, thus improving performance.
         \label{fig:scalability}}
     \Description{Scalability figure, showing that our proposed approach has superior performance for all tested
         dataset sizes, and scales gracefully.}
-\end{figure}
+\end{figure*}
 
 To test the scalability of the data structures, we consider datasets of up to one billion elements, running
 5\,000 \qrd queries.
@@ -602,7 +646,8 @@ involved in the comparison.
 For all tested sizes, \ours is about one order of magnitude faster than the second-best data structure.
 
 
-\bibliographystyle{plain}
+% \bibliographystyle{plain}
+\bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
 
 \end{document}
