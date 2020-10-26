@@ -396,6 +396,39 @@ plan <- drake_plan(
       theme(legend.position='bottom',
             legend.direction='vertical',
             strip.background = element_blank())) %>%
-      save_png("paper/images/param_dependency.png")
+      save_png("paper/images/param_dependency.png"),
+
+  best_latex = best %>% 
+    as_tibble() %>% 
+    # filter(dataset == "random-uniform-zipf", 
+    filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+                                 "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>% 
+    get_params(queryset_params, "q_") %>%
+    transmute(queryset=str_wrap(str_c(str_replace_na(q_start_high, "-"), 
+                                      str_replace_na(q_durmin_high, "-"), 
+                                      str_replace_na(q_durmax_high, "-"), 
+                                      sep=" "), width=40), 
+              dataset,
+              qps, 
+              algorithm) %>% 
+    mutate(algorithm = fct_reorder(algorithm, qps)) %>%
+    arrange(desc(algorithm)) %>%
+    group_by(queryset) %>%
+    mutate(qps_num = qps,
+           qps = scales::number(qps, big.mark="\\,"),
+           qps = if_else(qps_num == max(qps_num), str_c("\\underline{",qps,"}"), qps)) %>%
+    select(-qps_num) %>%
+    ungroup() %>%
+    pivot_wider(names_from="algorithm", values_from="qps") %>%
+    (function(d) {print(count(d, dataset)); d}) %>%
+    arrange(desc(dataset)) %>%
+    select(-dataset) %>%
+    kable("latex", escape=F, booktabs=T, align="r") %>%
+    kable_styling(position = "center",
+                  font_size = 8) %>%
+    pack_rows("Uniform start times", 1, 9) %>%
+    pack_rows("Clustered start times", 10, 18) %>%
+    write_file("paper/qps.tex")
+  ,
 
 )

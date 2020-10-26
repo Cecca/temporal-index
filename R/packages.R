@@ -15,4 +15,5 @@ suppressPackageStartupMessages({
     library(ggiraph)
     library(dtplyr)
     library(data.table)
+    library(kableExtra)
 })
