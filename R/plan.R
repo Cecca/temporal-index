@@ -14,7 +14,7 @@ plan <- drake_plan(
       algorithm != "grid3D",
       algorithm != "NestedVecs",
       algorithm != "NestedBTree",
-      algorithm != "period-index-old-*",
+      # algorithm != "period-index-old-*",
       !str_detect(queryset, "Mixed"),
     ) %>%
     mutate(

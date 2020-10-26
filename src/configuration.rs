@@ -40,10 +40,6 @@ pub enum AlgorithmConfiguration {
         num_buckets: Vec<u32>,
         num_levels: Vec<u32>,
     },
-    PeriodIndexStarOld {
-        num_buckets: Vec<u32>,
-        num_levels: Vec<u32>,
-    },
     PeriodIndexPlusPlus {
         page_size: Vec<usize>,
     },
@@ -83,18 +79,6 @@ impl AlgorithmConfiguration {
                 let iter = iproduct!(page_size).map(|ps| {
                     Rc::new(RefCell::new(PeriodIndexPlusPlus::new(*ps)))
                         as Rc<RefCell<dyn Algorithm>>
-                });
-                Box::new(iter)
-            }
-            Self::PeriodIndexStarOld {
-                num_buckets,
-                num_levels,
-            } => {
-                let iter = iproduct!(num_buckets, num_levels).map(|(nb, nl)| {
-                    Rc::new(RefCell::new(
-                        period_index_old::PeriodIndexStarOld::new(*nb, *nl)
-                            .expect("error in configured algorithm"),
-                    )) as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
             }
