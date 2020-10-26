@@ -320,11 +320,11 @@
 
                 return {
                     "algorithm": g[0],
-                    "min": d3.min(group, d => d.qps),
-                    "perc25": d3.quantile(group, 0.25, d => d.qps),
-                    "median": d3.median(group, d => d.qps),
-                    "perc75": d3.quantile(group, 0.75, d => d.qps),
-                    "max": d3.max(group, d => d.qps)
+                    "min": d3.min(group, d => d.bin),
+                    "perc25": d3.quantile(group, 0.25, d => d.bin),
+                    "median": d3.median(group, d => d.bin),
+                    "perc75": d3.quantile(group, 0.75, d => d.bin),
+                    "max": d3.max(group, d => d.bin)
                 };
             }).sort(d => d.median);
             console.log(stats);
