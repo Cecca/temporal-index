@@ -14,7 +14,7 @@ plan <- drake_plan(
       algorithm != "grid3D",
       algorithm != "NestedVecs",
       algorithm != "NestedBTree",
-      # algorithm != "period-index-old-*",
+      algorithm != "period-index-old-*",
       !str_detect(queryset, "Mixed"),
     ) %>%
     mutate(
@@ -171,6 +171,7 @@ plan <- drake_plan(
       hostname == "ironmaiden",
       algorithm != "ebi-index",
       algorithm != "linear-scan",
+      algorithm != "period-index-old-*",
       dataset == "random-uniform-zipf",
       queryset == "random-uniform-zipf-uniform-uniform",
       queryset_params == "seed=23512 n=5000 start_low=1 start_high=1000000000 dur_n=1000000000 dur_beta=1 durmin_low=1 durmin_high=10000 durmax_low=1 durmax_high=10000"
@@ -208,8 +209,8 @@ plan <- drake_plan(
         geom_point() +
         geom_line() +
         geom_rangeframe(color="black") +
-        scale_x_log10() +
-        scale_y_log10() +
+        scale_x_log10(labels=scales::number_format()) +
+        scale_y_log10(labels=scales::number_format()) +
         scale_fill_algorithm() +
         theme_tufte()
     save_png(p, file_out("paper/images/scalability.png"),
@@ -363,7 +364,8 @@ plan <- drake_plan(
       queryset_n == 20000, 
       dataset_n %in% c(10000000),
       (q_durmin_high == 10000 | is.na(q_durmin_high)),
-      (q_durmax_high == 10000 | is.na(q_durmax_high))
+      (q_durmax_high == 10000 | is.na(q_durmax_high)),
+      (q_start_high == 10000000 | is.na(q_start_high))
     ) %>%
     mutate(
       workload_type = case_when(
