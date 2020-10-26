@@ -77,6 +77,10 @@ plan <- drake_plan(
     format = "fst_dt"
   ),
 
+  best_csv = best %>%
+    write_csv(file_out("docs/best.csv"))
+  ,
+
   # query_stats = target(
   #   {
   #     base_data <- best %>%
