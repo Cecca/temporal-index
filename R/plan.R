@@ -169,6 +169,7 @@ plan <- drake_plan(
       facet_grid(vars(start_times_distribution), vars(algorithm), scales="fixed") +
       scale_y_continuous() +
       scale_x_continuous(breaks=c(0,0.1,0.2), labels=scales::number_format(accuracy=0.1)) +
+      scale_color_workload() +
       guides(colour = guide_legend(override.aes = list(size=5, alpha=1))) +
       labs(x="selectivity",
            y="query time (ms)",
@@ -321,34 +322,28 @@ plan <- drake_plan(
   
   plot_algo_param_dep = (ggplot(data_algo_param_dep, 
         aes(x=page_size, 
-            y=drop_units(qps))) +
+            y=drop_units(qps),
+            color=workload_type)) +
       geom_point() +
       geom_line() +
       scale_x_continuous(trans="log10", limits=c(10,NA)) +
-      scale_y_continuous(limits=c(NA,NA)) +
-      #scale_color_workload() +
-      facet_grid(vars(workload_type), vars(start_times_distribution), scales="free_y") +
+      scale_y_continuous(trans="log10", limits=c(NA,NA)) +
+      scale_color_workload() +
+      facet_wrap(vars(start_times_distribution), scales="fixed") +
+      labs(x="page size",
+           y="queries per second",
+           color="workload") +
       theme_bw() +
       theme(legend.position='bottom',
-            legend.direction='vertical',
-            strip.background = element_blank())) %>%
-      save_png("paper/images/param_dependency.png"),
+            legend.direction='horizontal')) %>%
+      save_png("paper/images/param_dependency.png",
+               width=5, height=3),
 
   best_latex = best %>% 
     as_tibble() %>% 
     inner_join(queryset_labels) %>%
     inner_join(dataset_labels) %>%
-    # filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-    #                              "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>% 
     get_params(queryset_params, "q_") %>%
-    # transmute(queryset=str_wrap(str_c(str_replace_na(q_start_high, "-"), 
-    #                                   str_replace_na(q_durmin_high, "-"), 
-    #                                   str_replace_na(q_durmax_high, "-"), 
-    #                                   sep=" "), width=40), 
-              # dataset,
-    # transmute(workload = str_c(dataset_label, query_interval_label, query_duration_label, sep=" "),
-    #           qps, 
-    #           algorithm) %>% 
     select(qps, algorithm, dataset_label, query_interval_label, query_duration_label) %>%
     mutate(algorithm = case_when(
              algorithm == "period-index++" ~ "PI++",

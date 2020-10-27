@@ -44,8 +44,8 @@
 \title{Indexing temporal relations for range-duration queries}
 
 \begin{abstract}
-We present a learned index for temporal intervals, supporting range-duration
-queries .
+	We present a learned index for temporal intervals, supporting range-duration
+	queries .
 \end{abstract}
 
 \maketitle
@@ -59,20 +59,20 @@ queries .
 \endgroup
 \begingroup
 \renewcommand\thefootnote{}\footnote{\noindent
-This work is licensed under the Creative Commons BY-NC-ND 4.0 International License. Visit \url{https://creativecommons.org/licenses/by-nc-nd/4.0/} to view a copy of this license. For any use beyond those covered by this license, obtain permission by emailing \href{mailto:info@vldb.org}{info@vldb.org}. Copyright is held by the owner/author(s). Publication rights licensed to the VLDB Endowment. \\
-\raggedright Proceedings of the VLDB Endowment, Vol. \vldbvolume, No. \vldbissue\ %
-ISSN 2150-8097. \\
-\href{https://doi.org/\vldbdoi}{doi:\vldbdoi} \\
+	This work is licensed under the Creative Commons BY-NC-ND 4.0 International License. Visit \url{https://creativecommons.org/licenses/by-nc-nd/4.0/} to view a copy of this license. For any use beyond those covered by this license, obtain permission by emailing \href{mailto:info@vldb.org}{info@vldb.org}. Copyright is held by the owner/author(s). Publication rights licensed to the VLDB Endowment. \\
+	\raggedright Proceedings of the VLDB Endowment, Vol. \vldbvolume, No. \vldbissue\ %
+	ISSN 2150-8097. \\
+	\href{https://doi.org/\vldbdoi}{doi:\vldbdoi} \\
 }\addtocounter{footnote}{-1}\endgroup
 %%% VLDB block end %%%
 
 %%% do not modify the following VLDB block %%
 %%% VLDB block start %%%
 \ifdefempty{\vldbavailabilityurl}{}{
-\vspace{.3cm}
-\begingroup\small\noindent\raggedright\textbf{PVLDB Artifact Availability:}\\
-The source code, data, and/or other artifacts have been made available at \url{\vldbavailabilityurl}.
-\endgroup
+	\vspace{.3cm}
+	\begingroup\small\noindent\raggedright\textbf{PVLDB Artifact Availability:}\\
+	The source code, data, and/or other artifacts have been made available at \url{\vldbavailabilityurl}.
+	\endgroup
 }
 %%% VLDB block end %%%
 
@@ -104,28 +104,28 @@ Our index efficiently supports the three following types of queries (defined as 
 
 \cetodo{Shall we rename it \emph{temporal query?}. Ultimately, also duration queries involve a range of durations, so it might be confusing.}
 \begin{definition}[Range query]
-    Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$,
-    a \emph{range query} $Q(A, e)$ is defined as
-    \[
-        Q(A, e) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \}
-    \]
+	Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$,
+	a \emph{range query} $Q(A, e)$ is defined as
+	\[
+		Q(A, e) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \}
+	\]
 \end{definition}
 
 \begin{definition}[Duration query]
-    Given a duration interval $d = [d_{min}, d_{max}]$ and a set of intervals $A$,
-    a \emph{duration query} $Q(A, d)$ is defined as
-    \[
-        Q(A, d) = \{e | e \in A \wedge |e| \in [d_{min}, d_{max}] \}
-    \]
+	Given a duration interval $d = [d_{min}, d_{max}]$ and a set of intervals $A$,
+	a \emph{duration query} $Q(A, d)$ is defined as
+	\[
+		Q(A, d) = \{e | e \in A \wedge |e| \in [d_{min}, d_{max}] \}
+	\]
 \end{definition}
 
 \begin{definition}[Range-duration query]
-    Given a temporal interval $e = [e_s, e_e)$, a duration interval $d = [d_{min}, d_{max}]$,
-    and a set of intervals $A$,
-    a \emph{range-duration query} $Q(A, e, d)$ is defined as
-    \[
-        Q(A, e, d) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \wedge |e'| \in [d_{min}, d_{max}] \}
-    \]
+	Given a temporal interval $e = [e_s, e_e)$, a duration interval $d = [d_{min}, d_{max}]$,
+	and a set of intervals $A$,
+	a \emph{range-duration query} $Q(A, e, d)$ is defined as
+	\[
+		Q(A, e, d) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \wedge |e'| \in [d_{min}, d_{max}] \}
+	\]
 \end{definition}
 
 The latter type of query is a combination of the former two.
@@ -151,13 +151,13 @@ Similarly, let $CDF_s^A(e_s)$ be the fraction of the
 intervals whose start time is $\le e_s$.
 
 \cetodo{What happens when there are more than $s^2$ elements in a bucket?
-    This happens when there are more than $s^2$ elements with the same duration: they
-    all fall in the same bucket.}
+	This happens when there are more than $s^2$ elements with the same duration: they
+	all fall in the same bucket.}
 We partition the intervals in $n / s^2$ \emph{columns}: an interval $e$ is assigned to
 column $\lfloor CDF_d(|e|) \cdot n/2^s \rfloor$.
 In particular, we define the $i$-th column in the duration dimension as
 \[
-    A_i^d = \{ e \in A | i = \lfloor CDF_d^A(|e|) \cdot |A|/2^s \rfloor \}
+	A_i^d = \{ e \in A | i = \lfloor CDF_d^A(|e|) \cdot |A|/2^s \rfloor \}
 \]
 Note that if there are more than $s^2$ intervals with the same duration,
 they will all be assigned to the same column.
@@ -167,7 +167,7 @@ range of durations spanned by the intervals it contains.
 We further partition the intervals in $A_i^d$ according to the distribution
 of their starting times:
 \[
-    A_{i,j}^{d,s} = \{ e \in A_i^d ~|~ j = \lfloor CDF_s(e_s) \cdot |A_i^d|/s \rfloor \}
+	A_{i,j}^{d,s} = \{ e \in A_i^d ~|~ j = \lfloor CDF_s(e_s) \cdot |A_i^d|/s \rfloor \}
 \]
 
 Our index is a grid built out of the cells $A_{i,j}^{d,s}$.
@@ -189,25 +189,25 @@ Given a range-duration query $Q(A, e, d)$ with $e=[e_s, e_e)$ and $d=[d_min, d_m
 recall that an interval $e'$ satisfies the query if the three following conditions
 are met:
 \begin{align}
-     & |e'| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
-     & e_s < e'_e                  \label{eq:start-condition}    \\
-     & e'_s < e_e                  \label{eq:end-condition}
+	 & |e'| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
+	 & e_s < e'_e                  \label{eq:start-condition}    \\
+	 & e'_s < e_e                  \label{eq:end-condition}
 \end{align}
 
 First, find the two indices which identify the range of cells in the duration
 dimension each containing at least one interval satisfying
 condition~\eqref{eq:duration-condition}.
 \begin{align*}
-    i_{start} & = \left\lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \right\rfloor \\
-    i_{end}   & = \left\lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \right\rfloor
+	i_{start} & = \left\lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \right\rfloor \\
+	i_{end}   & = \left\lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \right\rfloor
 \end{align*}
 Then, for each $i \in [i_{start}, i_{end}]$, let $[d_{min}^i, d_{max}^i]$
 be the range of durations spanned by the $i$-th column.
 We consider the cells in the start
 dimension in the range $[j_{start}, j_{end}]$ with
 \begin{align*}
-    j_{start} & = \left\lfloor CDF_{s}^{A_i^d}(e_s - d_{max}^i) \cdot |A_i^d| / s \right\rfloor \\
-    j_{end}   & = \left\lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \right\rfloor
+	j_{start} & = \left\lfloor CDF_{s}^{A_i^d}(e_s - d_{max}^i) \cdot |A_i^d| / s \right\rfloor \\
+	j_{end}   & = \left\lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \right\rfloor
 \end{align*}
 In other words,
 the start is the first cell such that the upper boundary on the start
@@ -227,49 +227,49 @@ the query intervals. Intersecting this area with the diagonals enclosing the
 duration part of the query gives the area where query answers lie.
 
 \begin{figure*}
-    \begin{tikzpicture}[xscale=.2, yscale=.15]
-        % Axes
-        \draw [<->] (0,60) node (yaxis) [above] {$end$}
-        |- (60,0) node (xaxis) [right] {$start$};
-        %ticks
-        \foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
-        \foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
+	\begin{tikzpicture}[xscale=.2, yscale=.15]
+		% Axes
+		\draw [<->] (0,60) node (yaxis) [above] {$end$}
+		|- (60,0) node (xaxis) [right] {$start$};
+		%ticks
+		\foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
+		\foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
 
-        % Query point: duration between 8 and 20
-        \coordinate (query) at (30,25);
-        \draw[thick, red, fill=red!10]
-        (17, 25) -- (30, 38) -- (30, 50) -- (5, 25) -- (17, 25) ;
-        \fill[red] (query) circle (10pt);
-        \draw [red,dashed] (0,25) -- (query);
-        \draw [red,dashed] (30,60) -- (query);
+		% Query point: duration between 8 and 20
+		\coordinate (query) at (30,25);
+		\draw[thick, red, fill=red!10]
+		(17, 25) -- (30, 38) -- (30, 50) -- (5, 25) -- (17, 25) ;
+		\fill[red] (query) circle (10pt);
+		\draw [red,dashed] (0,25) -- (query);
+		\draw [red,dashed] (30,60) -- (query);
 
-        % % Grid structure
-        \draw [-] (0,1) -- (60,61);
-        \foreach \duration in {5, 15, 27, 50} \draw (0, \duration) -- (60-\duration, 60);
-        \foreach \duration in {1, 5, 15, 27, 50} \draw[dashed] (0, \duration) -- (-5, \duration);
-        \node[anchor=east] at (-4, 3) {$d\in[1,5)$};
-            \node[anchor=east] at (-4, 10) {$d\in[5, 15)$};
-        \node[anchor=east] at (-4, 22) {$d\in[15, 27)$};
-            \node[anchor=east] at (-4, 38) {$d\in[27, 50)$};
+		% % Grid structure
+		\draw [-] (0,1) -- (60,61);
+		\foreach \duration in {5, 15, 27, 50} \draw (0, \duration) -- (60-\duration, 60);
+		\foreach \duration in {1, 5, 15, 27, 50} \draw[dashed] (0, \duration) -- (-5, \duration);
+		\node[anchor=east] at (-4, 3) {$d\in[1,5)$};
+			\node[anchor=east] at (-4, 10) {$d\in[5, 15)$};
+		\node[anchor=east] at (-4, 22) {$d\in[15, 27)$};
+			\node[anchor=east] at (-4, 38) {$d\in[27, 50)$};
 
-        % grid duration 5
-        \foreach \start in {8, 16, 26, 44} \draw (\start, \start+1) -- (\start, \start+5);
-        \draw[dashed] (8, 9) -- (8, 5);
-        \draw[dashed] (16, 17) -- (16, 5);
-        \node[anchor=center] at (12, 5) {$e_s \in [8, 16)$};
-        % grid duration 15
-        \foreach \start in {7, 15, 22, 33, 40} \draw (\start, \start+5) -- (\start, \start+15);
-        % grid duration 27
-        \foreach \start in {5, 13, 31} \draw (\start, \start+15) -- (\start, \start+27);
-        % grid duration 50
-        \draw (5, 5+27) -- (5, 55);
-        \draw (20, 20+27) -- (20, 60);
+		% grid duration 5
+		\foreach \start in {8, 16, 26, 44} \draw (\start, \start+1) -- (\start, \start+5);
+		\draw[dashed] (8, 9) -- (8, 5);
+		\draw[dashed] (16, 17) -- (16, 5);
+		\node[anchor=center] at (12, 5) {$e_s \in [8, 16)$};
+		% grid duration 15
+		\foreach \start in {7, 15, 22, 33, 40} \draw (\start, \start+5) -- (\start, \start+15);
+		% grid duration 27
+		\foreach \start in {5, 13, 31} \draw (\start, \start+15) -- (\start, \start+27);
+		% grid duration 50
+		\draw (5, 5+27) -- (5, 55);
+		\draw (20, 20+27) -- (20, 60);
 
-    \end{tikzpicture}
-    \caption{Instantiation of the grid over durations and start times, with
-        a query. Note that points with the same duration fall on the same diagonal.
-        \label{fig:grid-query}}
-    \Description{}
+	\end{tikzpicture}
+	\caption{Instantiation of the grid over durations and start times, with
+		a query. Note that points with the same duration fall on the same diagonal.
+		\label{fig:grid-query}}
+	\Description{}
 \end{figure*}
 
 \cetodo{Intervals within a "safe" region are not eve checked, just reported}
@@ -277,165 +277,165 @@ duration part of the query gives the area where query answers lie.
 \subsection{Analysis}
 
 \begin{theorem}
-    Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
+	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
 \end{theorem}
 \begin{proof}
-    Computing the Empirical Cumulative Distribution Function for the duration can be done by first sorting
-    the intervals by duration, then by counting the lengths of same-duration groups, and finally
-    computing the cumulative sum of these counts.
-    Sorting takes $\BO{n\log n}$, all the other operation require linear time.
-    A final linear scan of all the intervals allows to associate each interval to appropriate bucket.
+	Computing the Empirical Cumulative Distribution Function for the duration can be done by first sorting
+	the intervals by duration, then by counting the lengths of same-duration groups, and finally
+	computing the cumulative sum of these counts.
+	Sorting takes $\BO{n\log n}$, all the other operation require linear time.
+	A final linear scan of all the intervals allows to associate each interval to appropriate bucket.
 
-    Each bucket is then further partitioned according to the start times.
-    Let $n_i$ be the size of the $i$-th bucket.
-    Then, partitioning it according to the cumulative distribution function
-    requires time $\BO{n_i \log n_i}$, following the same argument as above.
-    Therefore, the time for building the second level of the index is
-    \[
-        \BO{\sum_i n_i \log n_i}
-        = \BO{\log n \cdot \sum_i n_i}
-        = \BO{n \log n}
-    \]
+	Each bucket is then further partitioned according to the start times.
+	Let $n_i$ be the size of the $i$-th bucket.
+	Then, partitioning it according to the cumulative distribution function
+	requires time $\BO{n_i \log n_i}$, following the same argument as above.
+	Therefore, the time for building the second level of the index is
+	\[
+		\BO{\sum_i n_i \log n_i}
+		= \BO{\log n \cdot \sum_i n_i}
+		= \BO{n \log n}
+	\]
 \end{proof}
 
 \begin{figure*}
-    \begin{tikzpicture}[scale=0.15, xscale=1.5]
-        % Axes
-        \draw [<->] (0,40) node (yaxis) [above] {$start$}
-        |- (60,0) node (xaxis) [right] {$duration$};
-        % %ticks
-        % \foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
-        % \foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
+	\begin{tikzpicture}[scale=0.15, xscale=1.5]
+		% Axes
+		\draw [<->] (0,40) node (yaxis) [above] {$start$}
+		|- (60,0) node (xaxis) [right] {$duration$};
+		% %ticks
+		% \foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
+		% \foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
 
-        % Vertical ticks
-        \foreach \duration in {5, 15, 22, 27, 50} \draw (\duration, 0) -- (\duration, 35);
+		% Vertical ticks
+		\foreach \duration in {5, 15, 22, 27, 50} \draw (\duration, 0) -- (\duration, 35);
 
-        % Start groups
-        \foreach \start in {10, 20, 35} \draw (0, \start) -- (5,\start);
-        \foreach \start in {5, 25, 35} \draw (5, \start) -- (15,\start);
-        \foreach \start in {8, 16, 35} \draw (15, \start) -- (22,\start);
-        \foreach \start in {20, 28, 35} \draw (22, \start) -- (27,\start);
-        \foreach \start in {10, 15, 35} \draw (27, \start) -- (50,\start);
-        % \foreach \start in {20, 30, 35} \draw (50, \start) -- (80,\start);
+		% Start groups
+		\foreach \start in {10, 20, 35} \draw (0, \start) -- (5,\start);
+		\foreach \start in {5, 25, 35} \draw (5, \start) -- (15,\start);
+		\foreach \start in {8, 16, 35} \draw (15, \start) -- (22,\start);
+		\foreach \start in {20, 28, 35} \draw (22, \start) -- (27,\start);
+		\foreach \start in {10, 15, 35} \draw (27, \start) -- (50,\start);
+		% \foreach \start in {20, 30, 35} \draw (50, \start) -- (80,\start);
 
-        % Query polygon: e_s=10 e_end=30
+		% Query polygon: e_s=10 e_end=30
 
-        \draw[dashed, red] (60, 30) -- (10, 30) -- (40, 0);
-        \draw[dashed, red] (13, 0) -- (13,40);
-        \draw[dashed, red] (30, 0) -- (30,40);
-        \draw[red, thick] (13,30) -- (30, 30) -- (30, 10) -- (13, 27) -- (13,30);
+		\draw[dashed, red] (60, 30) -- (10, 30) -- (40, 0);
+		\draw[dashed, red] (13, 0) -- (13,40);
+		\draw[dashed, red] (30, 0) -- (30,40);
+		\draw[red, thick] (13,30) -- (30, 30) -- (30, 10) -- (13, 27) -- (13,30);
 
-    \end{tikzpicture}
-    \Description{}
-    \caption{Query polygon and grid on the dimension-start time plane.}
-    \label{fig:example-polygon}
+	\end{tikzpicture}
+	\Description{}
+	\caption{Query polygon and grid on the dimension-start time plane.}
+	\label{fig:example-polygon}
 \end{figure*}
 
 The following theorem ensures that, by setting the page size $s$ appropriately, the query time
 can be made polynomially smaller than the input size.
 \begin{theorem}
-    Given an index over a set of $n$ intervals, with page size $s$, the time for
-    answering a range-duration query is
-    \[
-        \BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
-    \]
-    where $k$ is the number of intervals matching the query predicate.
-    % For $s = \BO{n^\epsilon}$, we have that the query time is
-    % \[
-    %     \BO{n^\epsilon + k}
-    % \]
+	Given an index over a set of $n$ intervals, with page size $s$, the time for
+	answering a range-duration query is
+	\[
+		\BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
+	\]
+	where $k$ is the number of intervals matching the query predicate.
+	% For $s = \BO{n^\epsilon}$, we have that the query time is
+	% \[
+	%     \BO{n^\epsilon + k}
+	% \]
 \end{theorem}
 \begin{proof}[Proof draft]
-    First, let us establish some notation.
-    Let $e = (e_s, e_e)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
-    The intervals are arranged into a grid where the \emph{columns} are dictated by the
-    durations, and each column is further partitioned in cells according to the start time.
-    A cell $C$ is thus identified by a duration range $[d_{min}^C, d_{max}^C)$ and by a start time range
-    $[s^C_{min}, s^C_{max})$.
-    We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
-    Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
-    Recall that the algorithm may create a heavy column or cell when it cannot break down a group of intervals
-    because they all share the same duration or start time.
-    A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space.
-    For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
+	First, let us establish some notation.
+	Let $e = (e_s, e_e)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
+	The intervals are arranged into a grid where the \emph{columns} are dictated by the
+	durations, and each column is further partitioned in cells according to the start time.
+	A cell $C$ is thus identified by a duration range $[d_{min}^C, d_{max}^C)$ and by a start time range
+	$[s^C_{min}, s^C_{max})$.
+	We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
+	Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
+	Recall that the algorithm may create a heavy column or cell when it cannot break down a group of intervals
+	because they all share the same duration or start time.
+	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space.
+	For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
 
-    Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
-    \begin{itemize}
-        \item \emph{All intervals in a heavy column have the same duration}.
-              If they didn't then we could split the column in two different columns
-              with fewer values.
-        \item \emph{All intervals in a heavy cell have the same start time}.
-              If they didn't then we could split the cell in smaller cells.
-        \item \emph{A heavy column does not contain heavy cells}. By the two
-              points above a heavy cell in a heavy column will contain intervals
-              with the same starting time and duration, i.e. copies of
-              the same intervals. Since we are under set semantics this cannot happen.
-    \end{itemize}
+	Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
+	\begin{itemize}
+		\item \emph{All intervals in a heavy column have the same duration}.
+		      If they didn't then we could split the column in two different columns
+		      with fewer values.
+		\item \emph{All intervals in a heavy cell have the same start time}.
+		      If they didn't then we could split the cell in smaller cells.
+		\item \emph{A heavy column does not contain heavy cells}. By the two
+		      points above a heavy cell in a heavy column will contain intervals
+		      with the same starting time and duration, i.e. copies of
+		      the same intervals. Since we are under set semantics this cannot happen.
+	\end{itemize}
 
-    The query time is comprised of two parts: first we have to index into the grid to find the correct
-    range of cells to query; second we have to filter the intervals in each cell to retrieve
-    the ones that are part of the answer.
+	The query time is comprised of two parts: first we have to index into the grid to find the correct
+	range of cells to query; second we have to filter the intervals in each cell to retrieve
+	the ones that are part of the answer.
 
-    As for finding the range of cells, we first have to find the first and last column by duration, which can be
-    done by binary search over the $n/s^2$ boundaries between columns in $\BO{n/s^2}$ time.
-    There can be $\BO{n / s^2}$ matching columns.
-    In each such column, to find the range of cells satisfying the predicate we have to to a binary search
-    over the $\BO{n/s}$ intervals in the column (we can have $\BO{n}$ intervals in a heavy column).
-    Therefore, the overall time to find the correct cells is
-    \[
-        \BO{\log\frac{n}{s^2} + \frac{n}{s^2} \log\frac{n}{s}} =
-        \BO{\frac{n}{s^2} \log\frac{n}{s}} =
-        \BO{\frac{n}{s} \log\frac{n}{s}}
-    \]
+	As for finding the range of cells, we first have to find the first and last column by duration, which can be
+	done by binary search over the $n/s^2$ boundaries between columns in $\BO{n/s^2}$ time.
+	There can be $\BO{n / s^2}$ matching columns.
+	In each such column, to find the range of cells satisfying the predicate we have to to a binary search
+	over the $\BO{n/s}$ intervals in the column (we can have $\BO{n}$ intervals in a heavy column).
+	Therefore, the overall time to find the correct cells is
+	\[
+		\BO{\log\frac{n}{s^2} + \frac{n}{s^2} \log\frac{n}{s}} =
+		\BO{\frac{n}{s^2} \log\frac{n}{s}} =
+		\BO{\frac{n}{s} \log\frac{n}{s}}
+	\]
 
-    Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
-    \begin{enumerate}
-        \item %$d_{min}^C \le d_{min} \le d_{max} < d_{max}^C$ and
-              %$s_{min}^C < e_e$
-              Both the cell's durations range and start times range fall within the query polygon.
-              In such cell, the query constraints on the duration and the start time are satisfied by construction.
-              The algorithm considers just the intervals of $C$ which are part of the output (since it iterates over
-              the cell's intervals by decreasing end time).
-              Therefore, the time spent enumerating intervals from the cell is $\BO{k_C}$.
-        \item The cell's duration range satisfies the query constraint, but the starting time range doesn't.
-              If the duration colum containing the cell is heavy, then the cell cannot be heavy and the algorithm has to evaluate
-              $\BO{s}$ intervals.
-              Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
-              query constraint (otherwise we will not be looking at the cell at all).
-              Therefore, the scan of the intervals by decreasing end time visits just the $k_C$ output elements.
-        \item The cell's start time satisfies the query constraints, but the duration doesn't.
-              In this case we cannot be in a heavy column (which contains a single duration) and thus
-              the column containing the cell contains at most $s^2$ intervals.
-              %   If we are in a heavy cell, then all the intervals have the same
-              %   start time:
-              %   \begin{enumerate}
-              %       \item If the first interval in
-              %             increasing sorted order of end time (and hence duration)
-              %             satisfies the duration constraint, scan the intervals by
-              %             ascending end time, stopping as soon as the duration no longer
-              %             satisfies the predicate
-              %       \item Otherwise, do the same in decreasing order of end time
-              %   \end{enumerate}
-              %   In both cases the algorithm will visit just $k_C$ intervals.
+	Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
+	\begin{enumerate}
+		\item %$d_{min}^C \le d_{min} \le d_{max} < d_{max}^C$ and
+		      %$s_{min}^C < e_e$
+		      Both the cell's durations range and start times range fall within the query polygon.
+		      In such cell, the query constraints on the duration and the start time are satisfied by construction.
+		      The algorithm considers just the intervals of $C$ which are part of the output (since it iterates over
+		      the cell's intervals by decreasing end time).
+		      Therefore, the time spent enumerating intervals from the cell is $\BO{k_C}$.
+		\item The cell's duration range satisfies the query constraint, but the starting time range doesn't.
+		      If the duration colum containing the cell is heavy, then the cell cannot be heavy and the algorithm has to evaluate
+		      $\BO{s}$ intervals.
+		      Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
+		      query constraint (otherwise we will not be looking at the cell at all).
+		      Therefore, the scan of the intervals by decreasing end time visits just the $k_C$ output elements.
+		\item The cell's start time satisfies the query constraints, but the duration doesn't.
+		      In this case we cannot be in a heavy column (which contains a single duration) and thus
+		      the column containing the cell contains at most $s^2$ intervals.
+		      %   If we are in a heavy cell, then all the intervals have the same
+		      %   start time:
+		      %   \begin{enumerate}
+		      %       \item If the first interval in
+		      %             increasing sorted order of end time (and hence duration)
+		      %             satisfies the duration constraint, scan the intervals by
+		      %             ascending end time, stopping as soon as the duration no longer
+		      %             satisfies the predicate
+		      %       \item Otherwise, do the same in decreasing order of end time
+		      %   \end{enumerate}
+		      %   In both cases the algorithm will visit just $k_C$ intervals.
 
-              %   If we are not in a heavy cell, then we need to visit all the $\BO{s}$ intervals.
-        \item The cell doesn't completely satisfy neither constraint. In this case neither the column nor the cell can be heavy,
-              therefore the algorithm must only evaluate $\BO{s}$ intervals.
-    \end{enumerate}
-    All the cells of type (1) account for at most $\BO{k}$ in terms of running time.
-    As for cells of type (2) there are at most $n/s^2$ of them. Overall they account for $\BO{\frac{n}{s}}$ interval evaluations.
-    Cells of type (3) contain at most $s^2$ intervals. Therefore, overall they account for $\BO{s^2}$ interval evaluations.
-    Finally is then a constant number of cells of type (4) (which are at the corners of the query polygon).
-    These cells therefore account for at most $\BO{s}$ interval evaluations in total.
-    Overall, the time to evaluate the intervals in the cells is
-    \[
-        \BO{\frac{n}{s} + s^2 + k}
-    \]
+		      %   If we are not in a heavy cell, then we need to visit all the $\BO{s}$ intervals.
+		\item The cell doesn't completely satisfy neither constraint. In this case neither the column nor the cell can be heavy,
+		      therefore the algorithm must only evaluate $\BO{s}$ intervals.
+	\end{enumerate}
+	All the cells of type (1) account for at most $\BO{k}$ in terms of running time.
+	As for cells of type (2) there are at most $n/s^2$ of them. Overall they account for $\BO{\frac{n}{s}}$ interval evaluations.
+	Cells of type (3) contain at most $s^2$ intervals. Therefore, overall they account for $\BO{s^2}$ interval evaluations.
+	Finally is then a constant number of cells of type (4) (which are at the corners of the query polygon).
+	These cells therefore account for at most $\BO{s}$ interval evaluations in total.
+	Overall, the time to evaluate the intervals in the cells is
+	\[
+		\BO{\frac{n}{s} + s^2 + k}
+	\]
 
-    Combining this last result with the time to find the range of cells to query, we have that the overall query time is
-    \[
-        \BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
-    \]
+	Combining this last result with the time to find the range of cells to query, we have that the overall query time is
+	\[
+		\BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
+	\]
 \end{proof}
 
 The above theorem exposes a fundamental tradeoff of our data structure:
@@ -446,55 +446,49 @@ at the same time increasing the number of columns that need to be queried.
 \section{Experimental evaluation}
 
 \begin{table}
-  \caption{Distributions used to build synthetic dataset and query sets.
-    In particular, a query set is defined as a pair of time range
-    and duration range distributions, which are possibly
-    omitted for \qro and \qdo queries.
-    $U(l, u)$ denotes the uniform distribution between $l$ and $u$,
-    $N(\mu, \sigma)$ denotes the normal distribution with mean $\mu$
-    and standard deviation $\sigma$.
-    \label{tbl:distributions}}
-  % \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
-  % \toprule
-  % $D_1$ & Uniformly distributed start times $\in[1, 10^7]$, Zipf distributed durations with $\beta=1$\\
-  % $D_2$ & Start times distributed according to $N(\mu_i, 10^5)$, with $\mu_i\in U(1, n)$ and $i\in[1,10]$.\\
-  % \bottomrule
-  % \end{tabular}
+	\caption{Distributions used to build synthetic dataset and query sets.
+		In particular, a query set is defined as a pair of time range
+		and duration range distributions, which are possibly
+		omitted for \qro and \qdo queries.
+		$U(l, u)$ denotes the uniform distribution between $l$ and $u$,
+		$N(\mu, \sigma)$ denotes the normal distribution with mean $\mu$
+		and standard deviation $\sigma$.
+		\label{tbl:distributions}}
 
-  \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
-  \toprule
-  \multicolumn{2}{l}{Time intervals distributions}\\
-  \midrule
-  $R_1$ & Start times uniformly distributed in $[1, n]$, durations
-           Zipf distributed with $\beta=1$\\
-  $R_2$ & Start times distributed according to $N(\mu_i, 100\,000)$, with $\mu_i\in U(1, n)$ and $i\in[1,10]$.\\
-  \bottomrule
-  \end{tabular}
+	\begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
+		\toprule
+		\multicolumn{2}{l}{Time intervals distributions}                                                             \\
+		\midrule
+		$R_1$ & Start times uniformly distributed in $[1, 10^7]$, durations
+		Zipf distributed with $\beta=1$                                                                              \\
+    $R_2$ & Start times distributed according to $N(\mu_i, 100\,000)$, with $\mu_i\in U(1, 10^7)$ and $i\in[1,10]$. \\
+		\bottomrule
+	\end{tabular}
 
-  \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
-  \toprule
-  \multicolumn{2}{l}{Duration ranges distributions}\\
-  \midrule
-  $D_1$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 100)$ \\
-  $D_2$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 100)$ \\
-  $D_3$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 10000)$ \\
-  $D_4$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 10000)$ \\
-  \bottomrule
-  \end{tabular}
+	\begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
+		\toprule
+		\multicolumn{2}{l}{Duration ranges distributions}                   \\
+		\midrule
+		$D_1$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 100)$     \\
+		$D_2$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 100)$   \\
+		$D_3$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 10000)$   \\
+		$D_4$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 10000)$ \\
+		\bottomrule
+	\end{tabular}
 \end{table}
 
 In this section we compare experimentally our proposed index with alternative approaches.
 In particular, we aim to answer the following questions:
 \begin{enumerate}
-    \item How robust are the indices over different workloads? (Section~\ref{sec:overview})
-    \item How are query times distributed? (Section~\ref{sec:query-inspect})
-    \item How does the page size parameter affect the performance of the index? (Section~\ref{sec:param-dep})
-    \item How do the indices scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
+	\item How robust are the indices over different workloads? (Section~\ref{sec:overview})
+	\item How are query times distributed? (Section~\ref{sec:query-inspect})
+	\item How does the page size parameter affect the performance of the index? (Section~\ref{sec:param-dep})
+	\item How do the indices scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
 \end{enumerate}
 
 To this end, we implemented our index, as well as some baseline competitors,
 using Rust 1.44.0. Our implementation, which is open source and available
-at~\url{TODO}, allows to easily tune the parameters to explore
+at~\url{https://github.com/Cecca/temporal-index}, allows to easily tune the parameters to explore
 different questions.
 All algorithms have been moderately optimized.
 The experiments presented in this section have been run on a machine
@@ -502,53 +496,56 @@ equipped with XXX Gb of memory and a YYY processor.
 
 Both datasets and querysets used in this study are generated at random
 under different distributions to test different workloads.
-As for the datasets, we test start times distributed both uniformly
-between 0 and $n$, and clustered around 10 random points.
-The durations we test are distributed according to a Zipf distribution
-with $\beta = 1$.
-As for the querysets, we consider the same distributions for the intervals
-used for the overlap part of the query. For duration ranges, we consider uniformly
-distributed endpoints in different ranges.
+Table~\ref{tbl:distributions} reports the different distributions we used
+to build datasets and query sets: we test on all the combinations of distributions.
+Queries with duration ranges of type $D_1$ and $D_3$ have low selectivity, whereas queries
+of type $D_2$ and $D_4$ have high selectivity.
+
 In the remainder of the paper, we denote queries constraining both the time range and the
 duration with \qrd (Range-Duration queries), queries constraining only the time range with
 \qro (Range-Only queries) and queries constraining just the duration with \qrd (Duration-Only queries).
 
 \begin{tcolorbox}
-    \textbf{A note on my implementation of period-index-$\star$}.\\
-    In~\cite{BehrendDGSVRK_SSTD19_period-index}, there is a note about how to save on
-    empty cells, which are the vast majority in all the experiments we try (from 50\% up to 99\%).
-    In the paper, there is the suggestion to use a linked structure, with non-empty buckets linked to one another.
-    However, as I see it, this would imply that we lose the ability to index into the first non-empty bucket
-    containing potentially overlapping intervals.
-    Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
+	\textbf{A note on my implementation of period-index-$\star$}.\\
+	In~\cite{BehrendDGSVRK_SSTD19_period-index}, there is a note about how to save on
+	empty cells, which are the vast majority in all the experiments we try (from 50\% up to 99\%).
+	In the paper, there is the suggestion to use a linked structure, with non-empty buckets linked to one another.
+	However, as I see it, this would imply that we lose the ability to index into the first non-empty bucket
+	containing potentially overlapping intervals.
+	Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
 
-    Given this, my implementation uses an array to hold all the cells, event the empty ones,
-    thus allowing to directly index into it.
-    Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
-    Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
+	Given this, my implementation uses an array to hold all the cells, event the empty ones,
+	thus allowing to directly index into it.
+	Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
+	Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
 \end{tcolorbox}
 
 \subsection{Robustness of index structures across different workloads}
 \label{sec:overview}
 
 \begin{figure*}
-    \includegraphics[width=\textwidth]{images/overview-qps.png}
-    \caption{Overview of the performance of the tested index structures
-        over a variety of workloads and datasets. All the datasets have 10 million
-        points and, for each workload, we perform 5\,000 queries. The scale is logarithmic.\label{fig:overview-qps}}
-    \Description{Overview of the performance of the algortihms.}
+	\includegraphics[width=\textwidth]{images/overview-qps.png}
+	\caption{Overview of the performance of the tested index structures
+		over a variety of workloads and datasets. All the datasets have 10 million
+		points and, for each workload, we perform 5\,000 queries. The scale is logarithmic.\label{fig:overview-qps}}
+	\Description{Overview of the performance of the algortihms.}
 \end{figure*}
 
 \begin{table}
-  \caption{Performance attained by the tested indices on different workloads.\label{tbl:overview-qps}}
-  \input{qps.tex}
+	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
+           The first column reports the distribution used to generate dataset intervals, using the notation
+           introduced in Table~\ref{tbl:distributions}.
+           The second column reports the query workload configuration: a $nil$ indicates that a particular
+           query workload is not constraining either the time range or the duration range.\label{tbl:overview-qps}}
+	\input{qps.tex}
 \end{table}
 
 In the first set of experiments, we generate datasets of 10 million intervals each,
 using different start time and duration distributions. Similarly we generate several different
 query workloads.
-Figure~\ref{fig:overview-qps} and Table~\ref{tbl:overview-qps} report on the performance, in terms of queries per second, of
+Figure~\ref{fig:overview-qps} report on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
+Table~\ref{tbl:overview-qps} reports the precise measurements.
 For index structures that take parameters, we report on the best configuration for each
 combination of dataset and query workload.
 
@@ -556,8 +553,16 @@ Each dot in the figure represents the performance of an index structure on a giv
 combination of dataset and query workload. For readability, the scale of the plot
 is logarithmic, and points are snapped to a grid, so that points representing configurations
 with similar performance are stacked on top of one another.
-The online interactive version\footnote{https://cecca.github.io/temporal-index/} of the plot allows 
+We remark that with this experimental evaluation we want to compare the algorithmic ideas underlying each data structure.
+Therefore, we consider as equivalent indices
+performing within the same order of magnitude, to account for artifacts introduced by the implementation.
+The online interactive version\footnote{https://cecca.github.io/temporal-index/} of the plot allows
 to get a detailed comparison of the performance of the index structures.
+
+We remark that the overall difference in throughput for different workloads is
+due to the different output sizes: \qdo queries are in general less selective than \qrd queries,
+hence it takes more time to iterate through the output.
+This explains why, in general, \qrd queries enjoy a higher throughput across all the index structures.
 
 From the plot we can see that \ours has better median performance across all the tested
 workloads, and also higher minimum and maximum throughput.
@@ -574,27 +579,26 @@ that is adaptive with respect to the data.
 On duration-only query workloads, \algo{b-tree} is always the best performing index, with
 \ours being just slightly slower.
 
-\cetodo{We also observe that \ours is very stable with respect to the start time distribution,
-getting basically the same performance every time.}
+Furthermore, we also observe that \ours is very stable with respect to the start time distribution,
+having similar performance for a given query workload.
 
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
 
 \begin{figure*}
-    \includegraphics[width=\textwidth]{images/selectivity_vs_time.png}
-    \caption{Relationship between the query selectivity and query time, for different
-        types of queries and index structures. For the sake of readability, we concentrate
-        on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
-    \Description{Time versus selectivity}
+	\includegraphics[width=\textwidth]{images/selectivity_vs_time.png}
+	\caption{Relationship between the query selectivity and query time, for different
+		types of queries and index structures. For the sake of readability, we concentrate
+		on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
+	\Description{Time versus selectivity}
 \end{figure*}
 
 \cetodo{\algo{period-index-$\star$} is running, I'm waiting for the results}
 
-We investigate the relationship between the selectivity of the queries (i.e. the fraction of the 
+We investigate the relationship between the selectivity of the queries (i.e. the fraction of the
 input that satisfies them) and the time taken by different data structures to answer them.
 Ideally, a data structure should answer the queries in time linearly dependent on the selectivity.
 
-\cetodo{I have to report the parameters of the dataset}
 Figure~\ref{fig:time-vs-selectivity} reports, for all the queries from different workloads
 on the same dataset with selectivity at most $20\%$.
 From the figure, we observe that \ours indeed shows the ideal behavior, irrespective from the
@@ -604,7 +608,7 @@ output size, and in practice the overhead for cell inspection can be amortized w
 the correct parameter choice (more on that in the next section).
 Moreover, \ours is able to answer queries in a more timely fashion, compared to the other indices.
 
-If we consider the \algo{b-tree}, instead, we observe that \qdo queries 
+If we consider the \algo{b-tree}, instead, we observe that \qdo queries
 follow indeed the ideal behaviour, whereas queries \qrd queries
 are answered with varying efficiency, depending on how selective is the time range component of the query.
 We don't report on \qro queries for the \algo{b-tree}, since they are answered by simple enumeration.
@@ -621,18 +625,18 @@ being replicated across several cells.
 Furthermore, despite being adaptive in the start time distribution, this data structure is not adaptive
 in the duration, which explains the mixed performance of queries constraining the duration.
 \cetodo{I know that buckets decrease the duration in levels with powers of 2, but if the power law distribution
-of the actual intervals does not match this progression, \algo{period-index$\star$ is out of luck.}}
+	of the actual intervals does not match this progression, \algo{period-index$\star$ is out of luck.}}
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
 
-\begin{figure*}
-    \includegraphics[width=\textwidth]{images/param_dependency.png}
-    \caption{Dependency of the performance, in terms of queries per second, on the
-        page size parameter.
-        \label{fig:param-dependency}}
-    \Description{}
-\end{figure*}
+\begin{figure}
+	\includegraphics[width=\columnwidth]{images/param_dependency.png}
+	\caption{Dependency of the performance, in terms of queries per second, on the
+		page size parameter.
+		\label{fig:param-dependency}}
+	\Description{}
+\end{figure}
 
 To test the dependency of the query time on the \emph{page size} parameter, we consider
 a dataset with 10 million intervals with starting times both uniformly
@@ -660,7 +664,7 @@ All the intervals in cells in the same duration column are considered as being p
 therefore having less duration columns forces each query to evaluate more non-matching intervals,
 thus increasing the running time.
 
-Conversely, the performance improves with the page size for \qro queries. 
+Conversely, the performance improves with the page size for \qro queries.
 In this case having fewer duration columns means that fewer groups of cells
 will need to be queried, thus improving performance.
 
@@ -668,13 +672,13 @@ will need to be queried, thus improving performance.
 \label{sec:scalability}
 
 \begin{figure*}
-    \includegraphics[width=\textwidth]{images/scalability.png}
-    \caption{Scalability of the index structures for the increasing dataset sizes, up to one billion intervals.
-        Each point corresponds to the best configuration of the given data structure for a particular dataset size.
-        The workload is of range-duration queries.
-        \label{fig:scalability}}
-    \Description{Scalability figure, showing that our proposed approach has superior performance for all tested
-        dataset sizes, and scales gracefully.}
+	\includegraphics[width=\textwidth]{images/scalability.png}
+	\caption{Scalability of the index structures for the increasing dataset sizes, up to one billion intervals.
+		Each point corresponds to the best configuration of the given data structure for a particular dataset size.
+		The workload is of range-duration queries.
+		\label{fig:scalability}}
+	\Description{Scalability figure, showing that our proposed approach has superior performance for all tested
+		dataset sizes, and scales gracefully.}
 \end{figure*}
 
 To test the scalability of the data structures, we consider datasets of up to one billion elements, running
