@@ -148,6 +148,13 @@ same_result! {
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
                             ).get(),
     ),
+    rand_clustered_queries: (
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomQueryset::new(12351, 100,
+                            Some((TimeDistribution::Clustered{n: 10, high: 10000, std_dev: 10000}, TimeDistribution::Zipf{n: 10000, beta: 1.0})),
+                            Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
+                            ).get(),
+    ),
     rand_uniform_late_start: (
         RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1000, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
         RandomQueryset::new(12351, 100,
