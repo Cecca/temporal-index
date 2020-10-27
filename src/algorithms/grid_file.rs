@@ -73,6 +73,7 @@ impl GridFile {
             } else {
                 self.map_time(range.start - self.max_durations[i])
             };
+            let s_start = std::cmp::min(s_start, s_end);
             for cell in row[s_start..=s_end].iter() {
                 for interval in cell {
                     cnt += 1;
@@ -95,6 +96,7 @@ impl GridFile {
             } else {
                 self.map_time(range.start - self.max_durations[i])
             };
+            let s_start = std::cmp::min(s_start, s_end);
             for cell in row[s_start..=s_end].iter() {
                 for interval in cell {
                     cnt += 1;
