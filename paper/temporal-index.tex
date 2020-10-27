@@ -448,6 +448,9 @@ at the same time increasing the number of columns that need to be queried.
     In particular, a query set is defined as a pair of time range
     and duration range distributions, which are possibly
     omitted for \qro and \qdo queries.
+    $U(l, u)$ denotes the uniform distribution between $l$ and $u$,
+    $N(\mu, \sigma)$ denotes the normal distribution with mean $\mu$
+    and standard deviation $\sigma$.
     \label{tbl:distributions}}
   % \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
   % \toprule
@@ -462,6 +465,7 @@ at the same time increasing the number of columns that need to be queried.
   \midrule
   $R_1$ & Start times uniformly distributed in $[1, n]$, durations
            Zipf distributed with $\beta=1$\\
+  $R_2$ & Start times distributed according to $N(\mu_i, 100\,000)$, with $\mu_i\in U(1, n)$ and $i\in[1,10]$.\\
   \bottomrule
   \end{tabular}
 

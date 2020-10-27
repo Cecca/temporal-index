@@ -21,6 +21,10 @@
               Uniform: { low: 1, high: 10000000 },
               Zipf: { n: 10000000, beta: 1 }
           ]
+          - Pair: [
+              Clustered: { n: 10, high: 10000000, std_dev: 100000 }
+              Zipf: { n: 10000000, beta: 1 }
+          ]
           - Free
         duration:
           # Long duration low selectivity
