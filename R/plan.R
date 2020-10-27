@@ -400,17 +400,20 @@ plan <- drake_plan(
 
   best_latex = best %>% 
     as_tibble() %>% 
-    # filter(dataset == "random-uniform-zipf", 
-    filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-                                 "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>% 
+    inner_join(queryset_labels) %>%
+    inner_join(dataset_labels) %>%
+    # filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+    #                              "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>% 
     get_params(queryset_params, "q_") %>%
-    transmute(queryset=str_wrap(str_c(str_replace_na(q_start_high, "-"), 
-                                      str_replace_na(q_durmin_high, "-"), 
-                                      str_replace_na(q_durmax_high, "-"), 
-                                      sep=" "), width=40), 
-              dataset,
-              qps, 
-              algorithm) %>% 
+    # transmute(queryset=str_wrap(str_c(str_replace_na(q_start_high, "-"), 
+    #                                   str_replace_na(q_durmin_high, "-"), 
+    #                                   str_replace_na(q_durmax_high, "-"), 
+    #                                   sep=" "), width=40), 
+              # dataset,
+    # transmute(workload = str_c(dataset_label, query_interval_label, query_duration_label, sep=" "),
+    #           qps, 
+    #           algorithm) %>% 
+    select(qps, algorithm, dataset_label, query_interval_label, query_duration_label) %>%
     mutate(algorithm = case_when(
              algorithm == "period-index++" ~ "PI++",
              algorithm == "BTree" ~ "BT",
@@ -421,21 +424,22 @@ plan <- drake_plan(
            ),
            algorithm = fct_reorder(algorithm, qps)) %>%
     arrange(desc(algorithm)) %>%
-    group_by(queryset) %>%
-    mutate(qps_num = qps,
+    group_by(dataset_label, query_interval_label, query_duration_label) %>%
+    mutate(query_str = str_c("$(", query_interval_label, ", ", query_duration_label, ")$"),
+           dataset_label = str_c("$", dataset_label, "$"),
+           qps_num = qps,
            qps = scales::number(qps, big.mark="\\,"),
            qps = if_else(qps_num == max(qps_num), str_c("\\underline{",qps,"}"), qps)) %>%
-    select(-qps_num) %>%
     ungroup() %>%
+    select(-qps_num, -query_interval_label, -query_duration_label) %>%
     pivot_wider(names_from="algorithm", values_from="qps") %>%
-    (function(d) {print(count(d, dataset)); d}) %>%
-    arrange(desc(dataset)) %>%
-    select(-dataset) %>%
+    arrange(dataset_label, query_str) %>%
+    rename(dataset = dataset_label, queries = query_str) %>%
+    (function(d) {print(d); d}) %>%
     kable("latex", escape=F, booktabs=T, align="r") %>%
     kable_styling(position = "center",
                   font_size = 8) %>%
-    pack_rows("Uniform start times", 1, 9) %>%
-    pack_rows("Clustered start times", 10, 18) %>%
+    collapse_rows(columns=1, latex_hline = "major") %>%
     write_file("paper/qps.tex")
   ,
 
@@ -444,9 +448,9 @@ plan <- drake_plan(
     distinct(dataset, dataset_params) %>%
     mutate(dataset_label = case_when(
       (dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1") ~
-        "D_1",
+        "R_1",
       (dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1") ~
-        "D_2"
+        "R_2"
     )) %>%
     drop_na() %>%
     select(dataset_label, dataset_params)
@@ -454,18 +458,19 @@ plan <- drake_plan(
 
   queryset_labels = best %>%
     as_tibble() %>%
-    distinct(queryset_params) %>%
+    distinct(queryset, queryset_params) %>%
     get_params(queryset_params, "") %>%
     mutate(query_duration_label = case_when(
-      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==100) ~ "QD_1",
-      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==100) ~ "QD_2",
-      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==10000) ~ "QD_3",
-      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==10000) ~ "QD_4",
+      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==100) ~ "D_1",
+      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==100) ~ "D_2",
+      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==10000) ~ "D_3",
+      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==10000) ~ "D_4",
       (is.na(durmin_low)) ~ "nil"
     )) %>%
     mutate(query_interval_label = case_when(
-      (start_low==1 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "QR_1",
-      (is.na(start_low)) ~ "nil"
+      (is.na(start_n) & start_low==1 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_1",
+      (start_n==10 & start_stddev==100000 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_2",
+      (str_detect(queryset, "-None-")) ~ "nil"
     )) %>%
     select(queryset_params, query_interval_label, query_duration_label) %>%
     drop_na()
