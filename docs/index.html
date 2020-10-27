@@ -24,7 +24,7 @@
     <div class="mx-auto w-11/12 grid grid-cols-3 gap-1">
         <div class="mx-auto col-span-2 flex flex-col gap-3">
             <div class="bg-white rounded shadow p-8">
-                <svg id="dotsSvg" class="w-full" height=500></svg>
+                <svg id="dotsSvg" class="w-full" height=600></svg>
             </div>
             <div class="bg-white rounded shadow p-8">
                 <svg id="barsSvg" class="w-full" height=200></svg>
@@ -355,7 +355,7 @@
             var yScale = d3.scalePoint()
                 .domain(stats.sort((a, b) => b.median - a.median).map(function (d) { return d.algorithm }))
                 .range([margin.top, svgDotsDims.height - margin.bottom])
-                .padding(1);
+                .padding(0.6);
             var yAxis = d3.axisLeft(yScale);
             svgDots.append("g")
                 .attr("transform", "translate(" + (margin.left) + ", 0)")

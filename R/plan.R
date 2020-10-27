@@ -39,8 +39,10 @@ plan <- drake_plan(
     mutate(
       workload_type = case_when(
         queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+        queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
         queryset == "random-None-uniform-uniform" ~ "duration",
         queryset == "random-uniform-zipf-None" ~ "time",
+        queryset == "random-clustered-zipf-None" ~ "time",
         queryset == "Mixed" ~ "mixed",
         TRUE ~ "Unknown"
       )
@@ -66,8 +68,10 @@ plan <- drake_plan(
       mutate(
         workload_type = case_when(
           queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
           queryset == "random-None-uniform-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "random-clustered-zipf-None" ~ "time",
           queryset == "Mixed" ~ "mixed",
           TRUE ~ "Unknown"
         )
@@ -114,8 +118,10 @@ plan <- drake_plan(
       mutate(
         workload_type = case_when(
           queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
           queryset == "random-None-uniform-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "random-clustered-zipf-None" ~ "time",
           queryset == "Mixed" ~ "mixed",
           TRUE ~ "Unknown"
         )
@@ -135,8 +141,10 @@ plan <- drake_plan(
       mutate(
         workload_type = case_when(
           queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
           queryset == "random-None-uniform-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "random-clustered-zipf-None" ~ "time",
           queryset == "Mixed" ~ "mixed",
           TRUE ~ "Unknown"
         )
@@ -161,6 +169,7 @@ plan <- drake_plan(
       facet_grid(vars(start_times_distribution), vars(algorithm), scales="fixed") +
       scale_y_continuous() +
       scale_x_continuous(breaks=c(0,0.1,0.2), labels=scales::number_format(accuracy=0.1)) +
+      guides(colour = guide_legend(override.aes = list(size=5, alpha=1))) +
       labs(x="selectivity",
            y="query time (ms)",
            color="query type") +
@@ -257,79 +266,6 @@ plan <- drake_plan(
       ungroup()
     inner_join(mingroup, maxgroup)
   },
-
-  # plot_both_uniform = data %>%
-  #   filter(
-  #     hostname == "ironmaiden",
-  #     dataset == "random-uniform-zipf",
-  #     dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-  #     queryset == "random-uniform-zipf-uniform-uniform",
-  #   ) %>%
-  #   get_params(queryset_params, "q_") %>%
-  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-  #   barchart_qps() %>%
-  #   save_png(file_out("imgs/qps_both_uniform.png")),
-
-  # plot_range_only_uniform = data %>%
-  #   filter(
-  #     hostname == "ironmaiden",
-  #     dataset == "random-uniform-zipf",
-  #     dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-  #     queryset == "random-uniform-zipf-None",
-  #   ) %>%
-  #   get_params(queryset_params, "q_") %>%
-  #   inline_print() %>%
-  #   mutate(workload = interaction(q_start_low, q_start_high, q_dur_n, q_dur_beta)) %>%
-  #   barchart_qps() %>%
-  #   save_png(file_out("imgs/qps_time_only_uniform.png")),
-
-  # plot_duration_only_uniform = data %>%
-  #   filter(
-  #     hostname == "ironmaiden",
-  #     dataset == "random-uniform-zipf",
-  #    dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
-  #     queryset == "random-None-uniform-uniform",
-  #   ) %>%
-  #   get_params(queryset_params, "q_") %>%
-  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-  #   barchart_qps() %>%
-  #   save_png(file_out("imgs/qps_duration_only_uniform.png")),
-
-  # plot_both_clustered = data %>%
-  #   filter(
-  #     hostname == "ironmaiden",
-  #     dataset == "random-clustered-zipf",
-  #     dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-  #     queryset == "random-uniform-zipf-uniform-uniform",
-  #   ) %>%
-  #   get_params(queryset_params, "q_") %>%
-  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-  #   barchart_qps() %>%
-  #   save_png(file_out("imgs/qps_both_clustered.png")),
-
-  # plot_range_only_clustered = data %>%
-  #   filter(
-  #     hostname == "ironmaiden",
-  #     dataset == "random-clustered-zipf",
-  #     dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-  #     queryset == "random-uniform-zipf-None",
-  #   ) %>%
-  #   get_params(queryset_params, "q_") %>%
-  #   mutate(workload = interaction(q_start_low, q_start_high, q_dur_n, q_dur_beta)) %>%
-  #   barchart_qps() %>%
-  #   save_png(file_out("imgs/qps_time_only_clustered.png")),
-
-  # plot_duration_only_clustered = data %>%
-  #   filter(
-  #     hostname == "ironmaiden",
-  #     dataset == "random-clustered-zipf",
-  #     dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1",
-  #     queryset == "random-None-uniform-uniform",
-  #   ) %>%
-  #   get_params(queryset_params, "q_") %>%
-  #   mutate(workload = interaction(q_durmin_low, q_durmin_high, q_durmax_low, q_durmax_high)) %>%
-  #   barchart_qps() %>%
-  #   save_png(file_out("imgs/qps_duration_only_clustered.png")),
 
   overview_qps = {
     p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")

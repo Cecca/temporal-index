@@ -412,8 +412,10 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
       mutate(
         workload_type = case_when(
           queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
           queryset == "random-None-uniform-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
+          queryset == "random-clustered-zipf-None" ~ "time",
           queryset == "Mixed" ~ "mixed",
           TRUE ~ "Unknown"
         )
