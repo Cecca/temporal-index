@@ -411,7 +411,15 @@ plan <- drake_plan(
               dataset,
               qps, 
               algorithm) %>% 
-    mutate(algorithm = fct_reorder(algorithm, qps)) %>%
+    mutate(algorithm = case_when(
+             algorithm == "period-index++" ~ "PI++",
+             algorithm == "BTree" ~ "BT",
+             algorithm == "grid-file" ~ "GF",
+             algorithm == "period-index-*" ~ "PI*",
+             algorithm == "interval-tree" ~ "IT",
+             TRUE ~ algorithm
+           ),
+           algorithm = fct_reorder(algorithm, qps)) %>%
     arrange(desc(algorithm)) %>%
     group_by(queryset) %>%
     mutate(qps_num = qps,
@@ -429,6 +437,38 @@ plan <- drake_plan(
     pack_rows("Uniform start times", 1, 9) %>%
     pack_rows("Clustered start times", 10, 18) %>%
     write_file("paper/qps.tex")
+  ,
+
+  dataset_labels = best %>%
+    as_tibble() %>%
+    distinct(dataset, dataset_params) %>%
+    mutate(dataset_label = case_when(
+      (dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1") ~
+        "D_1",
+      (dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1") ~
+        "D_2"
+    )) %>%
+    drop_na() %>%
+    select(dataset_label, dataset_params)
+    ,
+
+  queryset_labels = best %>%
+    as_tibble() %>%
+    distinct(queryset_params) %>%
+    get_params(queryset_params, "") %>%
+    mutate(query_duration_label = case_when(
+      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==100) ~ "QD_1",
+      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==100) ~ "QD_2",
+      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==10000) ~ "QD_3",
+      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==10000) ~ "QD_4",
+      (is.na(durmin_low)) ~ "nil"
+    )) %>%
+    mutate(query_interval_label = case_when(
+      (start_low==1 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "QR_1",
+      (is.na(start_low)) ~ "nil"
+    )) %>%
+    select(queryset_params, query_interval_label, query_duration_label) %>%
+    drop_na()
   ,
 
 )

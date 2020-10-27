@@ -31,6 +31,7 @@ get_params <- function(data, column, prefix) {
     drop_na(pair__) %>% 
     separate(pair__, into=c("param__", "param_val__"), sep="=", remove=T, convert=T) %>% 
     mutate(param__ = str_c(prefix, param__)) %>%
+    filter(str_length(param__) > 0) %>%
     pivot_wider(names_from=param__, values_from=param_val__)
   
   assert_that(nrow(out) == nrow(data))

@@ -443,6 +443,40 @@ at the same time increasing the number of columns that need to be queried.
 
 \section{Experimental evaluation}
 
+\begin{table}
+  \caption{Distributions used to build synthetic dataset and query sets.
+    In particular, a query set is defined as a pair of time range
+    and duration range distributions, which are possibly
+    omitted for \qro and \qdo queries.
+    \label{tbl:distributions}}
+  % \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
+  % \toprule
+  % $D_1$ & Uniformly distributed start times $\in[1, 10^7]$, Zipf distributed durations with $\beta=1$\\
+  % $D_2$ & Start times distributed according to $N(\mu_i, 10^5)$, with $\mu_i\in U(1, n)$ and $i\in[1,10]$.\\
+  % \bottomrule
+  % \end{tabular}
+
+  \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
+  \toprule
+  \multicolumn{2}{l}{Time intervals distributions}\\
+  \midrule
+  $R_1$ & Start times uniformly distributed in $[1, n]$, durations
+           Zipf distributed with $\beta=1$\\
+  \bottomrule
+  \end{tabular}
+
+  \begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
+  \toprule
+  \multicolumn{2}{l}{Duration ranges distributions}\\
+  \midrule
+  $D_1$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 100)$ \\
+  $D_2$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 100)$ \\
+  $D_3$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 10000)$ \\
+  $D_4$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 10000)$ \\
+  \bottomrule
+  \end{tabular}
+\end{table}
+
 In this section we compare experimentally our proposed index with alternative approaches.
 In particular, we aim to answer the following questions:
 \begin{enumerate}
@@ -482,15 +516,10 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
     containing potentially overlapping intervals.
     Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
 
-    Given this, my implementation uses an array for each level to hold all the
-    \emph{non-empty} cells together with their index. Therefore, indexing is accomplished
-    by binary searching for the smallest useful index and then scanning from there.
-    Of course insertion is now more expensive, because we have to insert into vectors
-    in middle positions, and also indexing is slower, but we can deal with larger datasets.
-    % Given this, my implementation uses an array to hold all the cells, event the empty ones,
-    % thus allowing to directly index into it.
-    % Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
-    % Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
+    Given this, my implementation uses an array to hold all the cells, event the empty ones,
+    thus allowing to directly index into it.
+    Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
+    Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
 \end{tcolorbox}
 
 \subsection{Robustness of index structures across different workloads}
@@ -500,18 +529,19 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
     \includegraphics[width=\textwidth]{images/overview-qps.png}
     \caption{Overview of the performance of the tested index structures
         over a variety of workloads and datasets. All the datasets have 10 million
-        points and, for each workload, we perform 5\,000 queries.\label{fig:overview-qps}}
+        points and, for each workload, we perform 5\,000 queries. The scale is logarithmic.\label{fig:overview-qps}}
     \Description{Overview of the performance of the algortihms.}
 \end{figure*}
 
-\begin{table*}
+\begin{table}
+  \caption{Performance attained by the tested indices on different workloads.\label{tbl:overview-qps}}
   \input{qps.tex}
-\end{table*}
+\end{table}
 
 In the first set of experiments, we generate datasets of 10 million intervals each,
 using different start time and duration distributions. Similarly we generate several different
 query workloads.
-Figure~\ref{fig:overview-qps} reports on the performance, in terms of queries per second, of
+Figure~\ref{fig:overview-qps} and Table~\ref{tbl:overview-qps} report on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
 For index structures that take parameters, we report on the best configuration for each
 combination of dataset and query workload.
@@ -537,6 +567,9 @@ that is adaptive with respect to the data.
 
 On duration-only query workloads, \algo{b-tree} is always the best performing index, with
 \ours being just slightly slower.
+
+\cetodo{We also observe that \ours is very stable with respect to the start time distribution,
+getting basically the same performance every time.}
 
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
