@@ -20,6 +20,19 @@
 \newcommand{\qdo}{\textsc{do}\xspace}
 \newcommand{\qro}{\textsc{ro}\xspace}
 
+%% Notations for temporal relations
+
+\newcommand{\domT}{\ensuremath{\Omega^T}}
+\newcommand{\args}[2]{#1_1,\dots,#1_{#2}}
+\newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
+\newcommand{\rr}{\rel{r}}
+\newcommand{\rs}{\rel{s}}
+\newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\A}{\dbattset{A}}
+\newcommand{\T}{\ensuremath{T}}
+\newcommand{\TS}{\ensuremath{T_s}}
+\newcommand{\TE}{\ensuremath{T_e}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% The following content must be adapted for the final version
@@ -152,6 +165,25 @@ The main issue of these approaches is that they suffer from additional dimension
 
 Recently, there has been a renewed interest in temporal join processing. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read the input relations sorted by the start and end points of intervals as separated events in a sorted-merge join fashion. The temporal join is performed by joining active tuples of one relation (i.e., tuples for which the start point has been encountered but not yet the end point) with the matching  events of the other relation.
 The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based plane sweep algorithm that sorts the input relations by start time and performs an interleaving merge-join with backtracking. Other approaches are based on partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}. They first partition the data and then perform the join either by using a nested loop within candidate partitions or a sorted-merge join between all partitions. These approaches focus on reducing the search space within a temporal join and are not directly applicable to the problem of reducing the search space for selection queries addressed in this paper. Moreover, they do not consider the duration of periods for processing.
+
+\section{Preliminaries}
+
+
+\ad{These are the once we usually use.}
+
+We assume a linearly ordered, discrete time domain, $\domT$.  A
+time interval is a contiguous set of time points, and $[\TS,\TE)$
+denotes the closed-open interval of points from $\TS$ to $\TE$.  A
+tuple in a temporal relation is timestamped with an interval that
+represents the tuple's valid time.  The schema of a temporal relation
+is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
+nontemporal attributes with domains $\Omega_i$ and $\T$ is the
+timestamp attribute with domain $\domT \times \domT$. A temporal
+relation $\rr$ with schema $R$ is a finite set of tuples, where each
+tuple has a value in the appropriate domain for each attribute in the
+schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
+$r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
+$r.\A = (\args{r.A}{m})$, and we $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE = \TS$.
 
 \section{Preliminaries}
 
