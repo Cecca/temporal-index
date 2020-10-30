@@ -152,13 +152,20 @@ pub enum DataConfiguration {
         seed: Vec<u64>,
         n: Vec<usize>,
         exponent: Vec<f64>,
-        max_start_time: Vec<u32>,
+        max_start_time: Vec<Time>,
     },
     Random {
         seed: Vec<u64>,
         n: Vec<usize>,
         start_times: Vec<TimeDistribution>,
         durations: Vec<TimeDistribution>,
+    },
+    Csv {
+        path: std::path::PathBuf,
+        start_column: usize,
+        end_column: usize,
+        separator: u8,
+        has_header: bool,
     },
 }
 
@@ -197,6 +204,23 @@ impl DataConfiguration {
                 );
                 Box::new(iter)
             }
+            Self::Csv {
+                path,
+                start_column,
+                end_column,
+                separator,
+                has_header,
+            } => {
+                let dataset = Rc::new(CsvDataset::new(
+                    path.clone(),
+                    *start_column,
+                    *end_column,
+                    *separator,
+                    *has_header,
+                )) as Rc<dyn Dataset>;
+                let iter = Some(dataset).into_iter();
+                Box::new(iter)
+            }
         }
     }
 }
@@ -222,7 +246,7 @@ pub enum QueryConfiguration {
         seed: Vec<u64>,
         n: Vec<usize>,
         exponent: Vec<f64>,
-        max_start_time: Vec<u32>,
+        max_start_time: Vec<Time>,
         max_duration_factor: Vec<f64>,
     },
     Random {
@@ -440,7 +464,7 @@ impl Configuration {
                     let h = queryset
                         .get()
                         .iter()
-                        .map(|query| query.range.map(|r| r.duration()).unwrap_or(std::u32::MAX))
+                        .map(|query| query.range.map(|r| r.duration()).unwrap_or(std::u64::MAX))
                         .histogram();
                     let name = queryset.name();
                     let version = queryset.version();
@@ -458,11 +482,11 @@ impl Configuration {
 }
 
 trait Histogram {
-    fn histogram(self) -> BTreeMap<u32, u32>;
+    fn histogram(self) -> BTreeMap<Time, u32>;
 }
 
-impl<I: IntoIterator<Item = u32>> Histogram for I {
-    fn histogram(self) -> BTreeMap<u32, u32> {
+impl<I: IntoIterator<Item = Time>> Histogram for I {
+    fn histogram(self) -> BTreeMap<Time, u32> {
         let mut hist = BTreeMap::new();
         for x in self {
             hist.entry(x).and_modify(|c| *c += 1).or_insert(1);
