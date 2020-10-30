@@ -80,6 +80,52 @@
 
 \section{Introduction}
 
+\ad{This is copy/paste from Period index paper}
+
+Temporal data are crucial in many database applications, but the support for the management of such data is still limited in most of today's database systems. Database management systems usually provide an automated version control of the data and mechanisms for fast history access,
+known as time travel. However, index structures to support efficient query processing are largely missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17}.
+
+Past research has concentrated on operation-specific indexes to support the three most important types of temporal operations, namely time travel, temporal aggregations, and temporal
+joins~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/icde/PiatovHD16,DBLP:conf/ssd/PiatovH17}.  Such approaches focus on optimizing operational details and  neglect the fact that time intervals contain two important pieces of information: they are anchored on the timeline and have a duration. 
+
+In this paper, we argue that in many applications both pieces of temporal information are relevant for querying databases and hence should be supported by database management systems.  For instance, applications that offer situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access both to the duration and the position of events.
+As a motivating example, consider  in a patient care scenario~\cite{DBLP:conf/adbis/BehrendSXFGLCG14}:
+\begin{itemize}
+    \item[$Q1$:] \emph{``What patients suffered from fever and tachycardia for more than 90 minutes?''}
+    \item[$Q2$:] \emph{"Find all patients who had fever last week?"}
+    \item[$Q3$:] \emph{``Find all patients in the first half of 2015 who were in treatment for less than one month''}
+\end{itemize}
+
+The first query $Q1$ imposes constraints on the duration of matching events, and we call it \emph{duration query}.  In contrast, query $Q2$ retrieves tuples based on the position of the events on the timeline; we call it \emph{range query}. Finally, query $Q3$ constrains both types of information; we call it \emph{range-duration query}. 
+Similar queries have been reported in other application scenarios, e.g., air traffic analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
+
+As shown in the above examples, time periods comprise information about their position on the timeline and the length of the period. However, index structures over time intervals typically use only one of the two aspects.  For instance, the well-known relational interval tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for efficiently determining temporal relationships between intervals but not interval lengths. In the worst case, the entire index tree must be traversed if a query solely contains restrictions on the interval length.  
+
+To tackle this problem, in this paper we propose a new index structure that considers both the position of the periods on the timeline and their duration.
+A first attempt could be to dissolve the start time and the interval length, and to use two 1D indexes separately, e.g., a TSB-tree~\cite{DBLP:journals/csur/SalzbergT99} for the time travel and a B$^+$-tree for accessing the interval lengths. The combination of two different indexes, however, is typically inefficient as the selectivity in one dimension alone might not be very small.
+To avoid the combined application of indexes, multidimensional B$^+$-trees or spatial access structures such as R-trees, quadtrees or grids~\cite{DBLP:journals/tods/NievergeltHS84} could be employed. Unfortunately, tree-based indexes are not well-suited for parallelization on modern hardware with many cores, large main-memories and/or even non-uniform memory access. In contrast, a grid-based index supports well parallel processing, but its data-independent and rigid structure is problematic if the data is not appropriately distributed. Moreover, 
+temporal intervals represented as tuples $(S,L)$, where $S$ is the start point and $L$ is the length, are difficult to handle since $L$ is undefined in the case of unbounded intervals.
+
+Based on the shortcomings of existing solutions, in this paper we introduce a new two-dimensional index structure, termed \emph{Period Index}, which considers both the duration of time periods as well as their position on the timeline. The Period Index is a flexible grid-based  structure, which allows for storing possibly unbounded intervals and incorporates the search benefits of balanced trees as much as possible. 
+The key idea of the new index is to split the timeline into fixed-length buckets and to divide each bucket into a set of cells that are organized in levels. At level~$0$, we have one cell that covers the entire time interval of the bucket and stores data that is longer than half of the bucket length. Level~$1$ contains two cells that cover, respectively, the first half and the second half of the bucket. The data stored at level~$1$ is longer than a quarter of the bucket length but shorter than half of the bucket length. At level~$3$, the bucket is covered by four cells, and so on.  That is, the cells encode the position of the data on the timeline, whereas the levels encode their duration.  
+The resulting structure is interpreted as a hash table using a hash function for rapid data look-up based on the duration of intervals and their location on the timeline. 
+
+The optimal bucket length of Period Index depends on the data distribution, which might change if the data is updated. To afford for changes in the data and guarantee an optimal bucket length, we  enhance the index in a way that the bucket length is automatically adjusted to the distribution of the data. We term this structure \emph{Period Index$^*$}.
+
+The technical contributions can be summarized as follows:
+\begin{itemize}
+    \item We introduce a new data access path, termed \emph{Period Index}, which supports two important pieces of information of time intervals, namely their duration and their location on the timeline.
+    
+    \item The Period Index is a grid-based structure, hence allows to determine the relevant cells for a query in constant time and is especially suited for parallelization on new hardware architectures.
+    
+    \item We show a space-efficient implementation of the index structure using linked lists, which avoids the storage of empty data cells.
+    
+     \item We propose an enhanced version of our index structure, termed \emph{Period Index$^*$}, which continuously adapts the optimal bucket length to the distribution of the data.
+       
+\item Experiments show that Period Index$^*$ significantly outperforms related approaches for queries that involve duration and location of time intervals, and is competitive if only one temporal aspect is involved.
+\end{itemize}
+
+
 \section{Related work}
 
 \ad{This is copy/paste from Period index paper}
