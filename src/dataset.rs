@@ -134,7 +134,7 @@ impl Dataset for RandomDataset {
     }
 
     fn version(&self) -> u8 {
-        4
+        5
     }
 
     /// Does not remove the duplicates, because otherwise the distributions
@@ -190,7 +190,7 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn get(&self) -> Vec<Interval> {
@@ -268,7 +268,7 @@ impl Queryset for RandomQueriesZipfAndUniform {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn get(&self) -> Vec<Query> {
@@ -357,7 +357,7 @@ impl Queryset for RandomQueryset {
     }
 
     fn version(&self) -> u8 {
-        5
+        6
     }
 
     fn get(&self) -> Vec<Query> {
@@ -475,9 +475,8 @@ impl Dataset for CsvDataset {
             .delimiter(self.separator)
             .from_path(&self.path)
             .expect("cannot get data file");
-        println!("{:?}", self);
 
-        reader
+        let pairs: Vec<(Time, Time)> = reader
             .records()
             .map(|record| {
                 let record = record.expect("problems decoding record");
@@ -492,10 +491,16 @@ impl Dataset for CsvDataset {
                     .parse::<u64>()
                     .expect("problem parsing end time");
                 assert!(end >= start, "start={} end={}", start, end);
-                Interval {
-                    start,
-                    end: end + 1,
-                }
+                (start, end + 1)
+            })
+            .collect();
+
+        let min_time = pairs.iter().map(|p| p.0).min().unwrap();
+        pairs
+            .iter()
+            .map(|(s, e)| Interval {
+                start: *s - min_time,
+                end: *e - min_time,
             })
             .collect()
     }
