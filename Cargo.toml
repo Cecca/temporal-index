@@ -25,6 +25,7 @@ itertools = "0.9"
 deepsize = "0.1"
 sysinfo = "0.15"
 rayon = "1.4"
+csv = "1.1"
 # flame = "0.2"
 
 [dev-dependencies]

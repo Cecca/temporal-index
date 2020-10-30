@@ -7,11 +7,11 @@ pub struct GridFile {
     /// index by duration (first dimension) and then by start time
     /// the end itme is correlated, so we don't build an index in that dimension
     inner: Vec<Vec<Vec<Interval>>>,
-    duration_anchor: Option<u32>,
-    start_anchor: Option<u32>,
+    duration_anchor: Option<Time>,
+    start_anchor: Option<Time>,
     durations_per_cell: Option<usize>,
     starts_per_cell: Option<usize>,
-    max_durations: Vec<u32>,
+    max_durations: Vec<Time>,
 }
 
 impl std::fmt::Debug for GridFile {
@@ -34,7 +34,7 @@ impl GridFile {
     }
 
     #[inline(always)]
-    fn map_time(&self, t: u32) -> usize {
+    fn map_time(&self, t: Time) -> usize {
         let ns = self.starts_per_cell.unwrap();
         let start_anchor = self.start_anchor.unwrap();
         if t < start_anchor {
@@ -45,7 +45,7 @@ impl GridFile {
     }
 
     #[inline(always)]
-    fn map_duration(&self, d: u32) -> usize {
+    fn map_duration(&self, d: Time) -> usize {
         let nd = self.durations_per_cell.unwrap();
         let duration_anchor = self.duration_anchor.unwrap();
         if d < duration_anchor {
@@ -198,9 +198,9 @@ impl Algorithm for GridFile {
             );
             self.inner[d_idx][s_idx].push(interval.clone());
         }
-        self.max_durations[0] = min_duration + durations_per_cell as u32;
+        self.max_durations[0] = min_duration + durations_per_cell as Time;
         for i in 1..self.max_durations.len() {
-            self.max_durations[i] = self.max_durations[i - 1] + durations_per_cell as u32;
+            self.max_durations[i] = self.max_durations[i - 1] + durations_per_cell as Time;
         }
     }
 

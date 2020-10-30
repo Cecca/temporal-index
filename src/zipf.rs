@@ -87,7 +87,7 @@ impl ZipfDistribution {
 }
 
 impl ZipfDistribution {
-    fn next<R: Rng + ?Sized>(&self, rng: &mut R) -> u32 {
+    fn next<R: Rng + ?Sized>(&self, rng: &mut R) -> u64 {
         // The paper describes an algorithm for exponents larger than 1 (Algorithm ZRI).
         //
         // The original method uses
@@ -120,7 +120,7 @@ impl ZipfDistribution {
             // due to numerical inaccuracies.
             let k64 = x.max(1.0).min(self.num_elements);
             // float -> integer rounds towards zero
-            let k = cmp::max(1, k64 as u32);
+            let k = cmp::max(1, k64 as u64);
 
             // Here, the distribution of k is given by:
             //
@@ -175,8 +175,8 @@ impl ZipfDistribution {
     }
 }
 
-impl rand::distributions::Distribution<u32> for ZipfDistribution {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> u32 {
+impl rand::distributions::Distribution<u64> for ZipfDistribution {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> u64 {
         self.next(rng)
     }
 }

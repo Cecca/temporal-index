@@ -1,7 +1,7 @@
 use deepsize::DeepSizeOf;
 use progress_logger::ProgressLogger;
 
-pub type Time = u32;
+pub type Time = u64;
 
 #[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq, DeepSizeOf)]
 pub struct Interval {

@@ -297,7 +297,7 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
                 end_index
             };
             let boundary = if end_index == items.len() {
-                std::u32::MAX
+                std::u64::MAX
             } else {
                 key(&items[end_index])
             };

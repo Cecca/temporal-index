@@ -4,9 +4,11 @@ extern crate rand_xoshiro;
 
 use crate::types::*;
 use crate::zipf::ZipfDistribution;
+use csv;
 use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 pub trait Dataset: std::fmt::Debug {
@@ -27,9 +29,9 @@ pub trait Dataset: std::fmt::Debug {
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 pub enum TimeDistribution {
-    Uniform { low: u32, high: u32 },
+    Uniform { low: Time, high: Time },
     Zipf { n: usize, beta: f64 },
-    Clustered { n: usize, high: u32, std_dev: u32 },
+    Clustered { n: usize, high: Time, std_dev: Time },
 }
 
 impl TimeDistribution {
@@ -61,8 +63,8 @@ impl TimeDistribution {
 
                 Box::new(distribs.into_iter().cycle().map(move |d| {
                     let s = rng.sample(d);
-                    assert!(s < std::u32::MAX as f64);
-                    s as u32
+                    assert!(s < std::u64::MAX as f64);
+                    s as Time
                 }))
             }
         }
@@ -290,7 +292,7 @@ impl Queryset for RandomQueriesZipfAndUniform {
             let d_max = std::cmp::max((d_max * range.duration() as f64) as Time, 1);
             data.push(Query {
                 range: Some(range),
-                duration: Some(DurationRange::new(d_min as u32, d_max as u32)),
+                duration: Some(DurationRange::new(d_min as Time, d_max as Time)),
             });
         }
         data.sort();
@@ -425,5 +427,80 @@ impl Queryset for MixedQueryset {
 
     fn get(&self) -> Vec<Query> {
         self.inner.iter().flat_map(|inner| inner.get()).collect()
+    }
+}
+
+#[derive(Debug)]
+pub struct CsvDataset {
+    start_column: usize,
+    end_column: usize,
+    path: PathBuf,
+    separator: u8,
+    has_header: bool,
+}
+
+impl CsvDataset {
+    pub fn new(
+        path: PathBuf,
+        start_column: usize,
+        end_column: usize,
+        separator: u8,
+        has_header: bool,
+    ) -> Self {
+        Self {
+            start_column,
+            end_column,
+            path,
+            separator,
+            has_header,
+        }
+    }
+}
+
+impl Dataset for CsvDataset {
+    fn name(&self) -> String {
+        format!("csv({:?})", self.path)
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "start_column={} end_column={}",
+            self.start_column, self.end_column
+        )
+    }
+
+    fn get(&self) -> Vec<Interval> {
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(self.has_header)
+            .delimiter(self.separator)
+            .from_path(&self.path)
+            .expect("cannot get data file");
+        println!("{:?}", self);
+
+        reader
+            .records()
+            .map(|record| {
+                let record = record.expect("problems decoding record");
+                let start = record
+                    .get(self.start_column)
+                    .unwrap()
+                    .parse::<u64>()
+                    .expect("problem parsing start time");
+                let end = record
+                    .get(self.end_column)
+                    .unwrap()
+                    .parse::<u64>()
+                    .expect("problem parsing end time");
+                assert!(end >= start, "start={} end={}", start, end);
+                Interval {
+                    start,
+                    end: end + 1,
+                }
+            })
+            .collect()
+    }
+
+    fn version(&self) -> u8 {
+        1
     }
 }

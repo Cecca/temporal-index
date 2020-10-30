@@ -121,7 +121,7 @@ impl Bucket {
     fn new(time_range: Interval, num_levels: u32) -> Self {
         let mut cells = Vec::with_capacity(num_levels as usize);
         let mut duration = time_range.duration();
-        let mut duration_range = DurationRange::new(duration, std::u32::MAX);
+        let mut duration_range = DurationRange::new(duration, std::u64::MAX);
         let mut level_count = 0;
         while duration > 0 && level_count < num_levels {
             trace!("level {}, duration range {:?}", level_count, duration_range);
@@ -326,11 +326,7 @@ pub struct PeriodIndex {
 
 impl std::fmt::Debug for PeriodIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "period-index({}, {})",
-            self.num_buckets, self.num_levels
-        )
+        write!(f, "period-index({}, {})", self.num_buckets, self.num_levels)
     }
 }
 
@@ -397,7 +393,7 @@ impl Algorithm for PeriodIndex {
             .map(|i| i.end)
             .max()
             .expect("maximum of an empty collection");
-        let bucket_length = ((endtime - anchor) as f64 / self.num_buckets as f64).ceil() as u32;
+        let bucket_length = ((endtime - anchor) as f64 / self.num_buckets as f64).ceil() as Time;
         debug!("Anchor {}, endtime {}", anchor, endtime);
         self.bucket_length.replace(bucket_length);
 
@@ -540,7 +536,7 @@ pub struct PeriodIndexStar {
     /// make binary search for start times on them.
     buckets: Vec<Bucket>,
     /// Vector of bucket endpoints to make the search faster, since it fits into a cache line
-    boundaries: Vec<u32>,
+    boundaries: Vec<Time>,
     num_buckets: u32,
     num_levels: u32,
     n: usize,
@@ -607,7 +603,7 @@ impl Algorithm for PeriodIndexStar {
         let mut count_threshold = step;
         let mut last_time = 0;
         for (time, &count) in start_times_ecdf.iter().enumerate() {
-            let time = time as u32;
+            let time = time as Time;
             if count >= count_threshold {
                 let bucket = Bucket::new(
                     Interval {
