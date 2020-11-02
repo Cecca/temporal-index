@@ -210,18 +210,10 @@ In other words,
 the start is the first cell such that the upper boundary on the start
 time plus the maximum duration in the duration range of the column
 is strictly less than the end time of the query
-(in Figure~\ref{fig:grid-query} this corresponds to the upper corner of each cell).
 
 For each cell $A_{i,j}^{d,s}$ within the above bounds, we evaluate the query
 predicate for all the intervals. Since the intervals are sorted by decreasing
 end time, we can stop as soon as we see an interval whose en time is $< e_s$.
-
-Figure~\ref{fig:grid-query} shows an example of a grid together with a query.
-Note that each group of durations is partitioned according to start times
-in a different way.
-As for the query, the dashed lines mark the range of intervals overlapping
-the query intervals. Intersecting this area with the diagonals enclosing the
-duration part of the query gives the area where query answers lie.
 
 \subsection{Analysis}
 
