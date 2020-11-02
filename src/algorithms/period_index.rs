@@ -138,6 +138,7 @@ impl Bucket {
             duration_range.min = duration;
             level_count += 1;
         }
+        assert!(cells.len() > 0);
 
         // adjust lower bound on duration for the last level
         let last_idx = cells.len() - 1;
@@ -605,6 +606,7 @@ impl Algorithm for PeriodIndexStar {
         for (time, &count) in start_times_ecdf.iter().enumerate() {
             let time = time as Time;
             if count >= count_threshold {
+                assert!(time > last_time);
                 let bucket = Bucket::new(
                     Interval {
                         start: last_time,
