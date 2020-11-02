@@ -223,55 +223,6 @@ As for the query, the dashed lines mark the range of intervals overlapping
 the query intervals. Intersecting this area with the diagonals enclosing the
 duration part of the query gives the area where query answers lie.
 
-\begin{figure}
-	\begin{tikzpicture}[xscale=.1, yscale=0.075]
-		\footnotesize
-		% Axes
-		\draw [<->] (0,60) node (yaxis) [above] {$end$}
-		|- (60,0) node (xaxis) [right] {$start$};
-		%ticks
-		\foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
-		\foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
-
-		% Query point: duration between 8 and 20
-		\coordinate (query) at (30,25);
-		\draw[thick, red, fill=red!10]
-		(17, 25) -- (30, 38) -- (30, 50) -- (5, 25) -- (17, 25) ;
-		\fill[red] (query) circle (10pt);
-		\draw [red,dashed] (0,25) -- (query);
-		\draw [red,dashed] (30,60) -- (query);
-
-		% % Grid structure
-		\draw [-] (0,1) -- (60,61);
-		\foreach \duration in {5, 15, 27, 50} \draw (0, \duration) -- (60-\duration, 60);
-		\foreach \duration in {1, 5, 15, 27, 50} \draw[dashed] (0, \duration) -- (-5, \duration);
-		\node[anchor=east] at (-4, 3) {$d\in[1,5)$};
-			\node[anchor=east] at (-4, 10) {$d\in[5, 15)$};
-		\node[anchor=east] at (-4, 22) {$d\in[15, 27)$};
-			\node[anchor=east] at (-4, 38) {$d\in[27, 50)$};
-
-		% grid duration 5
-		\foreach \start in {8, 16, 26, 44} \draw (\start, \start+1) -- (\start, \start+5);
-		\draw[dashed] (8, 9) -- (8, 5);
-		\draw[dashed] (16, 17) -- (16, 5);
-		\node[anchor=center] at (12, 5) {$e_s \in [8, 16)$};
-		% grid duration 15
-		\foreach \start in {7, 15, 22, 33, 40} \draw (\start, \start+5) -- (\start, \start+15);
-		% grid duration 27
-		\foreach \start in {5, 13, 31} \draw (\start, \start+15) -- (\start, \start+27);
-		% grid duration 50
-		\draw (5, 5+27) -- (5, 55);
-		\draw (20, 20+27) -- (20, 60);
-
-	\end{tikzpicture}
-	\caption{Instantiation of the grid over durations and start times, with
-		a query. Note that points with the same duration fall on the same diagonal.
-		\label{fig:grid-query}}
-	\Description{}
-\end{figure}
-
-\cetodo{Intervals within a "safe" region are not eve checked, just reported}
-
 \subsection{Analysis}
 
 \begin{theorem}
