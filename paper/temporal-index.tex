@@ -150,9 +150,6 @@ $\le |e|$.
 Similarly, let $CDF_s^A(e_s)$ be the fraction of the
 intervals whose start time is $\le e_s$.
 
-\cetodo{What happens when there are more than $s^2$ elements in a bucket?
-	This happens when there are more than $s^2$ elements with the same duration: they
-	all fall in the same bucket.}
 We partition the intervals in $n / s^2$ \emph{columns}: an interval $e$ is assigned to
 column $\lfloor CDF_d(|e|) \cdot n/2^s \rfloor$.
 In particular, we define the $i$-th column in the duration dimension as
@@ -228,7 +225,7 @@ duration part of the query gives the area where query answers lie.
 
 \begin{figure}
 	\begin{tikzpicture}[xscale=.1, yscale=0.075]
-    \footnotesize
+		\footnotesize
 		% Axes
 		\draw [<->] (0,60) node (yaxis) [above] {$end$}
 		|- (60,0) node (xaxis) [right] {$start$};
@@ -301,7 +298,7 @@ duration part of the query gives the area where query answers lie.
 
 \begin{figure}
 	\begin{tikzpicture}[scale=0.15, xscale=0.75]
-    \footnotesize
+		\footnotesize
 		% Axes
 		\draw [<->] (0,40) node (yaxis) [above] {$start$}
 		|- (60,0) node (xaxis) [right] {$duration$};
@@ -314,7 +311,7 @@ duration part of the query gives the area where query answers lie.
 		\draw[dashed, red] (60, 30) -- (10, 30) -- (40, 0);
 		\draw[dashed, red] (13, 0) -- (13,40);
 		\draw[dashed, red] (30, 0) -- (30,40);
-    \draw[red, thick, fill=red!10] (13,30) -- (30, 30) -- (30, 10) -- (13, 27) -- (13,30);
+		\draw[red, thick, fill=red!10] (13,30) -- (30, 30) -- (30, 10) -- (13, 27) -- (13,30);
 
 		% Vertical ticks
 		\foreach \duration in {5, 15, 22, 27, 50} \draw (\duration, 0) -- (\duration, 35);
@@ -341,7 +338,7 @@ can be made polynomially smaller than the input size.
 	Given an index over a set of $n$ intervals, with page size $s$, the time for
 	answering a range-duration query is
 	\[
-		\BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
+		\BO{\frac{n}{s^2}\log\frac{n}{s} + \frac{n}{s} + s^2 + k}
 	\]
 	where $k$ is the number of intervals matching the query predicate.
 	% For $s = \BO{n^\epsilon}$, we have that the query time is
@@ -388,10 +385,8 @@ can be made polynomially smaller than the input size.
 	Therefore, the overall time to find the correct cells is
 	\[
 		\BO{\log\frac{n}{s^2} + \frac{n}{s^2} \log\frac{n}{s}} =
-		\BO{\frac{n}{s^2} \log\frac{n}{s}} =
-		\BO{\frac{n}{s} \log\frac{n}{s}}
+		\BO{\frac{n}{s^2} \log\frac{n}{s}}
 	\]
-  where the last step follows from the fact that $s \ge 1$.
 
 	Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
 	\begin{enumerate}
@@ -439,7 +434,7 @@ can be made polynomially smaller than the input size.
 
 	Combining this last result with the time to find the range of cells to query, we have that the overall query time is
 	\[
-		\BO{\frac{n}{s}\log\frac{n}{s} + s^2 + k}
+		\BO{\frac{n}{s^2}\log\frac{n}{s} + \frac{n}{s} + s^2 + k}
 	\]
 \end{proof}
 
@@ -462,11 +457,11 @@ at the same time increasing the number of columns that need to be queried.
 
 	\begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
 		\toprule
-		\multicolumn{2}{l}{Time intervals distributions}                                                             \\
+		\multicolumn{2}{l}{Time intervals distributions}                                                                \\
 		\midrule
 		$R_1$ & Start times uniformly distributed in $[1, 10^7]$, durations
-		Zipf distributed with $\beta=1$                                                                              \\
-    $R_2$ & Start times distributed according to $N(\mu_i, 100\,000)$, with $\mu_i\in U(1, 10^7)$ and $i\in[1,10]$. \\
+		Zipf distributed with $\beta=1$                                                                                 \\
+		$R_2$ & Start times distributed according to $N(\mu_i, 100\,000)$, with $\mu_i\in U(1, 10^7)$ and $i\in[1,10]$. \\
 		\bottomrule
 	\end{tabular}
 
@@ -538,10 +533,10 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 
 \begin{table}
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
-           The first column reports the distribution used to generate dataset intervals, using the notation
-           introduced in Table~\ref{tbl:distributions}.
-           The second column reports the query workload configuration: a $nil$ indicates that a particular
-           query workload is not constraining either the time range or the duration range.\label{tbl:overview-qps}}
+		The first column reports the distribution used to generate dataset intervals, using the notation
+		introduced in Table~\ref{tbl:distributions}.
+		The second column reports the query workload configuration: a $nil$ indicates that a particular
+		query workload is not constraining either the time range or the duration range.\label{tbl:overview-qps}}
 	\input{qps.tex}
 \end{table}
 
@@ -597,8 +592,6 @@ having similar performance for a given query workload.
 		on queries with selectivity at most $0.2$, discarding the slowest 100 queries.\label{fig:time-vs-selectivity}}
 	\Description{Time versus selectivity}
 \end{figure*}
-
-\cetodo{\algo{period-index-$\star$} is running, I'm waiting for the results}
 
 We investigate the relationship between the selectivity of the queries (i.e. the fraction of the
 input that satisfies them) and the time taken by different data structures to answer them.
