@@ -61,10 +61,15 @@ impl TimeDistribution {
                         .map(|center| Normal::new(center as f64, *std_dev as f64)),
                 );
 
-                Box::new(distribs.into_iter().cycle().map(move |d| {
+                Box::new(distribs.into_iter().cycle().flat_map(move |d| {
                     let s = rng.sample(d);
-                    assert!(s < std::u64::MAX as f64);
-                    s as Time
+                    if s > 0.0 && s < std::u64::MAX as f64 {
+                        Some(s as Time)
+                    } else {
+                        None
+                    }
+                    // assert!(s < std::u64::MAX as f64);
+                    // s as Time
                 }))
             }
         }
@@ -134,7 +139,7 @@ impl Dataset for RandomDataset {
     }
 
     fn version(&self) -> u8 {
-        5
+        6
     }
 
     /// Does not remove the duplicates, because otherwise the distributions
