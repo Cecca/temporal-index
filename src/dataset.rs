@@ -489,12 +489,12 @@ impl Dataset for CsvDataset {
                     .get(self.start_column)
                     .unwrap()
                     .parse::<u64>()
-                    .expect("problem parsing start time");
+                    .unwrap_or_else(|_| panic!("problem parsing start time {:?}", record));
                 let end = record
                     .get(self.end_column)
                     .unwrap()
                     .parse::<u64>()
-                    .expect("problem parsing end time");
+                    .unwrap_or_else(|_| panic!("problem parsing end time {:?}", record));
                 assert!(end >= start, "start={} end={}", start, end);
                 (start, end + 1)
             })
