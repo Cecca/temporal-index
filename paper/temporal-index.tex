@@ -20,6 +20,19 @@
 \newcommand{\qdo}{\textsc{do}\xspace}
 \newcommand{\qro}{\textsc{ro}\xspace}
 
+%% Notations for temporal relations
+
+\newcommand{\domT}{\ensuremath{\Omega^T}}
+\newcommand{\args}[2]{#1_1,\dots,#1_{#2}}
+\newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
+\newcommand{\rr}{\rel{r}}
+\newcommand{\rs}{\rel{s}}
+\newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\A}{\dbattset{A}}
+\newcommand{\T}{\ensuremath{T}}
+\newcommand{\TS}{\ensuremath{T_s}}
+\newcommand{\TE}{\ensuremath{T_e}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% The following content must be adapted for the final version
@@ -37,6 +50,8 @@
 \newcommand\vldbavailabilityurl{http://vldb.org/pvldb/format_vol14.html}
 % whether page numbers should be shown or not, use 'plain' for review versions, 'empty' for camera ready
 \newcommand\vldbpagestyle{plain} 
+
+\newcommand{\ad}[1]{\textcolor{blue}{(*** AD: #1 ***)}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -78,10 +93,97 @@
 
 \section{Introduction}
 
+\ad{This is copy/paste from Period index paper}
+
+Temporal data are crucial in many database applications, but the support for the management of such data is still limited in most of today's database systems. Database management systems usually provide an automated version control of the data and mechanisms for fast history access,
+known as time travel. However, index structures to support efficient query processing are largely missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17}.
+
+Past research has concentrated on operation-specific indexes to support the three most important types of temporal operations, namely time travel, temporal aggregations, and temporal
+joins~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/icde/PiatovHD16,DBLP:conf/ssd/PiatovH17}.  Such approaches focus on optimizing operational details and  neglect the fact that time intervals contain two important pieces of information: they are anchored on the timeline and have a duration.
+
+In this paper, we argue that in many applications both pieces of temporal information are relevant for querying databases and hence should be supported by database management systems.  For instance, applications that offer situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access both to the duration and the position of events.
+As a motivating example, consider  in a patient care scenario~\cite{DBLP:conf/adbis/BehrendSXFGLCG14}:
+\begin{itemize}
+	\item[$Q1$:] \emph{``What patients suffered from fever and tachycardia for more than 90 minutes?''}
+	\item[$Q2$:] \emph{"Find all patients who had fever last week?"}
+	\item[$Q3$:] \emph{``Find all patients in the first half of 2015 who were in treatment for less than one month''}
+\end{itemize}
+
+The first query $Q1$ imposes constraints on the duration of matching events, and we call it \emph{duration query}.  In contrast, query $Q2$ retrieves tuples based on the position of the events on the timeline; we call it \emph{range query}. Finally, query $Q3$ constrains both types of information; we call it \emph{range-duration query}.
+Similar queries have been reported in other application scenarios, e.g., air traffic analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
+
+As shown in the above examples, time periods comprise information about their position on the timeline and the length of the period. However, index structures over time intervals typically use only one of the two aspects.  For instance, the well-known relational interval tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for efficiently determining temporal relationships between intervals but not interval lengths. In the worst case, the entire index tree must be traversed if a query solely contains restrictions on the interval length.
+
+To tackle this problem, in this paper we propose a new index structure that considers both the position of the periods on the timeline and their duration.
+A first attempt could be to dissolve the start time and the interval length, and to use two 1D indexes separately, e.g., a TSB-tree~\cite{DBLP:journals/csur/SalzbergT99} for the time travel and a B$^+$-tree for accessing the interval lengths. The combination of two different indexes, however, is typically inefficient as the selectivity in one dimension alone might not be very small.
+To avoid the combined application of indexes, multidimensional B$^+$-trees or spatial access structures such as R-trees, quadtrees or grids~\cite{DBLP:journals/tods/NievergeltHS84} could be employed. Unfortunately, tree-based indexes are not well-suited for parallelization on modern hardware with many cores, large main-memories and/or even non-uniform memory access. In contrast, a grid-based index supports well parallel processing, but its data-independent and rigid structure is problematic if the data is not appropriately distributed. Moreover,
+temporal intervals represented as tuples $(S,L)$, where $S$ is the start point and $L$ is the length, are difficult to handle since $L$ is undefined in the case of unbounded intervals.
+
+Based on the shortcomings of existing solutions, in this paper we introduce a new two-dimensional index structure, termed \emph{Period Index}, which considers both the duration of time periods as well as their position on the timeline. The Period Index is a flexible grid-based  structure, which allows for storing possibly unbounded intervals and incorporates the search benefits of balanced trees as much as possible.
+The key idea of the new index is to split the timeline into fixed-length buckets and to divide each bucket into a set of cells that are organized in levels. At level~$0$, we have one cell that covers the entire time interval of the bucket and stores data that is longer than half of the bucket length. Level~$1$ contains two cells that cover, respectively, the first half and the second half of the bucket. The data stored at level~$1$ is longer than a quarter of the bucket length but shorter than half of the bucket length. At level~$3$, the bucket is covered by four cells, and so on.  That is, the cells encode the position of the data on the timeline, whereas the levels encode their duration.
+The resulting structure is interpreted as a hash table using a hash function for rapid data look-up based on the duration of intervals and their location on the timeline.
+
+The optimal bucket length of Period Index depends on the data distribution, which might change if the data is updated. To afford for changes in the data and guarantee an optimal bucket length, we  enhance the index in a way that the bucket length is automatically adjusted to the distribution of the data. We term this structure \emph{Period Index$^*$}.
+
+The technical contributions can be summarized as follows:
+\begin{itemize}
+	\item We introduce a new data access path, termed \emph{Period Index}, which supports two important pieces of information of time intervals, namely their duration and their location on the timeline.
+
+	\item The Period Index is a grid-based structure, hence allows to determine the relevant cells for a query in constant time and is especially suited for parallelization on new hardware architectures.
+
+	\item We show a space-efficient implementation of the index structure using linked lists, which avoids the storage of empty data cells.
+
+	\item We propose an enhanced version of our index structure, termed \emph{Period Index$^*$}, which continuously adapts the optimal bucket length to the distribution of the data.
+
+	\item Experiments show that Period Index$^*$ significantly outperforms related approaches for queries that involve duration and location of time intervals, and is competitive if only one temporal aspect is involved.
+\end{itemize}
+
+
 \section{Related work}
 
-Grids that are adaptive in multiple dimensions have been proposed
-to index multi-dimensional data~\cite{NathanDAK_sigmod20_learning-multi-dimensional-indexes, DingNAK_arxiv20_tsunami}.
+\ad{This is copy/paste from Period index paper}
+
+Related work can be split into two categories. First, index structures suitable for intervals, and second, index structures for two dimensional data. Due to the fact that time is constantly progressing, not all 2D indexes are suitable for temporal data. Finally, we also review structures similar to our approach that are used for temporal joins.
+
+In the past, several data structures that support interval data have been proposed. One of the most popular structures is Edelsbrunner's Interval Tree~\cite{edelsbrunner80}, which is asymptotically optimal for temporal intervals and can be mapped into a relational database using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00}. While the interval tree is efficient for range queries, it doesn't take into account the length of intervals, and it is difficult to parallelize.
+Another index structure for intervals is the segment tree~\cite{deBerg00}, which builds disjoint segments (intervals) at the
+leaf level using all start and end points in a relation. Internal
+nodes merge all segments of their child nodes. A tuple is associated
+with all sub-tree roots whose segment is completely covered by the
+tuple's interval. Also this approach does not support queries that constrain the length of intervals.
+
+Le et al.~\cite{DBLP:conf/sigmod/LeLTC13} propose a splitter for temporal and
+multi-version databases with the aim to support load balancing for
+distributed computing. For a user-defined number of buckets the goal is to
+efficiently find the optimal splits by minimizing the number of intervals of
+the largest bucket, whereas our goal is the computation of queries involving
+position and duration of intervals in parallel.
+
+Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
+Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
+The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. Moreover, similar to 1D tree index structure they are difficult to parallelize.
+
+Recently, there has been a renewed interest in temporal join processing. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read the input relations sorted by the start and end points of intervals as separated events in a sorted-merge join fashion. The temporal join is performed by joining active tuples of one relation (i.e., tuples for which the start point has been encountered but not yet the end point) with the matching  events of the other relation.
+The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based plane sweep algorithm that sorts the input relations by start time and performs an interleaving merge-join with backtracking. Other approaches are based on partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}. They first partition the data and then perform the join either by using a nested loop within candidate partitions or a sorted-merge join between all partitions. These approaches focus on reducing the search space within a temporal join and are not directly applicable to the problem of reducing the search space for selection queries addressed in this paper. Moreover, they do not consider the duration of periods for processing.
+
+\section{Preliminaries}
+
+
+\ad{These are the once we usually use.}
+
+We assume a linearly ordered, discrete time domain, $\domT$.  A
+time interval is a contiguous set of time points, and $[\TS,\TE)$
+denotes the closed-open interval of points from $\TS$ to $\TE$.  A
+tuple in a temporal relation is timestamped with an interval that
+represents the tuple's valid time.  The schema of a temporal relation
+is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
+nontemporal attributes with domains $\Omega_i$ and $\T$ is the
+timestamp attribute with domain $\domT \times \domT$. A temporal
+relation $\rr$ with schema $R$ is a finite set of tuples, where each
+tuple has a value in the appropriate domain for each attribute in the
+schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
+$r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
+$r.\A = (\args{r.A}{m})$, and we $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE = \TS$.
 
 \section{Preliminaries}
 
