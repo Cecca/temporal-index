@@ -183,31 +183,17 @@ relation $\rr$ with schema $R$ is a finite set of tuples, where each
 tuple has a value in the appropriate domain for each attribute in the
 schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
 $r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
-$r.\A = (\args{r.A}{m})$, and we $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE = \TS$.
+$r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE - \TS$.
+Furthermore, given two intervals $T$ and $T'$, we denote with
+$T \cap T'$ the set of time points shared by the two intervals, which, if
+not empty, is itself an interval.
 
-\section{Preliminaries}
+\cetodo{Fix the assumption that we are dealing with sets of intervals rather than relations.}
 
 \subsection{Temporal queries}
 
-In this paper we adopt the
-\emph{discrete linear time} model~\cite{BohlenDGJ_ebiss2017_temporal-data-management},
-where the time domain is an ordered set of discrete \emph{chronons}.
-For the continuous case we can simply choose as a chronon an interval of length
-equal to the greatest common divisor of the intervals in all relations, and use
-it to quantize all the intervals.
-A time interval $e = [)$ is a contiguous set of chronons between a starting
-time $e_s$ (included) and and ending time $e_e$ (excluded), that is the intervals are \emph{close open}.
-Given an interval $e$, we denote with $|e| = e_e - e_s$ its duration, i.e. the number of chronons it spans.
-Furthermore, given two intervals $e$ and $e'$ we denote with $e \cap e'$ the set of chronons
-shared by the two intervals, which might be empty.
-Note that such an intersection is itself an interval, if not empty.
-
-Throughout this paper we will refer to sets of intervals rather than relations with time interval attributes,
-for simplicity of exposition.
-
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
-\cetodo{Shall we rename it \emph{temporal query?}. Ultimately, also duration queries involve a range of durations, so it might be confusing.}
 \begin{definition}[Range query]
 	Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$,
 	a \emph{range query} $Q(A, e)$ is defined as
