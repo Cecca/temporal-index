@@ -517,6 +517,9 @@ impl Dataset for CsvDataset {
     }
 }
 
+/// Dataset of flights, using information about date and hour of actual departure
+/// (in milliseconds from January 1, 1970) plus the actual duration of the flight
+/// in minutes. Skips rows with missing values.
 #[derive(Debug)]
 pub struct FlightDataset {
     csv_path: PathBuf,
@@ -544,25 +547,36 @@ impl FlightDataset {
                 .collect::<Vec<u8>>(),
         )?
         .parse()?;
-        let hours: u32 = std::str::from_utf8(
-            &s.as_bytes()
-                .iter()
-                .rev()
-                .skip(2)
-                .rev()
-                .copied()
-                .collect::<Vec<u8>>(),
-        )?
-        .parse()?;
-        Ok((hours, minutes))
+        if s.len() <= 2 {
+            Ok((0, minutes))
+        } else {
+            let hours: u32 = std::str::from_utf8(
+                &s.as_bytes()
+                    .iter()
+                    .rev()
+                    .skip(2)
+                    .rev()
+                    .copied()
+                    .collect::<Vec<u8>>(),
+            )?
+            .parse()?;
+            let hours = if hours == 24 { 0 } else { hours };
+            Ok((hours, minutes))
+        }
     }
 
     fn str_to_date(s: &str) -> Result<chrono::Date<chrono::Utc>> {
         use chrono::prelude::*;
         let b = s.as_bytes();
-        let year: i32 = std::str::from_utf8(&b[0..4])?.parse()?;
-        let month: u32 = std::str::from_utf8(&b[5..7])?.parse()?;
-        let day: u32 = std::str::from_utf8(&b[8..10])?.parse()?;
+        let year: i32 = std::str::from_utf8(&b[0..4])?
+            .parse()
+            .context("parse year")?;
+        let month: u32 = std::str::from_utf8(&b[5..7])?
+            .parse()
+            .context("parse month")?;
+        let day: u32 = std::str::from_utf8(&b[8..10])?
+            .parse()
+            .context("parse day")?;
         Ok(Utc.ymd(year, month, day))
     }
 }
@@ -586,21 +600,61 @@ impl Dataset for FlightDataset {
 
         let mut vec = Vec::new();
 
+        let header = reader.headers()?;
+        trace!("{:?}", header);
+        let flight_date_idx = header
+            .iter()
+            .enumerate()
+            .find(|p| p.1 == "fl_date")
+            .context("looking for fl_date in header")?
+            .0;
+        let dep_time_idx = header
+            .iter()
+            .enumerate()
+            .find(|p| p.1 == "dep_time")
+            .context("looking for dep_time in header")?
+            .0;
+        let elapsed_idx = header
+            .iter()
+            .enumerate()
+            .find(|p| p.1 == "actual_elapsed_time")
+            .context("looking for actual_elapsed_time in header")?
+            .0;
+
         for record in reader.records() {
             let record = record?;
-            let flight_date = Self::str_to_date(record.get(0).context("flight date")?)?;
-            let dep_time = Self::str_to_timepair(record.get(13).context("departure time")?)?;
-            let elapsed =
-                chrono::Duration::minutes(record.get(23).context("elapsed time")?.parse()?);
+            trace!(
+                "{}, {}, {}",
+                record.get(flight_date_idx).unwrap(),
+                record.get(dep_time_idx).unwrap(),
+                record.get(elapsed_idx).unwrap()
+            );
+            let flight_date_str = record.get(flight_date_idx).context("flight date")?;
+            let dep_time_str = record.get(dep_time_idx).context("dep_time")?;
+            let elapsed_str = record.get(elapsed_idx).context("elapsed")?;
 
-            let start = flight_date.and_hms(dep_time.0, dep_time.1, 0);
-            let end = start + elapsed;
+            // we skip not available values
+            if !flight_date_str.is_empty() && !dep_time_str.is_empty() && !elapsed_str.is_empty() {
+                let flight_date = Self::str_to_date(flight_date_str)?;
+                let dep_time = Self::str_to_timepair(dep_time_str)?;
+                let elapsed =
+                    chrono::Duration::minutes(elapsed_str.parse::<f64>().with_context(|| {
+                        format!(
+                            "string to parse {}\n{:?}",
+                            record.get(elapsed_idx).unwrap(),
+                            record
+                        )
+                    })? as i64);
 
-            let start = start.timestamp_millis() as u64;
-            let end = end.timestamp_millis() as u64;
-            assert!(start < end);
+                let start = flight_date.and_hms(dep_time.0, dep_time.1, 0);
+                let end = start + elapsed;
 
-            vec.push(Interval { start, end });
+                let start = start.timestamp_millis() as u64;
+                let end = end.timestamp_millis() as u64;
+                assert!(start < end);
+
+                vec.push(Interval { start, end });
+            }
         }
 
         Ok(vec)
@@ -613,6 +667,7 @@ impl Dataset for FlightDataset {
 
 #[test]
 fn test_str_to_time() {
+    assert_eq!(FlightDataset::str_to_timepair("18").unwrap(), (0, 18));
     assert_eq!(FlightDataset::str_to_timepair("1130").unwrap(), (11, 30));
     assert_eq!(FlightDataset::str_to_timepair("130").unwrap(), (1, 30));
     assert_eq!(FlightDataset::str_to_timepair("111").unwrap(), (1, 11));
