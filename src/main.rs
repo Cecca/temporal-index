@@ -124,7 +124,7 @@ fn main() -> Result<()> {
                 let mut algorithm = experiment.algorithm.borrow_mut();
 
                 let queryset_queries = experiment.queries.get();
-                let dataset_intervals = experiment.dataset.get();
+                let dataset_intervals = experiment.dataset.get()?;
 
                 info!("Building index");
                 let start = Instant::now();

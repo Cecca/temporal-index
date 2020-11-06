@@ -376,7 +376,7 @@ impl Configuration {
     pub fn dump(&self, what: String) -> Result<()> {
         match what.as_ref() {
             "dataset" => self.for_each_dataset(|dataset| {
-                let intervals = dataset.get();
+                let intervals = dataset.get()?;
                 let name = dataset.name();
                 let version = dataset.version();
                 let parameters = dataset.parameters();
@@ -419,7 +419,7 @@ impl Configuration {
             "dataset-start-times" => {
                 self.for_each_dataset(|dataset| {
                     let h = dataset
-                        .get()
+                        .get()?
                         .iter()
                         .map(|interval| interval.start)
                         .histogram();
@@ -435,7 +435,7 @@ impl Configuration {
             "dataset-end-times" => {
                 self.for_each_dataset(|dataset| {
                     let h = dataset
-                        .get()
+                        .get()?
                         .iter()
                         .map(|interval| interval.end)
                         .histogram();
@@ -451,7 +451,7 @@ impl Configuration {
             "dataset-durations" => {
                 self.for_each_dataset(|dataset| {
                     let h = dataset
-                        .get()
+                        .get()?
                         .iter()
                         .map(|interval| interval.duration())
                         .histogram();
