@@ -26,6 +26,7 @@ deepsize = "0.1"
 sysinfo = "0.15"
 rayon = "1.4"
 csv = "1.1"
+flate2 = "1.0.19"
 # flame = "0.2"
 
 [dev-dependencies]

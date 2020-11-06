@@ -1,11 +1,12 @@
 ---
 - datasets:
-    - Csv:
-        path: webkit.txt
-        start_column: 0
-        end_column: 1
-        separator: 9
-        has_header: false
+    - Flight
+    # - Csv:
+    #     path: webkit.txt
+    #     start_column: 0
+    #     end_column: 1
+    #     separator: 9
+    #     has_header: false
 
   queries:
     - Random:
