@@ -514,3 +514,115 @@ impl Dataset for CsvDataset {
         1
     }
 }
+
+#[derive(Debug)]
+pub struct FlightDataset {
+    csv_path: PathBuf,
+}
+
+impl Default for FlightDataset {
+    fn default() -> Self {
+        Self {
+            csv_path: PathBuf::new()
+                .join(".datasets")
+                .join("august_2018_nationwide.csv.gz"),
+        }
+    }
+}
+
+impl FlightDataset {
+    fn str_to_timepair(s: &str) -> (u32, u32) {
+        let minutes: u32 = std::str::from_utf8(
+            &s.as_bytes()
+                .iter()
+                .rev()
+                .take(2)
+                .rev()
+                .copied()
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap()
+        .parse()
+        .unwrap();
+        let hours: u32 = std::str::from_utf8(
+            &s.as_bytes()
+                .iter()
+                .rev()
+                .skip(2)
+                .rev()
+                .copied()
+                .collect::<Vec<u8>>(),
+        )
+        .unwrap()
+        .parse()
+        .unwrap();
+        (hours, minutes)
+    }
+
+    fn str_to_date(s: &str) -> chrono::Date<chrono::Utc> {
+        use chrono::prelude::*;
+        let b = s.as_bytes();
+        let year: i32 = std::str::from_utf8(&b[0..4]).unwrap().parse().unwrap();
+        let month: u32 = std::str::from_utf8(&b[5..7]).unwrap().parse().unwrap();
+        let day: u32 = std::str::from_utf8(&b[8..10]).unwrap().parse().unwrap();
+        Utc.ymd(year, month, day)
+    }
+}
+
+impl Dataset for FlightDataset {
+    fn name(&self) -> String {
+        "Flight".to_owned()
+    }
+
+    fn parameters(&self) -> String {
+        "".to_owned()
+    }
+
+    fn get(&self) -> Vec<Interval> {
+        use flate2::read::GzDecoder;
+        let gzip_reader = GzDecoder::new(std::fs::File::open(&self.csv_path).unwrap());
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .delimiter(b',')
+            .from_reader(gzip_reader);
+
+        reader
+            .records()
+            .map(|record| {
+                let record = record.expect("problems decoding record");
+                let flight_date = Self::str_to_date(record.get(0).unwrap());
+                let dep_time = Self::str_to_timepair(record.get(13).unwrap());
+                let elapsed = chrono::Duration::minutes(record.get(23).unwrap().parse().unwrap());
+
+                let start = flight_date.and_hms(dep_time.0, dep_time.1, 0);
+                let end = start + elapsed;
+
+                let start = start.timestamp_millis() as u64;
+                let end = end.timestamp_millis() as u64;
+                assert!(start < end);
+
+                Interval { start, end }
+            })
+            .collect()
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+}
+
+#[test]
+fn test_str_to_time() {
+    assert_eq!(FlightDataset::str_to_timepair("1130"), (11, 30));
+    assert_eq!(FlightDataset::str_to_timepair("130"), (1, 30));
+    assert_eq!(FlightDataset::str_to_timepair("111"), (1, 11));
+}
+
+#[test]
+fn test_str_to_date() {
+    use chrono::prelude::*;
+    assert_eq!(
+        FlightDataset::str_to_date("2018-08-01"),
+        Utc.ymd(2018, 08, 01)
+    );
+}

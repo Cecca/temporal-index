@@ -167,11 +167,16 @@ pub enum DataConfiguration {
         separator: u8,
         has_header: bool,
     },
+    Flight,
 }
 
 impl DataConfiguration {
     fn datasets(&self) -> Box<dyn Iterator<Item = Rc<dyn Dataset>> + '_> {
         match self {
+            Self::Flight => {
+                let d = Rc::new(FlightDataset::default()) as Rc<dyn Dataset>;
+                Box::new(Some(d).into_iter())
+            }
             Self::ZipfUniform {
                 seed,
                 n,
