@@ -340,7 +340,14 @@ the start is the first cell such that the upper boundary on the start
 time plus the maximum duration in the duration range of the column
 is strictly less than the end time of the query
 
-For each matching cell, we evaluate the query
+For each matching cell, we are in one of two cases:
+\begin{enumerate}
+	\item the cell is \emph{light}, i.e. it contains less the $s$ intervals.
+	      In this case all the intervals are evaluate against the query.
+	\item the cell is \emph{heavy}, with more than $s$ intervals.
+\end{enumerate}
+
+evaluate the query
 predicate for all the intervals it contains.
 \cetodo{treat specially the case of the heavy cell: you can do it in time $k + \log s^2$.}
 
@@ -475,7 +482,7 @@ can be made polynomially smaller than the input size.
 		      Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
 		      query constraint (otherwise we will not be looking at the cell at all).
 		      Therefore, the scan of the intervals by decreasing end time visits just the $k_C$ output elements.
-		\item The cell's start time satisfies the query constraints, but the duration doesn't.
+		\item The cell's start times all satisfy the query constraints, but not all its durations do.
 		      In this case we cannot be in a heavy column (which contains a single duration) and thus
 		      the column containing the cell contains at most $s^2$ intervals.
 		      %   If we are in a heavy cell, then all the intervals have the same
