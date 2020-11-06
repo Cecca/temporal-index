@@ -1,5 +1,6 @@
 \documentclass[sigconf,nonacm]{acmart}
 
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{tcolorbox}
 \usepackage{todonotes}
 \newcommand{\cetodo}[1]{\todo[inline,color=teal!30]{#1}}
@@ -19,6 +20,9 @@
 \newcommand{\qrd}{\textsc{rd}\xspace}
 \newcommand{\qdo}{\textsc{do}\xspace}
 \newcommand{\qro}{\textsc{ro}\xspace}
+
+%% Algorithms notation
+\newcommand{\Let}[2]{#1 $\leftarrow$ #2}
 
 %% Notations for temporal relations
 
@@ -195,27 +199,27 @@ not empty, is itself an interval.
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
 \begin{definition}[Range query]
-	Given a temporal interval $e = [e_s, e_e)$ and a set of intervals $A$,
-	a \emph{range query} $Q(A, e)$ is defined as
+	Given a temporal interval $T = [\TS, \TE)$ and a temporal relation $R$,
+	a \emph{range query} $Q(R, T)$ is defined as
 	\[
-		Q(A, e) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \}
+		Q(R, T) = \left\{r \in R : r.T \cap T \ne \emptyset \right\}
 	\]
 \end{definition}
 
 \begin{definition}[Duration query]
-	Given a duration interval $d = [d_{min}, d_{max}]$ and a set of intervals $A$,
-	a \emph{duration query} $Q(A, d)$ is defined as
+	Given a duration interval $d = [d_{min}, d_{max}]$ and a temporal relation $R$,
+	a \emph{duration query} $Q(R, d)$ is defined as
 	\[
-		Q(A, d) = \{e | e \in A \wedge |e| \in [d_{min}, d_{max}] \}
+		Q(R, d) = \left\{r \in R : |r.T| \in [d_{min}, d_{max}] \right\}
 	\]
 \end{definition}
 
 \begin{definition}[Range-duration query]
-	Given a temporal interval $e = [e_s, e_e)$, a duration interval $d = [d_{min}, d_{max}]$,
-	and a set of intervals $A$,
-	a \emph{range-duration query} $Q(A, e, d)$ is defined as
+	Given a temporal interval $T = [\TS, \TE)$, a duration interval $d = [d_{min}, d_{max}]$,
+	and a temporal relation $R$,
+	a \emph{range-duration query} $Q(R, T, d)$ is defined as
 	\[
-		Q(A, e, d) = \{e' | e' \in A \wedge e' \cap e \ne \emptyset \wedge |e'| \in [d_{min}, d_{max}] \}
+		Q(R, T, d) = \left\{r \in R : r.T \cap T \ne \emptyset \wedge |r.T| \in [d_{min}, d_{max}] \right\}
 	\]
 \end{definition}
 
@@ -223,8 +227,8 @@ The latter type of query is a combination of the former two.
 
 \section{Data structure}
 
-Our index is a grid, partitioning the intervals into disjoint buckets according
-to the durations and the start times of the intervals.
+Our index is a grid, partitioning the tuples into disjoint buckets according
+to the durations and the start times of their intervals.
 The boundaries between cells are defined by using the empirical cumulative
 distribution function of the duration and the starting times, so that
 each cell contains the same number of intervals, which corresponds to the
@@ -232,44 +236,84 @@ each cell contains the same number of intervals, which corresponds to the
 \cetodo{Should we show how to update the data structure?}
 Therefore the structure is adaptive to the distribution of the input.
 
+In the following we will focus on the interval attribute $T$ of relation $R$:
+in the discussion we assume that each interval being inserted in the index
+is associated with a pointer to the tuple in $R$ it belongs to.
+
 \subsection{Index construction}
+\cetodo{It's difficult to use the cumulative distribution function to define cell boundaries,
+	because of heavy columns and heavy cells. We might have two or more CDF boundaries falling
+	within the same heavy column, which makes for an ambiguous situation.}
+
+\begin{algorithm}[t]
+	\caption{\textsc{DefineBoundaries}$(I, b, k)$\label{alg:define-boundaries}}
+	\KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
+	\KwOut{An array of boundaries partitioning $I$ into up to $I/b$ buckets}
+
+	Sort $I$ according to $k$, so that $I_i$ is the $i$-th interval in sorted order\;
+	\Let{$B$}{$[]$}\;
+	\Let{$i$}{$0$}\;
+	\While{$i < |I|$}{
+		\Let{$j$}{$i+b$}\;
+		\If{$k(I_i) = k(I_{j})$} {
+			\nllabel{line:heavy-bucket}
+			\lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
+				\Let{$j$}{$j+1$}
+			}
+		} \ElseIf{$k(I_j) = k(I_{j+1})$} {
+			\nllabel{line:split-bucket}
+			\lWhile{$j > i \wedge k(I_j) = k(I_{i+b})$} {
+				\Let{$j$}{$j-1$}
+			}
+		}
+		Append $I_j$ to $B$\;
+		\Let{$i$}{$j+1$}\;
+	}
+	\Return $B$\;
+\end{algorithm}
 
 Let $s$ be the \emph{page size} parameter.
-For an interval $e \in A$, let $CDF_d^A(|e|)$ be the fraction of intervals $e' \in A$
-whose duration is
-$\le |e|$.
-Similarly, let $CDF_s^A(e_s)$ be the fraction of the
-intervals whose start time is $\le e_s$.
+The goal of the following construction is to ensure
+that each cell of the grid contains at most $s$ intervals.
+We divide the intervals into \emph{columns} based on their duration with two goals:
+all the intervals with the same duration should be in the same column, and each column
+should have at most $s^2$ intervals, unless there are more than $s^2$ intervals with the same duration.
+In the latter case, all the intervals in the column shall have the same duration.
+To this end, we invoke Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
+setting the bucket size to $s^2$ and the key function $k$ to the duration.
+In this invocation, we first sort all the intervals by increasing duration.
+Then, we iterativaly define bucket boundaries as follows.
+We set the start of the first bucket to the duration of the first interval.
+Then, we look ahead at the interval $s^2$ positions from it, and we can have one of three cases:
+\begin{enumerate}
+	\item the look ahead interval has the same duration as the one starting the column,
+	      meaning that we are considering a run of more than $s^2$
+	      intervals all with the same duration (line~\ref{line:heavy-bucket} of Algorithm~\ref{alg:define-boundaries}). T
+	      hen, the boundary of the bucket is set
+	      to the current duration, and the start of the next column is set to the first interval
+	      with duration strictly larger than the current one.
+	\item the look ahead interval and the one immediately following it have the same duration,
+	      which is however different from the one of the interval starting the column (line~\ref{line:split-bucket}
+	      of Algorithm~\ref{alg:define-boundaries}).
+	      In order not to break a run of same-duration intervals between different columns while
+	      keeping the column itself smaller than $s^2$, we look for the first interval preceding the
+	      look ahead with a strictly smaller duration, and make it the end of the column
+	\item otherwise, the look ahead interval marks the end of the column.
+\end{enumerate}
 
-We partition the intervals in $n / s^2$ \emph{columns}: an interval $e$ is assigned to
-column $\lfloor CDF_d(|e|) \cdot n/2^s \rfloor$.
-In particular, we define the $i$-th column in the duration dimension as
-\[
-	A_i^d = \{ e \in A | i = \lfloor CDF_d^A(|e|) \cdot |A|/2^s \rfloor \}
-\]
-Note that if there are more than $s^2$ intervals with the same duration,
-they will all be assigned to the same column.
+Then, each column is further partitioned according to the start time, invoking on it
+Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
+the start time of the intervals.
+The algorithm proceeds as above, with the possibility of introducing \emph{heavy cells} if there are
+more than $s$ intervals sharing the same start time.
 
-Consider one such column $i$, and let $[\bar{d}_{min}, \bar{d}_{max}]$ be the
-range of durations spanned by the intervals it contains.
-We further partition the intervals in $A_i^d$ according to the distribution
-of their starting times:
-\[
-	A_{i,j}^{d,s} = \{ e \in A_i^d ~|~ j = \lfloor CDF_s(e_s) \cdot |A_i^d|/s \rfloor \}
-\]
-
-Our index is a grid built out of the cells $A_{i,j}^{d,s}$.
-In each cell, the intervals are sorted by decreasing end time.
+In each cell, the intervals are sorted by end time.
 
 Along with the intervals in the grid, we store the boundaries between
 the columns, as well as the boundaries between the cells in each
 column, in sorted arrays.
 This will allow, at query time, the efficient retrieval of the range
 of cells containing intervals that match a given query.
-% We can use a compact representation of the cumulative density function
-% that is sufficient for indexing into this grid.
-% Observe that since we always apply a floor operator to the result of the CDF
-% we can just store the values of the CDF defining the start of a new bucket.
 
 \subsection{Querying the index}
 
@@ -284,27 +328,21 @@ are met:
 
 First, find the two indices which identify the range of cells in the duration
 dimension each containing at least one interval satisfying
-condition~\eqref{eq:duration-condition}.
-\begin{align*}
-	i_{start} & = \left\lfloor CDF_d^A(d_{min}) \cdot |A| / s^2 \right\rfloor \\
-	i_{end}   & = \left\lfloor CDF_d^A(d_{max}) \cdot |A| / s^2 \right\rfloor
-\end{align*}
+condition~\eqref{eq:duration-condition} by means of binary search on the
+boundaries of the columns. Let these two indices be $i_{start}$ and $i_{end}$.
 Then, for each $i \in [i_{start}, i_{end}]$, let $[d_{min}^i, d_{max}^i]$
 be the range of durations spanned by the $i$-th column.
-We consider the cells in the start
-dimension in the range $[j_{start}, j_{end}]$ with
-\begin{align*}
-	j_{start} & = \left\lfloor CDF_{s}^{A_i^d}(e_s - d_{max}^i) \cdot |A_i^d| / s \right\rfloor \\
-	j_{end}   & = \left\lfloor CDF_{s}^{A_i^d}(e_e) \cdot |A_i^d| / s \right\rfloor
-\end{align*}
+By means of binary search, we look in the $i$-th column for the first cell
+that contains the time $r.\TS - d_{max}^i$ and for the last cell
+containing the time $r.\TE$.
 In other words,
 the start is the first cell such that the upper boundary on the start
 time plus the maximum duration in the duration range of the column
 is strictly less than the end time of the query
 
-For each cell $A_{i,j}^{d,s}$ within the above bounds, we evaluate the query
-predicate for all the intervals. Since the intervals are sorted by decreasing
-end time, we can stop as soon as we see an interval whose en time is $< e_s$.
+For each matching cell, we evaluate the query
+predicate for all the intervals it contains.
+\cetodo{treat specially the case of the heavy cell: you can do it in time $k + \log s^2$.}
 
 \subsection{Analysis}
 
@@ -412,7 +450,7 @@ can be made polynomially smaller than the input size.
 	the ones that are part of the answer.
 
 	As for finding the range of cells, we first have to find the first and last column by duration, which can be
-	done by binary search over the $n/s^2$ boundaries between columns in $\BO{n/s^2}$ time.
+	done by binary search over the $n/s^2$ boundaries between columns in $\BO{\log (n/s^2)}$ time.
 	There can be $\BO{n / s^2}$ matching columns.
 	In each such column, to find the range of cells satisfying the predicate we have to to a binary search
 	over the $\BO{n/s}$ intervals in the column (we can have $\BO{n}$ intervals in a heavy column).
