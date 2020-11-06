@@ -1,4 +1,4 @@
-Experiments on temporal indices
+Experiments on temporal indices ![CI](https://github.com/Cecca/temporal-index/workflows/CI/badge.svg)
 ===============================
 
 This project implements some indices for range-duration queries.
