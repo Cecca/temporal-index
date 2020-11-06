@@ -4,6 +4,8 @@ extern crate rand_xoshiro;
 
 use crate::types::*;
 use crate::zipf::ZipfDistribution;
+use anyhow::Context;
+use anyhow::Result;
 use csv;
 use rand::distributions::*;
 use rand::SeedableRng;
@@ -14,7 +16,7 @@ use std::rc::Rc;
 pub trait Dataset: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
-    fn get(&self) -> Vec<Interval>;
+    fn get(&self) -> Result<Vec<Interval>>;
     fn version(&self) -> u8;
 
     fn descr(&self) -> String {
@@ -147,7 +149,7 @@ impl Dataset for RandomDataset {
     /// on the durations, but start times are in the range 1..1000, then there are only
     /// 999 possible intervals of length 1, which make it impossible to have a true ZIPF
     /// distribution on durations
-    fn get(&self) -> Vec<Interval> {
+    fn get(&self) -> Result<Vec<Interval>> {
         use rand::RngCore;
         let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
         let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
@@ -159,7 +161,7 @@ impl Dataset for RandomDataset {
             let interval = Interval::new(start_times.next().unwrap(), durations.next().unwrap());
             data.push(interval);
         }
-        data
+        Ok(data)
     }
 }
 
@@ -198,7 +200,7 @@ impl Dataset for RandomDatasetZipfAndUniform {
         2
     }
 
-    fn get(&self) -> Vec<Interval> {
+    fn get(&self) -> Result<Vec<Interval>> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(self.seed);
         let duration_distribution = ZipfDistribution::new(self.n, self.exponent)
             .expect("problem creating Zipf distribution");
@@ -213,7 +215,7 @@ impl Dataset for RandomDatasetZipfAndUniform {
         }
         data.sort();
         data.dedup();
-        data
+        Ok(data)
     }
 }
 
@@ -474,7 +476,7 @@ impl Dataset for CsvDataset {
         )
     }
 
-    fn get(&self) -> Vec<Interval> {
+    fn get(&self) -> Result<Vec<Interval>> {
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(self.has_header)
             .delimiter(self.separator)
@@ -501,13 +503,13 @@ impl Dataset for CsvDataset {
             .collect();
 
         let min_time = pairs.iter().map(|p| p.0).min().unwrap();
-        pairs
+        Ok(pairs
             .iter()
             .map(|(s, e)| Interval {
                 start: *s - min_time,
                 end: *e - min_time,
             })
-            .collect()
+            .collect())
     }
 
     fn version(&self) -> u8 {
@@ -531,7 +533,7 @@ impl Default for FlightDataset {
 }
 
 impl FlightDataset {
-    fn str_to_timepair(s: &str) -> (u32, u32) {
+    fn str_to_timepair(s: &str) -> Result<(u32, u32)> {
         let minutes: u32 = std::str::from_utf8(
             &s.as_bytes()
                 .iter()
@@ -540,10 +542,8 @@ impl FlightDataset {
                 .rev()
                 .copied()
                 .collect::<Vec<u8>>(),
-        )
-        .unwrap()
-        .parse()
-        .unwrap();
+        )?
+        .parse()?;
         let hours: u32 = std::str::from_utf8(
             &s.as_bytes()
                 .iter()
@@ -552,20 +552,18 @@ impl FlightDataset {
                 .rev()
                 .copied()
                 .collect::<Vec<u8>>(),
-        )
-        .unwrap()
-        .parse()
-        .unwrap();
-        (hours, minutes)
+        )?
+        .parse()?;
+        Ok((hours, minutes))
     }
 
-    fn str_to_date(s: &str) -> chrono::Date<chrono::Utc> {
+    fn str_to_date(s: &str) -> Result<chrono::Date<chrono::Utc>> {
         use chrono::prelude::*;
         let b = s.as_bytes();
-        let year: i32 = std::str::from_utf8(&b[0..4]).unwrap().parse().unwrap();
-        let month: u32 = std::str::from_utf8(&b[5..7]).unwrap().parse().unwrap();
-        let day: u32 = std::str::from_utf8(&b[8..10]).unwrap().parse().unwrap();
-        Utc.ymd(year, month, day)
+        let year: i32 = std::str::from_utf8(&b[0..4])?.parse()?;
+        let month: u32 = std::str::from_utf8(&b[5..7])?.parse()?;
+        let day: u32 = std::str::from_utf8(&b[8..10])?.parse()?;
+        Ok(Utc.ymd(year, month, day))
     }
 }
 
@@ -578,32 +576,34 @@ impl Dataset for FlightDataset {
         "".to_owned()
     }
 
-    fn get(&self) -> Vec<Interval> {
+    fn get(&self) -> Result<Vec<Interval>> {
         use flate2::read::GzDecoder;
-        let gzip_reader = GzDecoder::new(std::fs::File::open(&self.csv_path).unwrap());
+        let gzip_reader = GzDecoder::new(std::fs::File::open(&self.csv_path)?);
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(true)
             .delimiter(b',')
             .from_reader(gzip_reader);
 
-        reader
-            .records()
-            .map(|record| {
-                let record = record.expect("problems decoding record");
-                let flight_date = Self::str_to_date(record.get(0).unwrap());
-                let dep_time = Self::str_to_timepair(record.get(13).unwrap());
-                let elapsed = chrono::Duration::minutes(record.get(23).unwrap().parse().unwrap());
+        let mut vec = Vec::new();
 
-                let start = flight_date.and_hms(dep_time.0, dep_time.1, 0);
-                let end = start + elapsed;
+        for record in reader.records() {
+            let record = record?;
+            let flight_date = Self::str_to_date(record.get(0).context("flight date")?)?;
+            let dep_time = Self::str_to_timepair(record.get(13).context("departure time")?)?;
+            let elapsed =
+                chrono::Duration::minutes(record.get(23).context("elapsed time")?.parse()?);
 
-                let start = start.timestamp_millis() as u64;
-                let end = end.timestamp_millis() as u64;
-                assert!(start < end);
+            let start = flight_date.and_hms(dep_time.0, dep_time.1, 0);
+            let end = start + elapsed;
 
-                Interval { start, end }
-            })
-            .collect()
+            let start = start.timestamp_millis() as u64;
+            let end = end.timestamp_millis() as u64;
+            assert!(start < end);
+
+            vec.push(Interval { start, end });
+        }
+
+        Ok(vec)
     }
 
     fn version(&self) -> u8 {
@@ -613,16 +613,16 @@ impl Dataset for FlightDataset {
 
 #[test]
 fn test_str_to_time() {
-    assert_eq!(FlightDataset::str_to_timepair("1130"), (11, 30));
-    assert_eq!(FlightDataset::str_to_timepair("130"), (1, 30));
-    assert_eq!(FlightDataset::str_to_timepair("111"), (1, 11));
+    assert_eq!(FlightDataset::str_to_timepair("1130").unwrap(), (11, 30));
+    assert_eq!(FlightDataset::str_to_timepair("130").unwrap(), (1, 30));
+    assert_eq!(FlightDataset::str_to_timepair("111").unwrap(), (1, 11));
 }
 
 #[test]
 fn test_str_to_date() {
     use chrono::prelude::*;
     assert_eq!(
-        FlightDataset::str_to_date("2018-08-01"),
+        FlightDataset::str_to_date("2018-08-01").unwrap(),
         Utc.ymd(2018, 08, 01)
     );
 }
