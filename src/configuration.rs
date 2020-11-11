@@ -176,15 +176,15 @@ impl DataConfiguration {
     fn datasets(&self) -> Box<dyn Iterator<Item = Rc<dyn Dataset>> + '_> {
         match self {
             Self::Flight => {
-                let d = Rc::new(FlightDataset::default()) as Rc<dyn Dataset>;
+                let d = Rc::new(FlightDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
             }
             Self::Webkit => {
-                let d = Rc::new(WebkitDataset::default()) as Rc<dyn Dataset>;
+                let d = Rc::new(WebkitDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
             }
             Self::Tourism => {
-                let d = Rc::new(TourismDataset::default()) as Rc<dyn Dataset>;
+                let d = Rc::new(TourismDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
             }
             Self::ZipfUniform {

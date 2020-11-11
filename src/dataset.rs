@@ -517,6 +517,25 @@ impl Dataset for CsvDataset {
     }
 }
 
+fn maybe_download(source: &str, dest: PathBuf) -> Result<()> {
+    // Curl has way less dependencies than reqwest
+    use curl::easy::Easy;
+    use std::io::prelude::*;
+
+    if !dest.is_file() {
+        info!("Downloading `{}` to `{:?}`", source, dest);
+        let mut output = std::fs::File::create(dest)?;
+        let mut handle = Easy::new();
+        handle.url(source)?;
+        handle.write_function(move |data| {
+            output.write(data).unwrap();
+            Ok(data.len())
+        })?;
+        handle.perform()?;
+    }
+    Ok(())
+}
+
 /// Dataset of flights, using information about date and hour of actual departure
 /// (in milliseconds from January 1, 1970) plus the actual duration of the flight
 /// in minutes. Skips rows with missing values.
@@ -525,17 +544,20 @@ pub struct FlightDataset {
     csv_path: PathBuf,
 }
 
-impl Default for FlightDataset {
-    fn default() -> Self {
-        Self {
-            csv_path: PathBuf::new()
-                .join(".datasets")
-                .join("august_2018_nationwide.csv.gz"),
-        }
-    }
-}
-
 impl FlightDataset {
+    pub fn from_upstream() -> Result<Self> {
+        let dir = PathBuf::from(".datasets");
+        if !dir.is_dir() {
+            std::fs::create_dir(&dir)?;
+        }
+        let cache = dir.join("flights.csv.gz");
+        maybe_download(
+            "https://uc3ec8cf22cc811b1547b7619163.dl.dropboxusercontent.com/cd/0/get/BDAN7TVXwwLPVzip-CF3ggX6qx9tGeXEetN__fYt7WMNYW8Dl2jVaHHSbr9MCpKC0hmbC6vEx6sL6RxYVB594GkVn2TOWuVdWjYyE9O_y0rrE7EcsILaqnwA-sub5UxKSrw/file?dl=1#",
+            cache.clone(),
+        )?;
+        Ok(Self { csv_path: cache })
+    }
+
     fn str_to_timepair(s: &str) -> Result<(u32, u32)> {
         let minutes: u32 = std::str::from_utf8(
             &s.as_bytes()
@@ -687,11 +709,18 @@ pub struct WebkitDataset {
     csv_path: PathBuf,
 }
 
-impl Default for WebkitDataset {
-    fn default() -> Self {
-        Self {
-            csv_path: PathBuf::new().join(".datasets").join("webkit.txt.gz"),
+impl WebkitDataset {
+    pub fn from_upstream() -> Result<Self> {
+        let dir = PathBuf::from(".datasets");
+        if !dir.is_dir() {
+            std::fs::create_dir(&dir)?;
         }
+        let cache = dir.join("webkit.csv.gz");
+        maybe_download(
+            "https://ucdb712ba99eac03f416c26785e7.dl.dropboxusercontent.com/cd/0/get/BDA_aIwUKO0RjSR4UAkggb1zRu5_jdTxh5JwQ3lq8nO7xlKgdPh2clfIaaph0C0-UNctjj4kJdZXs0tlRIJ-tTM7Ulx03xNMA7cXdQEJna7acPTVZaJlYdsDeQ4Ms5eTuGc/file?dl=1#",
+            cache.clone(),
+        )?;
+        Ok(Self { csv_path: cache })
     }
 }
 
@@ -745,15 +774,20 @@ pub struct TourismDataset {
     csv_path: PathBuf,
 }
 
-impl Default for TourismDataset {
-    fn default() -> Self {
-        Self {
-            csv_path: PathBuf::new().join(".datasets").join("tourismdata.csv.gz"),
-        }
-    }
-}
-
 impl TourismDataset {
+    pub fn from_upstream() -> Result<Self> {
+        let dir = PathBuf::from(".datasets");
+        if !dir.is_dir() {
+            std::fs::create_dir(&dir)?;
+        }
+        let cache = dir.join("tourism.csv.gz");
+        maybe_download(
+            "https://uc52426c71d92ce89e187b63dc1c.dl.dropboxusercontent.com/cd/0/get/BDDXXiaHTGeGVppG2zkYGqknWogqldAbq6OuK1CvjJ12tCLYPFso4wo5a5kF8RKAAgPoym092EGrsVD6Am8O2SoSl8RCn95DlmyueGaXPoixjJ4EexCE0fCNuie-yjm2cNE/file?dl=1#",
+            cache.clone(),
+        )?;
+        Ok(Self { csv_path: cache })
+    }
+
     fn str_to_date(s: &str) -> Result<chrono::Date<chrono::Utc>> {
         use chrono::prelude::*;
         let b = s.as_bytes();
