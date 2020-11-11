@@ -138,46 +138,46 @@ macro_rules! same_result {
 
 same_result! {
     rand1: (
-        RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get(),
+        RandomDatasetZipfAndUniform::new(12351, 1000000, 1.0, 1000).get().unwrap(),
         RandomQueriesZipfAndUniform::new(123415, 5, 1.0, 1000, 0.4).get()
     ),
     rand_uniform: (
-        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
         RandomQueryset::new(12351, 100,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
                             ).get(),
     ),
     rand_clustered_queries: (
-        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
         RandomQueryset::new(12351, 100,
                             Some((TimeDistribution::Clustered{n: 10, high: 10000, std_dev: 10000}, TimeDistribution::Zipf{n: 10000, beta: 1.0})),
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
                             ).get(),
     ),
     rand_uniform_late_start: (
-        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1000, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1000, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
         RandomQueryset::new(12351, 100,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
                             ).get(),
     ),
     rand_uniform_duration_only: (
-        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
         RandomQueryset::new(12351, 100,
                             None,
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),
                             ).get(),
     ),
     rand_uniform_overlap_only: (
-        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get(),
+        RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
         RandomQueryset::new(12351, 100,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             None
                             ).get(),
     ),
     rand_clustered: (
-        RandomDataset::new(12351, 1000, TimeDistribution::Clustered{n: 100, high: 10000, std_dev: 10}, TimeDistribution::Zipf{n: 10000, beta: 1.0}).get(),
+        RandomDataset::new(12351, 1000, TimeDistribution::Clustered{n: 100, high: 10000, std_dev: 10}, TimeDistribution::Zipf{n: 10000, beta: 1.0}).get().unwrap(),
         RandomQueryset::new(12351, 100,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some((TimeDistribution::Uniform{low: 1, high: 100}, TimeDistribution::Uniform{low: 10, high: 1000})),

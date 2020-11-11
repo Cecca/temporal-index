@@ -736,3 +736,114 @@ impl Dataset for WebkitDataset {
         1
     }
 }
+
+/// Dataset of tourism stays in town. Records the arrival/departure date.
+/// We encode these timestamps as offsets from the earliest arrival in the dataset,
+/// do the granularity of the time domain is days.
+#[derive(Debug)]
+pub struct TourismDataset {
+    csv_path: PathBuf,
+}
+
+impl Default for TourismDataset {
+    fn default() -> Self {
+        Self {
+            csv_path: PathBuf::new().join(".datasets").join("tourismdata.csv.gz"),
+        }
+    }
+}
+
+impl TourismDataset {
+    fn str_to_date(s: &str) -> Result<chrono::Date<chrono::Utc>> {
+        use chrono::prelude::*;
+        let b = s.as_bytes();
+        let year: i32 = std::str::from_utf8(&b[0..4])?
+            .parse()
+            .context("parse year")?;
+        let month: u32 = std::str::from_utf8(&b[5..7])?
+            .parse()
+            .context("parse month")?;
+        let day: u32 = std::str::from_utf8(&b[8..10])?
+            .parse()
+            .context("parse day")?;
+        Ok(Utc.ymd(year, month, day))
+    }
+}
+
+impl Dataset for TourismDataset {
+    fn name(&self) -> String {
+        "Tourism".to_owned()
+    }
+
+    fn parameters(&self) -> String {
+        "".to_owned()
+    }
+
+    fn get(&self) -> Result<Vec<Interval>> {
+        use flate2::read::GzDecoder;
+        let gzip_reader = GzDecoder::new(std::fs::File::open(&self.csv_path)?);
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .delimiter(b',')
+            .from_reader(gzip_reader);
+
+        let header = reader.headers()?;
+        trace!("{:?}", header);
+        let arrival_idx = header
+            .iter()
+            .enumerate()
+            .find(|p| p.1 == "arrival")
+            .context("looking for arrival in header")?
+            .0;
+        let departure_idx = header
+            .iter()
+            .enumerate()
+            .find(|p| p.1 == "departure")
+            .context("looking for departure in header")?
+            .0;
+
+        let mut dates = Vec::new();
+
+        for record in reader.records() {
+            let record = record?;
+            let arrival_str = record.get(arrival_idx).context("arrival")?;
+            let departure_str = record.get(departure_idx).context("departure date")?;
+
+            // we skip not available values
+            if !arrival_str.is_empty() && !departure_str.is_empty() {
+                let arrival_date = Self::str_to_date(arrival_str)?;
+                let departure_date = Self::str_to_date(departure_str)?;
+                dates.push((arrival_date, departure_date));
+            }
+        }
+
+        let earliest_date = dates
+            .iter()
+            .map(|p| p.0)
+            .min()
+            .context("min on empty vector")?;
+
+        Ok(dates
+            .into_iter()
+            .map(|(arrival, departure)| {
+                let start = (arrival - earliest_date).num_days() as u64;
+                let end = 1u64 + (departure - earliest_date).num_days() as u64;
+                assert!(start < end);
+                Interval { start, end }
+            })
+            .collect())
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+}
+
+#[test]
+fn test_date_parse() {
+    use chrono::prelude::*;
+    assert_eq!(
+        TourismDataset::str_to_date("2015-08-09").unwrap(),
+        Utc.ymd(2015, 08, 09)
+    );
+}
