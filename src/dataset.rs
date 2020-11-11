@@ -681,3 +681,58 @@ fn test_str_to_date() {
         Utc.ymd(2018, 08, 01)
     );
 }
+
+#[derive(Debug)]
+pub struct WebkitDataset {
+    csv_path: PathBuf,
+}
+
+impl Default for WebkitDataset {
+    fn default() -> Self {
+        Self {
+            csv_path: PathBuf::new().join(".datasets").join("webkit.txt.gz"),
+        }
+    }
+}
+
+impl Dataset for WebkitDataset {
+    fn name(&self) -> String {
+        "Webkit".to_owned()
+    }
+
+    fn parameters(&self) -> String {
+        "".to_owned()
+    }
+
+    fn get(&self) -> Result<Vec<Interval>> {
+        use flate2::read::GzDecoder;
+        let gzip_reader = GzDecoder::new(std::fs::File::open(&self.csv_path)?);
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .delimiter(b'\t')
+            .from_reader(gzip_reader);
+
+        let mut vec = Vec::new();
+
+        for record in reader.records() {
+            let record = record?;
+            let start_str = record.get(0).context("start")?;
+            let end_str = record.get(1).context("end")?;
+
+            // we skip not available values
+            if !start_str.is_empty() && !end_str.is_empty() {
+                let start: u64 = start_str.parse()?;
+                let end: u64 = end_str.parse()?;
+                let end = end + 1;
+                assert!(start < end);
+                vec.push(Interval { start, end });
+            }
+        }
+
+        Ok(vec)
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+}
