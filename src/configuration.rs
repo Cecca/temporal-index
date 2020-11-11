@@ -169,6 +169,7 @@ pub enum DataConfiguration {
     },
     Flight,
     Webkit,
+    Tourism,
 }
 
 impl DataConfiguration {
@@ -180,6 +181,10 @@ impl DataConfiguration {
             }
             Self::Webkit => {
                 let d = Rc::new(WebkitDataset::default()) as Rc<dyn Dataset>;
+                Box::new(Some(d).into_iter())
+            }
+            Self::Tourism => {
+                let d = Rc::new(TourismDataset::default()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
             }
             Self::ZipfUniform {
