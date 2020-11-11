@@ -112,6 +112,31 @@ plan <- drake_plan(
   #   format = "fst_dt",
   # ),
 
+  real_data_start_times = get_histograms("dataset-start-times", "./experiments/real-world.yml"),
+  real_data_durations = get_histograms("dataset-durations", "./experiments/real-world.yml"),
+
+  real_data_distributions = {
+    p1 <- ggplot(real_data_start_times, aes(x=value, weight=count)) +
+      geom_histogram(aes(y=stat(ncount))) +
+      facet_wrap(vars(name), scales="free") +
+      labs(x="start time") +
+      theme_tufte() +
+      theme(axis.title.y=element_blank())
+    p2 <- ggplot(real_data_durations, aes(x=value, weight=count)) +
+      geom_histogram(aes(y=stat(ncount))) +
+      facet_wrap(vars(name), scales="free") +
+      labs(x="duration") +
+      theme_tufte() +
+      theme(strip.text=element_blank(),
+            axis.title.y=element_blank())
+    save_png(
+      plot_grid(p1, p2, ncol=1),
+      filename="paper/images/real-distributions.png",
+      width=10,
+      height=3
+    )
+  },
+
   querystats_plot = {
     p <- data %>% 
       lazy_dt() %>%
