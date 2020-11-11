@@ -168,6 +168,7 @@ pub enum DataConfiguration {
         has_header: bool,
     },
     Flight,
+    Webkit,
 }
 
 impl DataConfiguration {
@@ -175,6 +176,10 @@ impl DataConfiguration {
         match self {
             Self::Flight => {
                 let d = Rc::new(FlightDataset::default()) as Rc<dyn Dataset>;
+                Box::new(Some(d).into_iter())
+            }
+            Self::Webkit => {
+                let d = Rc::new(WebkitDataset::default()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
             }
             Self::ZipfUniform {
