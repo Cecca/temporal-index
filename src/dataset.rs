@@ -536,9 +536,9 @@ fn maybe_download(source: &str, dest: PathBuf) -> Result<()> {
     Ok(())
 }
 
-/// Dataset of flights, using information about date and hour of actual departure
-/// (in milliseconds from January 1, 1970) plus the actual duration of the flight
-/// in minutes. Skips rows with missing values.
+/// Dataset of flights, using information about date and hour of actual departure.
+/// The times are encoded as minutes elapsed from the earliest flight in the dataset.
+/// Skips rows with missing values.
 #[derive(Debug)]
 pub struct FlightDataset {
     csv_path: PathBuf,
@@ -620,7 +620,7 @@ impl Dataset for FlightDataset {
             .delimiter(b',')
             .from_reader(gzip_reader);
 
-        let mut vec = Vec::new();
+        let mut pairs = Vec::new();
 
         let header = reader.headers()?;
         trace!("{:?}", header);
@@ -671,15 +671,26 @@ impl Dataset for FlightDataset {
                 let start = flight_date.and_hms(dep_time.0, dep_time.1, 0);
                 let end = start + elapsed;
 
-                let start = start.timestamp_millis() as u64;
-                let end = end.timestamp_millis() as u64;
                 assert!(start < end);
-
-                vec.push(Interval { start, end });
+                pairs.push((start, end));
             }
         }
 
-        Ok(vec)
+        let earliest_time = pairs
+            .iter()
+            .map(|p| p.0)
+            .min()
+            .context("min on empty vector")?;
+
+        Ok(pairs
+            .into_iter()
+            .map(|(start, end)| {
+                let start = (start - earliest_time).num_minutes() as u64;
+                let end = (end - earliest_time).num_minutes() as u64;
+                assert!(start < end);
+                Interval { start, end }
+            })
+            .collect())
     }
 
     fn version(&self) -> u8 {
@@ -741,7 +752,7 @@ impl Dataset for WebkitDataset {
             .delimiter(b'\t')
             .from_reader(gzip_reader);
 
-        let mut vec = Vec::new();
+        let mut pairs = Vec::new();
 
         for record in reader.records() {
             let record = record?;
@@ -754,11 +765,25 @@ impl Dataset for WebkitDataset {
                 let end: u64 = end_str.parse()?;
                 let end = end + 1;
                 assert!(start < end);
-                vec.push(Interval { start, end });
+                pairs.push((start, end));
             }
         }
 
-        Ok(vec)
+        let earliest_time = pairs
+            .iter()
+            .map(|p| p.0)
+            .min()
+            .context("min on empty vector")?;
+
+        Ok(pairs
+            .into_iter()
+            .map(|(start, end)| {
+                let start = start - earliest_time;
+                let end = end - earliest_time;
+                assert!(start < end);
+                Interval { start, end }
+            })
+            .collect())
     }
 
     fn version(&self) -> u8 {
