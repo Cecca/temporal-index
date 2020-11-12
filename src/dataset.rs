@@ -650,7 +650,7 @@ impl FlightDataset {
         }
         let cache = dir.join("flights.csv.gz");
         maybe_download(
-            "https://uc3ec8cf22cc811b1547b7619163.dl.dropboxusercontent.com/cd/0/get/BDAN7TVXwwLPVzip-CF3ggX6qx9tGeXEetN__fYt7WMNYW8Dl2jVaHHSbr9MCpKC0hmbC6vEx6sL6RxYVB594GkVn2TOWuVdWjYyE9O_y0rrE7EcsILaqnwA-sub5UxKSrw/file?dl=1#",
+            "https://dl.dropboxusercontent.com/s/2ql6xmu613lt5l3/august_2018_nationwide.csv.gz",
             cache.clone(),
         )?;
         Ok(Self { csv_path: cache })
@@ -826,7 +826,7 @@ impl WebkitDataset {
         }
         let cache = dir.join("webkit.csv.gz");
         maybe_download(
-            "https://ucdb712ba99eac03f416c26785e7.dl.dropboxusercontent.com/cd/0/get/BDA_aIwUKO0RjSR4UAkggb1zRu5_jdTxh5JwQ3lq8nO7xlKgdPh2clfIaaph0C0-UNctjj4kJdZXs0tlRIJ-tTM7Ulx03xNMA7cXdQEJna7acPTVZaJlYdsDeQ4Ms5eTuGc/file?dl=1#",
+            "https://dl.dropboxusercontent.com/s/c6d53xvivn98nba/webkit.txt.gz?dl=0",
             cache.clone(),
         )?;
         Ok(Self { csv_path: cache })
@@ -905,7 +905,7 @@ impl TourismDataset {
         }
         let cache = dir.join("tourism.csv.gz");
         maybe_download(
-            "https://uc52426c71d92ce89e187b63dc1c.dl.dropboxusercontent.com/cd/0/get/BDDXXiaHTGeGVppG2zkYGqknWogqldAbq6OuK1CvjJ12tCLYPFso4wo5a5kF8RKAAgPoym092EGrsVD6Am8O2SoSl8RCn95DlmyueGaXPoixjJ4EexCE0fCNuie-yjm2cNE/file?dl=1#",
+            "https://dl.dropboxusercontent.com/s/y7niqvht12ee05v/tourismdata.csv.gz?dl=0",
             cache.clone(),
         )?;
         Ok(Self { csv_path: cache })
