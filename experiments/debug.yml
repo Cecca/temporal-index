@@ -15,9 +15,8 @@
               Uniform: { low: 1, high: 60 }
           ]
         duration:
-          - Single: [
-              Uniform: { low: 1, high: 365 },
-          ]
+          - Single: 
+              Uniform: { low: 1, high: 365 }
 
   algorithms:
     - PeriodIndexPlusPlus:
