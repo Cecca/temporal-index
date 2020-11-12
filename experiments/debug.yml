@@ -5,7 +5,7 @@
   queries:
     - RandomGranule:
         seed: [23512]
-        n: [5000]
+        n: [100000]
         # Granularity of days, in minutes
         granule: [1440]
         range:
@@ -19,5 +19,8 @@
               Uniform: { low: 1, high: 365 }
 
   algorithms:
+    - BTree
+    - IntervalTree
+    - LinearScan
     - PeriodIndexPlusPlus:
-        page_size: [100]
+        page_size: [10,100]

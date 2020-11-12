@@ -1,0 +1,97 @@
+---
+- datasets:
+    - Flight
+
+  queries:
+    - RandomGranule:
+        seed: [23512]
+        n: [100000]
+        # Granularity of days, in minutes
+        granule: [1440]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 666 },
+              # Durations up to a couple of months for the range queries
+              Uniform: { low: 1, high: 60 }
+          ]
+        duration:
+          - Single: 
+              Uniform: { low: 1, high: 365 }
+
+  algorithms:
+    - LinearScan
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64, 128]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+
+- datasets:
+    - Webkit
+
+  queries:
+    - RandomGranule:
+        seed: [23512]
+        n: [100000]
+        # Granularity of minutes, in milliseconds
+        granule: [60000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 6980952 },
+              # Durations up to one year for the range queries, in milliseconds
+              Uniform: { low: 1, high: 31556925975 }
+          ]
+        duration:
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    - LinearScan
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64, 128]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+
+- datasets:
+    - Tourism
+
+  queries:
+    - RandomGranule:
+        seed: [23512]
+        n: [100000]
+        # Granularity of days, in days
+        granule: [1]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 2055 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Single: 
+              # Duration ranges of up to two months, in days
+              Uniform: { low: 1, high: 60 }
+
+  algorithms:
+    - LinearScan
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64, 128]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+
+
