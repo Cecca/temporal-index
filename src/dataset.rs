@@ -615,23 +615,23 @@ impl Dataset for CsvDataset {
 }
 
 fn maybe_download(source: &str, dest: PathBuf) -> Result<()> {
-    // Curl has way less dependencies than reqwest
+    // Curl has way less dependencies than reqwest, but has issues compiling, sometimes
     // use curl::easy::Easy;
-    // use std::io::prelude::*;
 
-    // if !dest.is_file() {
-    //     info!("Downloading `{}` to `{:?}`", source, dest);
-    //     let mut output = std::fs::File::create(dest)?;
-    //     let mut handle = Easy::new();
-    //     handle.url(source)?;
-    //     handle.write_function(move |data| {
-    //         output.write(data).unwrap();
-    //         Ok(data.len())
-    //     })?;
-    //     handle.perform()?;
-    // }
-    // Ok(())
-    todo!()
+    if !dest.is_file() {
+        info!("Downloading `{}` to `{:?}`", source, dest);
+        let mut output = std::fs::File::create(dest)?;
+        let mut content = reqwest::blocking::get(source)?;
+        std::io::copy(&mut content, &mut output)?;
+        // let mut handle = Easy::new();
+        // handle.url(source)?;
+        // handle.write_function(move |data| {
+        //     output.write(data).unwrap();
+        //     Ok(data.len())
+        // })?;
+        // handle.perform()?;
+    }
+    Ok(())
 }
 
 /// Dataset of flights, using information about date and hour of actual departure.
