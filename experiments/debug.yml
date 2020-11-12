@@ -1,22 +1,22 @@
 ---
 - datasets:
-    - Tourism
-    - Webkit
     - Flight
 
   queries:
-    - Random:
+    - RandomGranule:
         seed: [23512]
         n: [5000]
+        # Granularity of days, in minutes
+        granule: [1440]
         range:
           - Pair: [
-              Uniform: { low: 1, high: 100000 },
-              Zipf: { n: 1000000, beta: 1 }
+              Uniform: { low: 1, high: 666 },
+              # Durations up to a couple of months for the range queries
+              Uniform: { low: 1, high: 60 }
           ]
         duration:
-          - Pair: [
-              Uniform: { low: 1, high: 10000 },
-              Uniform: { low: 1, high: 10000 },
+          - Single: [
+              Uniform: { low: 1, high: 365 },
           ]
 
   algorithms:

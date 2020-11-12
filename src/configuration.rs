@@ -241,6 +241,21 @@ impl DataConfiguration {
 }
 
 #[derive(Serialize, Deserialize)]
+pub enum GeneratorConfig {
+    Free,
+    Single(TimeDistribution),
+}
+
+impl GeneratorConfig {
+    fn get(&self) -> Option<TimeDistribution> {
+        match self {
+            Self::Free => None,
+            Self::Single(t) => Some(*t),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub enum GeneratorPairConfig {
     Free,
     Pair(TimeDistribution, TimeDistribution),
@@ -269,6 +284,13 @@ pub enum QueryConfiguration {
         n: Vec<usize>,
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorPairConfig>,
+    },
+    RandomGranule {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        granule: Vec<u64>,
+        range: Vec<GeneratorPairConfig>,
+        duration: Vec<GeneratorConfig>,
     },
     Mixed(Vec<QueryConfiguration>),
 }
@@ -309,6 +331,23 @@ impl QueryConfiguration {
                             Some(Rc::new(RandomQueryset::new(*seed, *n, range, duration))
                                 as Rc<dyn Queryset>)
                         }
+                    },
+                );
+                Box::new(iter)
+            }
+            Self::RandomGranule {
+                seed,
+                n,
+                granule,
+                range,
+                duration,
+            } => {
+                let iter = iproduct!(seed, n, granule, range, duration).flat_map(
+                    |(seed, n, granule, range, duration)| match (range.get(), duration.get()) {
+                        (None, None) => None,
+                        (range, duration) => Some(Rc::new(RandomGranuleQueryset::new(
+                            *seed, *n, *granule, range, duration,
+                        )) as Rc<dyn Queryset>),
                     },
                 );
                 Box::new(iter)

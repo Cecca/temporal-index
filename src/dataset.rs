@@ -309,6 +309,103 @@ impl Queryset for RandomQueriesZipfAndUniform {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct RandomGranuleQueryset {
+    seed: u64,
+    n: usize,
+    granule: u64,
+    intervals: Option<(TimeDistribution, TimeDistribution)>,
+    /// Define the distribution of both the start and the end point of the duration range
+    durations: Option<TimeDistribution>,
+}
+
+impl RandomGranuleQueryset {
+    pub fn new(
+        seed: u64,
+        n: usize,
+        granule: u64,
+        intervals: Option<(TimeDistribution, TimeDistribution)>,
+        durations: Option<TimeDistribution>,
+    ) -> Self {
+        Self {
+            seed,
+            n,
+            granule,
+            intervals,
+            durations,
+        }
+    }
+}
+
+impl Queryset for RandomGranuleQueryset {
+    fn name(&self) -> String {
+        format!(
+            "random-granules-{}-{}-{}",
+            self.granule,
+            self.intervals
+                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
+                .unwrap_or("None".to_owned()),
+            self.durations
+                .map(|d| format!("{}", d.name()))
+                .unwrap_or("None".to_owned()),
+        )
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "seed={} n={} {} {}",
+            self.seed,
+            self.n,
+            // self.granule,
+            self.intervals
+                .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
+                .unwrap_or(String::new()),
+            self.durations
+                .map(|d| format!("{}", d.parameters("dur_"),))
+                .unwrap_or(String::new()),
+        )
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Vec<Query> {
+        use rand::RngCore;
+        use std::collections::BTreeSet;
+        let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
+        let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let mut data = BTreeSet::new();
+        let mut interval_gen = self
+            .intervals
+            .as_ref()
+            .map(move |(start_times, durations)| {
+                (start_times.stream(rng1), durations.stream(rng2))
+            });
+        let mut durations_gen = self.durations.as_ref().map(move |dgen| dgen.stream(rng3));
+        while data.len() < self.n {
+            let interval = interval_gen.as_mut().map(|(start, duration)| {
+                Interval::new(
+                    start.next().unwrap() * self.granule,
+                    duration.next().unwrap() * self.granule,
+                )
+            });
+            let duration_range = durations_gen.as_mut().map(|dgen| {
+                let a = dgen.next().unwrap() * self.granule;
+                let b = dgen.next().unwrap() * self.granule;
+                DurationRange::new(std::cmp::min(a, b), std::cmp::max(a, b))
+            });
+            data.insert(Query {
+                range: interval,
+                duration: duration_range,
+            });
+        }
+        data.into_iter().collect()
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RandomQueryset {
     seed: u64,
     n: usize,
@@ -519,21 +616,22 @@ impl Dataset for CsvDataset {
 
 fn maybe_download(source: &str, dest: PathBuf) -> Result<()> {
     // Curl has way less dependencies than reqwest
-    use curl::easy::Easy;
-    use std::io::prelude::*;
+    // use curl::easy::Easy;
+    // use std::io::prelude::*;
 
-    if !dest.is_file() {
-        info!("Downloading `{}` to `{:?}`", source, dest);
-        let mut output = std::fs::File::create(dest)?;
-        let mut handle = Easy::new();
-        handle.url(source)?;
-        handle.write_function(move |data| {
-            output.write(data).unwrap();
-            Ok(data.len())
-        })?;
-        handle.perform()?;
-    }
-    Ok(())
+    // if !dest.is_file() {
+    //     info!("Downloading `{}` to `{:?}`", source, dest);
+    //     let mut output = std::fs::File::create(dest)?;
+    //     let mut handle = Easy::new();
+    //     handle.url(source)?;
+    //     handle.write_function(move |data| {
+    //         output.write(data).unwrap();
+    //         Ok(data.len())
+    //     })?;
+    //     handle.perform()?;
+    // }
+    // Ok(())
+    todo!()
 }
 
 /// Dataset of flights, using information about date and hour of actual departure.
