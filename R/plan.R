@@ -3,6 +3,13 @@ conn <- dbConnect(RSQLite::SQLite(), db_file)
 
 install_symbolic_unit("records")
 
+real_sizes <- tribble(
+  ~dataset, ~dataset_n,
+  "Flight",        684838,
+  "Tourism",       835071,
+  "Webkit",       1547419,
+)
+
 plan <- drake_plan(
   data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
     as_tibble() %>%
@@ -51,6 +58,38 @@ plan <- drake_plan(
     filter(dataset_n == 10000000, queryset_n == 5000) %>%
     select(-time_query_ms, -time_index_ms)
     ,
+
+  data_real = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
+    as_tibble() %>%
+    filter(
+      hostname == "ironmaiden",
+      dataset %in% c("Tourism", "Flight", "Webkit")
+    ) %>%
+    mutate(
+      date = parse_datetime(date),
+      is_estimate = is_estimate > 0
+    ) %>%
+    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
+    slice(which.max(date)) %>%
+    ungroup() %>%
+    inner_join(real_sizes) %>%
+    mutate(
+      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
+      time_queries = set_units(time_query_ms, "ms"),
+      time_index = set_units(time_index_ms, "ms"),
+      total_time = time_index + time_queries,
+      algorithm_wpar = interaction(algorithm, algorithm_params),
+      algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
+      qps = queryset_n / set_units(time_queries, "s")
+    ) %>%
+    mutate(
+      workload_type = case_when(
+        str_detect("random-granules-uniform-uniform-uniform", queryset) ~ "both",
+        TRUE ~ "Unknown"
+      )
+    ) %>%
+    select(-time_query_ms, -time_index_ms)
+    ,
   
   queries = target(
     table_query_stats(conn, file_in("temporal-index-results.sqlite")) %>%
@@ -61,22 +100,11 @@ plan <- drake_plan(
 
   best = target(
     data %>%
+      bind_rows(data_real) %>%
       lazy_dt() %>%
       group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
       slice(which.max(qps)) %>%
       ungroup() %>%
-      mutate(
-        workload_type = case_when(
-          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
-          queryset == "random-None-uniform-uniform" ~ "duration",
-          queryset == "random-uniform-zipf-None" ~ "time",
-          queryset == "random-clustered-zipf-None" ~ "time",
-          queryset == "Mixed" ~ "mixed",
-          TRUE ~ "Unknown"
-        )
-      ) %>%
-      mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
       as.data.table(),
     format = "fst_dt"
   ),
@@ -312,6 +340,7 @@ plan <- drake_plan(
     as_tibble() %>%
     filter(
       algorithm == "period-index++",
+      !(dataset %in% c("Flight", "Webkit", "Tourism"))
     ) %>%
     mutate(
       date = parse_datetime(date),
@@ -414,6 +443,7 @@ plan <- drake_plan(
 
   queryset_labels = best %>%
     as_tibble() %>%
+    filter(!(dataset %in% c("Flight", "Webkit", "Tourism"))) %>%
     distinct(queryset, queryset_params) %>%
     get_params(queryset_params, "") %>%
     mutate(query_duration_label = case_when(
