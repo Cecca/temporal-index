@@ -145,13 +145,13 @@ plan <- drake_plan(
 
   real_data_distributions = {
     p1 <- ggplot(real_data_start_times, aes(x=value, weight=count)) +
-      geom_histogram(aes(y=stat(ncount))) +
+      geom_histogram() +
       facet_wrap(vars(name), scales="free") +
       labs(x="start time") +
       theme_tufte() +
       theme(axis.title.y=element_blank())
     p2 <- ggplot(real_data_durations, aes(x=value, weight=count)) +
-      geom_histogram(aes(y=stat(ncount))) +
+      geom_histogram() +
       facet_wrap(vars(name), scales="free") +
       labs(x="duration") +
       theme_tufte() +
@@ -420,7 +420,7 @@ plan <- drake_plan(
     pivot_wider(names_from="algorithm", values_from="qps") %>%
     arrange(dataset_label, query_str) %>%
     rename(dataset = dataset_label, queries = query_str) %>%
-    (function(d) {print(d); d}) %>%
+    (function(d) {print(d, n=100); d}) %>%
     kable("latex", escape=F, booktabs=T, align="r") %>%
     kable_styling(position = "center",
                   font_size = 8) %>%
@@ -435,7 +435,8 @@ plan <- drake_plan(
       (dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1") ~
         "R_1",
       (dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1") ~
-        "R_2"
+        "R_2",
+      TRUE ~ dataset
     )) %>%
     drop_na() %>%
     select(dataset_label, dataset_params)
@@ -443,10 +444,10 @@ plan <- drake_plan(
 
   queryset_labels = best %>%
     as_tibble() %>%
-    filter(!(dataset %in% c("Flight", "Webkit", "Tourism"))) %>%
     distinct(queryset, queryset_params) %>%
     get_params(queryset_params, "") %>%
     mutate(query_duration_label = case_when(
+      str_detect(queryset, "granule") ~ "real",
       (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==100) ~ "D_1",
       (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==100) ~ "D_2",
       (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==10000) ~ "D_3",

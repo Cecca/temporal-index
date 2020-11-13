@@ -36,10 +36,6 @@ impl Cell {
             self.duration_range,
             interval.duration()
         );
-        debug_assert!(self.time_range.overlaps(&interval));
-        if interval.start == 9839 && interval.end == 9872 {
-            info!("Inserting missing interval");
-        }
         self.intervals.push(interval);
     }
 
@@ -209,7 +205,7 @@ impl Bucket {
             }
         }
         self.n += 1;
-        assert!(cnt > 0);
+        debug_assert!(cnt > 0 && cnt <= 3);
     }
 
     fn query_range_duration<F: FnMut(&Interval)>(
@@ -236,9 +232,6 @@ impl Bucket {
                     break;
                 }
             }
-            // for cell in self.cells[level][start..=end].iter() {
-            //     cnt += cell.query_range_duration(range, duration, action);
-            // }
         }
         cnt
     }
