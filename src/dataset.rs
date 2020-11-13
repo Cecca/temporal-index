@@ -339,8 +339,7 @@ impl RandomGranuleQueryset {
 impl Queryset for RandomGranuleQueryset {
     fn name(&self) -> String {
         format!(
-            "random-granules-{}-{}-{}",
-            self.granule,
+            "random-granules-{}-{}",
             self.intervals
                 .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
                 .unwrap_or("None".to_owned()),
@@ -352,21 +351,21 @@ impl Queryset for RandomGranuleQueryset {
 
     fn parameters(&self) -> String {
         format!(
-            "seed={} n={} {} {}",
+            "seed={} n={} granule={} {} {}",
             self.seed,
             self.n,
-            // self.granule,
+            self.granule,
             self.intervals
                 .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
                 .unwrap_or(String::new()),
             self.durations
-                .map(|d| format!("{}", d.parameters("dur_"),))
+                .map(|d| format!("{}", d.parameters("durrange_"),))
                 .unwrap_or(String::new()),
         )
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn get(&self) -> Vec<Query> {
