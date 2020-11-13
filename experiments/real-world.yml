@@ -12,10 +12,12 @@
           - Pair: [
               Uniform: { low: 1, high: 666 },
               # Durations up to a couple of months for the range queries
+              # (TODO: 90 days makes a quarter)
               Uniform: { low: 1, high: 60 }
           ]
         duration:
           - Single: 
+              # TODO: Fix the duration, should be hours!!!
               Uniform: { low: 1, high: 365 }
 
   algorithms:
@@ -47,6 +49,7 @@
           ]
         duration:
           - Single: 
+              # TODO: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
 
