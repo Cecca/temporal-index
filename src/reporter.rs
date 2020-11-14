@@ -181,6 +181,22 @@ impl Reporter {
 
         Ok(())
     }
+
+    pub fn backup() -> Result<()> {
+        use chrono::prelude::*;
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+        use std::fs::File;
+
+        let dbpath = Self::get_db_path();
+        let mut backup_path = dbpath.clone();
+        backup_path.set_extension(format!("bak.{}.gz", Utc::now().format("%Y%m%d%H%M")));
+        let mut input = File::open(&dbpath)?;
+        let mut output = GzEncoder::new(File::create(&backup_path)?, Compression::default());
+        std::io::copy(&mut input, &mut output)?;
+
+        Ok(())
+    }
 }
 
 pub fn get_hostname() -> Result<String> {

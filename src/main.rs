@@ -65,6 +65,15 @@ fn main() -> Result<()> {
     pretty_env_logger::formatted_builder()
         .filter_level(log::LevelFilter::Info)
         .try_init()?;
+    if std::env::args()
+        .nth(1)
+        .map(|s| s.eq("backup"))
+        .unwrap_or(false)
+    {
+        reporter::Reporter::backup()?;
+        return Ok(());
+    }
+
     let cmdline: Cmdline = argh::from_env();
 
     reporter::db_setup()?;
