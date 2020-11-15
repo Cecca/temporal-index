@@ -3,23 +3,29 @@
     - Flight
 
   queries:
-    - RandomGranule:
+    - Random:
         seed: [23512]
-        n: [100000]
-        # Granularity of hours, in minutes
-        granule: [60]
+        n: [10000]
+        # Granularity of days, in minutes
         range:
-          - Pair: [
-              Uniform: { low: 1, high: 666 },
+          - Pair: 
+              - Scaled: 
+                  inner: {Uniform: { low: 1, high: 666 }}
+                  scale: 1440
               # Up to three months
-              Uniform: { low: 1, high: 2160 }
-          ]
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 2160 }}
+                  scale: 1440
+          
         duration:
           - Single: 
-              Uniform: { low: 1, high: 8 }
+              # Up to one day, with granularity of hours
+              Scaled:
+                inner: {Uniform: { low: 1, high: 24 }}
+                scale: 60
 
   algorithms:
-    # - LinearScan
+    - LinearScan
     - BTree
     - GridFile:
         side_cells: [10, 100, 1000]
@@ -34,25 +40,26 @@
     - Webkit
 
   queries:
-    - RandomGranule:
+    - Random:
         seed: [23512]
-        n: [100000]
-        # Granularity of minutes, in milliseconds
-        granule: [60000]
+        n: [10000]
         range:
-          - Pair: [
-              Uniform: { low: 1, high: 6980952 },
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 6980952 }}
+                  scale: 60000
               # Durations up to one year for the range queries, in milliseconds
-              Uniform: { low: 1, high: 31556925975 }
-          ]
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
         duration:
           - Single: 
-              # TODO: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
 
   algorithms:
-    # - LinearScan
+    - LinearScan
     - BTree
     - GridFile:
         side_cells: [10, 100, 1000]
@@ -67,11 +74,9 @@
     - Tourism
 
   queries:
-    - RandomGranule:
+    - Random:
         seed: [23512]
-        n: [100000]
-        # Granularity of days, in days
-        granule: [1]
+        n: [10000]
         range:
           - Pair: [
               Uniform: { low: 1, high: 2055 },
@@ -84,7 +89,7 @@
               Uniform: { low: 1, high: 60 }
 
   algorithms:
-    # - LinearScan
+    - LinearScan
     - BTree
     - GridFile:
         side_cells: [10, 100, 1000]
