@@ -11,7 +11,6 @@ use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 pub trait Dataset: std::fmt::Debug {
     fn name(&self) -> String;
@@ -336,7 +335,7 @@ pub struct RandomQueryset {
     seed: u64,
     n: usize,
     intervals: Option<(TimeDistribution, TimeDistribution)>,
-    durations: Option<(TimeDistribution, TimeDistribution)>,
+    durations: Option<TimeDistribution>,
 }
 
 impl RandomQueryset {
@@ -344,7 +343,7 @@ impl RandomQueryset {
         seed: u64,
         n: usize,
         intervals: Option<(TimeDistribution, TimeDistribution)>,
-        durations: Option<(TimeDistribution, TimeDistribution)>,
+        durations: Option<TimeDistribution>,
     ) -> Self {
         Self {
             seed,
@@ -365,7 +364,7 @@ impl Queryset for RandomQueryset {
                 .unwrap_or("None".to_owned()),
             self.durations
                 .clone()
-                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
+                .map(|pair| format!("{}", pair.name()))
                 .unwrap_or("None".to_owned()),
         )
     }
@@ -381,17 +380,13 @@ impl Queryset for RandomQueryset {
                 .unwrap_or(String::new()),
             self.durations
                 .clone()
-                .map(|d| format!(
-                    "{} {}",
-                    d.0.parameters("durmin_"),
-                    d.1.parameters("durmax_")
-                ))
+                .map(|d| format!("{}", d.parameters("dur_dist_")))
                 .unwrap_or(String::new()),
         )
     }
 
     fn version(&self) -> u8 {
-        6
+        7
     }
 
     fn get(&self) -> Vec<Query> {
@@ -401,7 +396,6 @@ impl Queryset for RandomQueryset {
         let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
-        let rng4 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
         let mut data = BTreeSet::new();
         let mut interval_gen = self
             .intervals
@@ -409,21 +403,15 @@ impl Queryset for RandomQueryset {
             .map(move |(start_times, durations)| {
                 (start_times.stream(rng1), durations.stream(rng2))
             });
-        let mut durations_gen = self
-            .durations
-            .as_ref()
-            .map(move |(start, duration)| (start.stream(rng3), duration.stream(rng4)));
+        let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
         while data.len() < self.n {
             let interval = interval_gen.as_mut().map(|(start, duration)| {
                 Interval::new(start.next().unwrap(), duration.next().unwrap())
             });
-            let duration_range = durations_gen.as_mut().map(|(start, duration)| {
-                let duration_range_start = start.next().unwrap();
-                let duration_range_duration = duration.next().unwrap();
-                DurationRange::new(
-                    duration_range_start,
-                    duration_range_start + duration_range_duration,
-                )
+            let duration_range = durations_gen.as_mut().map(|d| {
+                let a = d.next().unwrap();
+                let b = d.next().unwrap();
+                DurationRange::new(std::cmp::min(a, b), std::cmp::max(a, b))
             });
             data.insert(Query {
                 range: interval,
@@ -431,36 +419,6 @@ impl Queryset for RandomQueryset {
             });
         }
         data.into_iter().collect()
-    }
-}
-
-#[derive(Debug)]
-pub struct MixedQueryset {
-    inner: Vec<Rc<dyn Queryset>>,
-}
-
-impl MixedQueryset {
-    pub fn new(sets: Vec<Rc<dyn Queryset>>) -> Self {
-        Self { inner: sets }
-    }
-}
-
-impl Queryset for MixedQueryset {
-    fn name(&self) -> String {
-        "Mixed".to_owned()
-    }
-
-    fn parameters(&self) -> String {
-        let ps: Vec<String> = self.inner.iter().map(|x| x.parameters()).collect();
-        ps.join("|")
-    }
-
-    fn version(&self) -> u8 {
-        1
-    }
-
-    fn get(&self) -> Vec<Query> {
-        self.inner.iter().flat_map(|inner| inner.get()).collect()
     }
 }
 
