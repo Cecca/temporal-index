@@ -213,8 +213,12 @@ impl DataConfiguration {
             } => {
                 let iter = iproduct!(seed, n, start_times, durations).map(
                     |(seed, n, start_times, durations)| {
-                        Rc::new(RandomDataset::new(*seed, *n, *start_times, *durations))
-                            as Rc<dyn Dataset>
+                        Rc::new(RandomDataset::new(
+                            *seed,
+                            *n,
+                            start_times.clone(),
+                            durations.clone(),
+                        )) as Rc<dyn Dataset>
                     },
                 );
                 Box::new(iter)
@@ -250,7 +254,7 @@ impl GeneratorConfig {
     fn get(&self) -> Option<TimeDistribution> {
         match self {
             Self::Free => None,
-            Self::Single(t) => Some(*t),
+            Self::Single(t) => Some(t.clone()),
         }
     }
 }
@@ -265,7 +269,7 @@ impl GeneratorPairConfig {
     fn get(&self) -> Option<(TimeDistribution, TimeDistribution)> {
         match self {
             Self::Free => None,
-            Self::Pair(t1, t2) => Some((*t1, *t2)),
+            Self::Pair(t1, t2) => Some((t1.clone(), t2.clone())),
         }
     }
 }
@@ -285,14 +289,6 @@ pub enum QueryConfiguration {
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorPairConfig>,
     },
-    RandomGranule {
-        seed: Vec<u64>,
-        n: Vec<usize>,
-        granule: Vec<u64>,
-        range: Vec<GeneratorPairConfig>,
-        duration: Vec<GeneratorConfig>,
-    },
-    Mixed(Vec<QueryConfiguration>),
 }
 
 impl QueryConfiguration {
@@ -333,30 +329,6 @@ impl QueryConfiguration {
                         }
                     },
                 );
-                Box::new(iter)
-            }
-            Self::RandomGranule {
-                seed,
-                n,
-                granule,
-                range,
-                duration,
-            } => {
-                let iter = iproduct!(seed, n, granule, range, duration).flat_map(
-                    |(seed, n, granule, range, duration)| match (range.get(), duration.get()) {
-                        (None, None) => None,
-                        (range, duration) => Some(Rc::new(RandomGranuleQueryset::new(
-                            *seed, *n, *granule, range, duration,
-                        )) as Rc<dyn Queryset>),
-                    },
-                );
-                Box::new(iter)
-            }
-            Self::Mixed(inner) => {
-                let queries: Vec<Rc<dyn Queryset>> =
-                    inner.iter().flat_map(|qc| qc.queries()).collect();
-                let mixed = Rc::new(MixedQueryset::new(queries)) as Rc<dyn Queryset>;
-                let iter = Some(mixed).into_iter();
                 Box::new(iter)
             }
         }

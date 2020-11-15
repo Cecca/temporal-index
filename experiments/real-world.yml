@@ -6,19 +6,17 @@
     - RandomGranule:
         seed: [23512]
         n: [100000]
-        # Granularity of days, in minutes
-        granule: [1440]
+        # Granularity of hours, in minutes
+        granule: [60]
         range:
           - Pair: [
               Uniform: { low: 1, high: 666 },
-              # Durations up to a couple of months for the range queries
-              # (TODO: 90 days makes a quarter)
-              Uniform: { low: 1, high: 60 }
+              # Up to three months
+              Uniform: { low: 1, high: 2160 }
           ]
         duration:
           - Single: 
-              # TODO: Fix the duration, should be hours!!!
-              Uniform: { low: 1, high: 365 }
+              Uniform: { low: 1, high: 8 }
 
   algorithms:
     # - LinearScan
