@@ -29,11 +29,27 @@ pub trait Dataset: std::fmt::Debug {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum TimeDistribution {
-    Uniform { low: Time, high: Time },
-    Zipf { n: usize, beta: f64 },
-    Clustered { n: usize, high: Time, std_dev: Time },
+    Uniform {
+        low: Time,
+        high: Time,
+    },
+    Zipf {
+        n: usize,
+        beta: f64,
+    },
+    Clustered {
+        n: usize,
+        high: Time,
+        std_dev: Time,
+    },
+    /// All the numbers sampled from the inner distribution are multiplied by the
+    /// given scale factor
+    Scaled {
+        inner: Box<TimeDistribution>,
+        scale: Time,
+    },
 }
 
 impl TimeDistribution {
@@ -74,6 +90,10 @@ impl TimeDistribution {
                     // s as Time
                 }))
             }
+            Self::Scaled { inner, scale } => {
+                let rng = rng.clone();
+                Box::new(inner.stream(rng).map(move |x| x * scale))
+            }
         }
     }
 
@@ -82,6 +102,7 @@ impl TimeDistribution {
             Self::Uniform { .. } => String::from("uniform"),
             Self::Zipf { .. } => String::from("zipf"),
             Self::Clustered { .. } => String::from("clustered"),
+            Self::Scaled { inner, .. } => format!("{}-scaled", inner.name()),
         }
     }
 
@@ -93,6 +114,9 @@ impl TimeDistribution {
                 "{}n={} {}high={} {}stddev={}",
                 prefix, n, prefix, high, prefix, std_dev
             ),
+            Self::Scaled { inner, scale } => {
+                format!("{} {}scale={}", inner.parameters(prefix), prefix, scale)
+            }
         }
     }
 }
@@ -307,103 +331,6 @@ impl Queryset for RandomQueriesZipfAndUniform {
         data
     }
 }
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct RandomGranuleQueryset {
-    seed: u64,
-    n: usize,
-    granule: u64,
-    intervals: Option<(TimeDistribution, TimeDistribution)>,
-    /// Define the distribution of both the start and the end point of the duration range
-    durations: Option<TimeDistribution>,
-}
-
-impl RandomGranuleQueryset {
-    pub fn new(
-        seed: u64,
-        n: usize,
-        granule: u64,
-        intervals: Option<(TimeDistribution, TimeDistribution)>,
-        durations: Option<TimeDistribution>,
-    ) -> Self {
-        Self {
-            seed,
-            n,
-            granule,
-            intervals,
-            durations,
-        }
-    }
-}
-
-impl Queryset for RandomGranuleQueryset {
-    fn name(&self) -> String {
-        format!(
-            "random-granules-{}-{}",
-            self.intervals
-                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
-                .unwrap_or("None".to_owned()),
-            self.durations
-                .map(|d| format!("{}", d.name()))
-                .unwrap_or("None".to_owned()),
-        )
-    }
-
-    fn parameters(&self) -> String {
-        format!(
-            "seed={} n={} granule={} {} {}",
-            self.seed,
-            self.n,
-            self.granule,
-            self.intervals
-                .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
-                .unwrap_or(String::new()),
-            self.durations
-                .map(|d| format!("{}", d.parameters("durrange_"),))
-                .unwrap_or(String::new()),
-        )
-    }
-
-    fn version(&self) -> u8 {
-        2
-    }
-
-    fn get(&self) -> Vec<Query> {
-        use rand::RngCore;
-        use std::collections::BTreeSet;
-        let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
-        let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
-        let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
-        let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
-        let mut data = BTreeSet::new();
-        let mut interval_gen = self
-            .intervals
-            .as_ref()
-            .map(move |(start_times, durations)| {
-                (start_times.stream(rng1), durations.stream(rng2))
-            });
-        let mut durations_gen = self.durations.as_ref().map(move |dgen| dgen.stream(rng3));
-        while data.len() < self.n {
-            let interval = interval_gen.as_mut().map(|(start, duration)| {
-                Interval::new(
-                    start.next().unwrap() * self.granule,
-                    duration.next().unwrap() * self.granule,
-                )
-            });
-            let duration_range = durations_gen.as_mut().map(|dgen| {
-                let a = dgen.next().unwrap() * self.granule;
-                let b = dgen.next().unwrap() * self.granule;
-                DurationRange::new(std::cmp::min(a, b), std::cmp::max(a, b))
-            });
-            data.insert(Query {
-                range: interval,
-                duration: duration_range,
-            });
-        }
-        data.into_iter().collect()
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RandomQueryset {
     seed: u64,
@@ -433,9 +360,11 @@ impl Queryset for RandomQueryset {
         format!(
             "random-{}-{}",
             self.intervals
+                .clone()
                 .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
                 .unwrap_or("None".to_owned()),
             self.durations
+                .clone()
                 .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
                 .unwrap_or("None".to_owned()),
         )
@@ -447,9 +376,11 @@ impl Queryset for RandomQueryset {
             self.seed,
             self.n,
             self.intervals
+                .clone()
                 .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
                 .unwrap_or(String::new()),
             self.durations
+                .clone()
                 .map(|d| format!(
                     "{} {}",
                     d.0.parameters("durmin_"),
