@@ -287,7 +287,7 @@ pub enum QueryConfiguration {
         seed: Vec<u64>,
         n: Vec<usize>,
         range: Vec<GeneratorPairConfig>,
-        duration: Vec<GeneratorPairConfig>,
+        duration: Vec<GeneratorConfig>,
     },
 }
 
