@@ -711,30 +711,6 @@ impl Algorithm for PeriodIndexStar {
     }
 }
 
-fn ecdf<I: IntoIterator<Item = Time>>(times: I) -> Vec<u32> {
-    let mut ecdf = Vec::new();
-    let mut n = 0;
-    for t in times {
-        if t as usize >= ecdf.len() {
-            ecdf.resize(t as usize + 1, 0);
-        }
-        ecdf[t as usize] += 1u32;
-        n += 1;
-    }
-    let mut cumulative_count = 0u32;
-    for count in ecdf.iter_mut() {
-        cumulative_count += *count;
-        *count = cumulative_count;
-    }
-    assert!(
-        n == cumulative_count,
-        "n is {}, while the cumulative count is {}",
-        n,
-        cumulative_count
-    );
-    ecdf
-}
-
 fn build_break_points<I: IntoIterator<Item = Time>>(
     times: I,
     n_buckets: usize,
