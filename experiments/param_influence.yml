@@ -25,11 +25,8 @@
           ]
           - Free
         duration:
-          # Long duration low selectivity
-          - Pair: [
+          - Single:
               Uniform: { low: 1, high: 10000 },
-              Uniform: { low: 1, high: 10000 },
-          ]
           - Free
 
   algorithms:
