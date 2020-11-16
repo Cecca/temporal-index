@@ -12,27 +12,16 @@ pub struct Reporter {
     date: DateTime<Utc>,
     config: ExperimentConfiguration,
     config_file: PathBuf,
-    sha: String,
 }
 
 impl Reporter {
     pub fn new<P: AsRef<Path>>(config_file: P, config: ExperimentConfiguration) -> Result<Self> {
         let date = Utc::now();
-        let datestr = date.to_rfc2822();
-        let mut sha = Sha256::new();
-        let hostname = get_hostname()?;
-        sha.update(datestr);
-        sha.update(hostname);
-        sha.update(config.algorithm.borrow().descr());
-        sha.update(config.dataset.descr());
-        sha.update(config.queries.descr());
 
-        let sha = format!("{:x}", sha.finalize());
         Ok(Self {
             date,
             config: config,
             config_file: config_file.as_ref().to_owned(),
-            sha,
         })
     }
 
@@ -40,7 +29,7 @@ impl Reporter {
         std::path::PathBuf::from("temporal-index-results.sqlite")
     }
 
-    pub fn already_run(&self) -> Result<Option<String>> {
+    pub fn already_run(&self) -> Result<Option<i64>> {
         let algorithm = &self.config.algorithm;
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
@@ -49,7 +38,7 @@ impl Reporter {
         let hostname = get_hostname()?;
         let conn = Connection::open(dbpath).context("error connecting to the database")?;
         conn.query_row(
-            "SELECT sha FROM main
+            "SELECT id FROM raw
             WHERE hostname == ?1
               AND dataset == ?2
               AND dataset_params == ?3
@@ -86,7 +75,6 @@ impl Reporter {
         index_size_bytes: u32,
         answers: std::result::Result<Vec<QueryAnswer>, Duration>,
     ) -> Result<()> {
-        let sha = self.sha.clone();
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
         let hostname = get_hostname()?;
@@ -110,15 +98,14 @@ impl Reporter {
                 elapsed_query
             };
 
-            tx.execute(
-                "INSERT INTO raw ( sha, date, git_rev, hostname, conf_file,
+            let updated_cnt = tx.execute(
+                "INSERT INTO raw ( date, git_rev, hostname, conf_file,
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
                                     time_index_ms, time_query_ms, index_size_bytes, is_estimate )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18 )",
+                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17 )",
                 params![
-                    sha,
                     self.date.to_rfc3339(),
                     env!("VERGEN_SHA_SHORT"),
                     hostname,
@@ -139,15 +126,21 @@ impl Reporter {
                 ],
             )
             .context("error inserting into main table")?;
+            if updated_cnt == 0 {
+                anyhow::bail!("Insertion didn't happen");
+            }
+
+            let id = tx.last_insert_rowid();
+            info!("last inserted row id is {}", id);
 
             if let Ok(answers) = answers {
                 let mut stmt = tx.prepare(
-                "INSERT INTO query_stats (sha, query_index, query_time_ns, query_count, query_examined)
+                "INSERT INTO query_stats (id, query_index, query_time_ns, query_count, query_examined)
                 VALUES (?1, ?2, ?3, ?4, ?5)",
             )?;
                 for (i, ans) in answers.into_iter().enumerate() {
                     stmt.execute(params![
-                        sha,
+                        id,
                         i as u32,
                         ans.elapsed_nanos(),
                         ans.num_matches(),
@@ -168,16 +161,17 @@ impl Reporter {
         &self,
         bucket_info: I,
     ) -> Result<()> {
-        let sha = self.sha.clone();
-        let dbpath = Self::get_db_path();
-        let conn = Connection::open(dbpath).context("error connecting to the database")?;
-        let mut stmt = conn.prepare(
-            "INSERT INTO period_index_buckets (sha, bucket_index, count)
-            VALUES (?1, ?2, ?3)",
-        )?;
-        for (index, count) in bucket_info.into_iter() {
-            stmt.execute(params![sha.clone(), index as u32, count as u32])?;
-        }
+        // let sha = self.sha.clone();
+        // let dbpath = Self::get_db_path();
+        // let conn = Connection::open(dbpath).context("error connecting to the database")?;
+        // let mut stmt = conn.prepare(
+        //     "INSERT INTO period_index_buckets (sha, bucket_index, count)
+        //     VALUES (?1, ?2, ?3)",
+        // )?;
+        // for (index, count) in bucket_info.into_iter() {
+        //     stmt.execute(params![sha.clone(), index as u32, count as u32])?;
+        // }
+        warn!("Reporting of buckets yet to be implemented");
 
         Ok(())
     }
@@ -218,7 +212,7 @@ fn bump(conn: &Connection, ver: u32) -> Result<()> {
 }
 
 pub fn db_setup() -> Result<()> {
-    let conn =
+    let mut conn =
         Connection::open(Reporter::get_db_path()).context("error connecting to the database")?;
     let version: u32 = conn
         .query_row(
@@ -406,7 +400,113 @@ pub fn db_setup() -> Result<()> {
         )?;
         bump(&conn, 7)?;
     }
+    if version < 8 {
+        // Change the id from sha to rowid
+        {
+            let tx = conn.transaction()?;
+            info!(" . Creating new schemas");
+            // We set it autoincrement to ensure that deleted IDs don't get reused
+            tx.execute(
+                "CREATE TABLE raw_new (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            date              TEXT NOT NULL,
+            git_rev           TEXT NOT NULL,
+            hostname          TEXT NOT NULL,
+            conf_file         TEXT,
+            dataset           TEXT NOT NULL,
+            dataset_params    TEXT NOT NULL,
+            dataset_version   INT NOT NULL,
+            queryset           TEXT NOT NULL,
+            queryset_params    TEXT NOT NULL,
+            queryset_version   INT NOT NULL,
+            algorithm         TEXT NOT NULL,
+            algorithm_params  TEXT NOT NULL,
+            algorithm_version INT NOT NULL,
+            time_index_ms      INT64 NOT NULL,
+            time_query_ms      INT64 NOT NULL,
+            index_size_bytes   INT NOT NULL, 
+            is_estimate BOOLEAN DEFAULT FALSE)",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "CREATE TABLE query_stats_new (
+            id               INTEGER NOT NULL,
+            query_index       INT,
+            query_time_ns     INT64,
+            query_count       INT64,
+            query_examined    INT64,
+            FOREIGN KEY (id) REFERENCES raw_new(id))",
+                NO_PARAMS,
+            )?;
+            info!(" . Copy data to the new tables");
+            tx.execute(
+                "insert into raw_new
+            select rowid as id, date, git_rev, hostname, conf_file, dataset,
+                   dataset_params, dataset_version, queryset, queryset_params,
+                   queryset_version, algorithm, algorithm_params, algorithm_version,
+                   time_index_ms, time_query_ms, index_size_bytes, is_estimate
+            from raw",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "insert into query_stats_new
+            select id, query_index, query_time_ns, query_count, query_examined
+            from query_stats natural join (select rowid as id, sha from raw)",
+                NO_PARAMS,
+            )?;
+            // Now drop everything old
+            info!(" . Drop old tables and views");
+            tx.execute("drop table raw", NO_PARAMS)?;
+            tx.execute("drop table query_stats", NO_PARAMS)?;
+            tx.execute("drop view main", NO_PARAMS)?;
+            tx.execute("drop view top_queryset_version", NO_PARAMS)?;
+            tx.execute("drop view top_algorithm_version", NO_PARAMS)?;
+            tx.execute("drop view top_dataset_version", NO_PARAMS)?;
+            tx.execute("drop table period_index_buckets", NO_PARAMS)?;
 
-    info!("database schema up tp date");
+            // rename the new tables
+            info!(" . Rename new tables");
+            tx.execute("alter table raw_new rename to raw", NO_PARAMS)?;
+            tx.execute(
+                "alter table query_stats_new rename to query_stats",
+                NO_PARAMS,
+            )?;
+
+            // And recreate the views
+            info!(" . Recreate the views");
+            tx.execute(
+                "CREATE VIEW top_algorithm_version AS
+            SELECT algorithm, MAX(algorithm_version) as algorithm_version
+            FROM raw GROUP BY algorithm",
+                params![],
+            )?;
+            tx.execute(
+                "CREATE VIEW top_dataset_version AS
+            SELECT dataset, MAX(dataset_version) as dataset_version
+            FROM raw GROUP BY dataset",
+                params![],
+            )?;
+            tx.execute(
+                "CREATE VIEW top_queryset_version AS
+            SELECT queryset, MAX(queryset_version) as queryset_version
+            FROM raw GROUP BY queryset",
+                params![],
+            )?;
+            tx.execute(
+                "CREATE VIEW main AS
+            SELECT * FROM raw
+            NATURAL JOIN top_algorithm_version
+            NATURAL JOIN top_queryset_version
+            NATURAL JOIN top_dataset_version",
+                params![],
+            )?;
+            tx.commit()?;
+        }
+        info!(" . Clean up and reclaim space");
+        conn.execute("VACUUM", NO_PARAMS)?;
+        bump(&conn, 8)?;
+    }
+
+    info!("database schema up to date");
     Ok(())
 }

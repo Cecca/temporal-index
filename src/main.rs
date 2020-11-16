@@ -98,11 +98,8 @@ fn main() -> Result<()> {
         configurations.for_each(|experiment| {
             let reporter = reporter::Reporter::new(conf_file_path, experiment.clone())?;
             if !cmdline.rerun {
-                if let Some(sha) = reporter.already_run()? {
-                    debug!(
-                        "parameter configuration already run: {}, skipping",
-                        &sha[0..6]
-                    );
+                if let Some(id) = reporter.already_run()? {
+                    debug!("parameter configuration already run: {}, skipping", id);
                     return Ok(());
                 }
             }
