@@ -455,13 +455,13 @@ pub fn db_setup() -> Result<()> {
             )?;
             // Now drop everything old
             info!(" . Drop old tables and views");
-            tx.execute("drop table raw", NO_PARAMS)?;
-            tx.execute("drop table query_stats", NO_PARAMS)?;
             tx.execute("drop view main", NO_PARAMS)?;
             tx.execute("drop view top_queryset_version", NO_PARAMS)?;
             tx.execute("drop view top_algorithm_version", NO_PARAMS)?;
             tx.execute("drop view top_dataset_version", NO_PARAMS)?;
             tx.execute("drop table period_index_buckets", NO_PARAMS)?;
+            tx.execute("drop table query_stats", NO_PARAMS)?;
+            tx.execute("drop table raw", NO_PARAMS)?;
 
             // rename the new tables
             info!(" . Rename new tables");
