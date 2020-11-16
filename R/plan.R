@@ -113,33 +113,6 @@ plan <- drake_plan(
     write_csv(file_out("docs/best.csv"))
   ,
 
-  # query_stats = target(
-  #   {
-  #     base_data <- best %>%
-  #       lazy_dt() %>%
-  #       filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
-  #       inner_join(queries) 
-      
-  #     total_times <- base_data %>%
-  #       group_by(start_times_distribution, algorithm, workload_type) %>%
-  #       summarise(total_query_time = sum(query_time_ns))
-
-  #     ranking <- base_data %>%
-  #       group_by(start_times_distribution, algorithm, workload_type) %>%
-  #       arrange(query_time_ns) %>%
-  #       mutate(
-  #         group_rank = ntile(query_time_ns, 50)
-  #       ) %>%
-  #       group_by(start_times_distribution, algorithm, workload_type, group_rank) %>%
-  #       summarise(group_query_time = sum(query_time_ns))
-
-  #     inner_join(ranking, total_times) %>%
-  #       mutate(fraction_total_query_time = group_query_time / total_query_time) %>%
-  #       as.data.table()
-  #   },
-  #   format = "fst_dt",
-  # ),
-
   real_data_start_times = get_histograms("dataset-start-times", "./experiments/real-world.yml"),
   real_data_durations = get_histograms("dataset-durations", "./experiments/real-world.yml"),
 
@@ -288,38 +261,6 @@ plan <- drake_plan(
     group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
     slice(which.max(qps)) %>%
     ungroup(),
-
-  historical_variations = table_history(conn, file_in("temporal-index-results.sqlite")) %>%
-    group_by(algorithm, workload) %>% 
-    arrange(algorithm_version, date) %>% 
-    transmute(algorithm_version, date, time_query_ms, diff = time_query_ms - lag(time_query_ms), variation = time_query_ms / lag(time_query_ms)) %>% 
-    ungroup() %>%
-    arrange(algorithm, workload, algorithm_version, date)
-  ,
-
-  regressions = historical_variations %>% filter(variation > 1),
-  regressions_latest = historical_variations %>%
-    group_by(algorithm) %>%
-    filter(algorithm_version == max(algorithm_version)) %>%
-    ungroup() %>%
-    filter(variation > 1),
-
-  latest_change = {
-    mingroup <- historical_variations %>%
-      group_by(algorithm) %>%
-      filter(algorithm_version == max(algorithm_version)) %>%
-      slice(which.min(abs(variation - 1))) %>%
-      transmute(algorithm_version, min_variation = variation) %>%
-      ungroup()
-
-    maxgroup <- historical_variations %>%
-      group_by(algorithm) %>%
-      filter(algorithm_version == max(algorithm_version)) %>%
-      slice(which.max(abs(variation - 1))) %>%
-      transmute(algorithm_version, max_variation = variation) %>%
-      ungroup()
-    inner_join(mingroup, maxgroup)
-  },
 
   overview_qps = {
     p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
