@@ -4,7 +4,6 @@ use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
 use rusqlite::{params, Connection};
-use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -159,7 +158,7 @@ impl Reporter {
 
     pub fn report_period_index_buckets<I: IntoIterator<Item = (usize, usize)>>(
         &self,
-        bucket_info: I,
+        _bucket_info: I,
     ) -> Result<()> {
         // let sha = self.sha.clone();
         // let dbpath = Self::get_db_path();
