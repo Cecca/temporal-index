@@ -554,9 +554,9 @@ impl PeriodIndexStar {
 
     fn report_levels(&self) -> () {
         for (i, bucket) in self.buckets.iter().enumerate() {
-            info!(" bucket {}: [{:?}]", i, bucket.time_range,);
+            debug!(" bucket {}: [{:?}]", i, bucket.time_range,);
             for (j, c) in bucket.level_cells().iter().enumerate() {
-                info!(" .   {}: {}", j, c);
+                debug!(" .   {}: {}", j, c);
             }
         }
     }
@@ -598,7 +598,7 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn version(&self) -> u8 {
-        13
+        14
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -613,7 +613,7 @@ impl Algorithm for PeriodIndexStar {
         for (&start, &end) in breaks.iter().zip(breaks.iter().skip(1)) {
             assert!(start < end);
             let bucket = Bucket::new(Interval { start, end }, self.num_levels);
-            info!(
+            debug!(
                 "Created bucket {:?}\n{:?}",
                 bucket.time_range,
                 bucket.level_cells()
@@ -621,47 +621,6 @@ impl Algorithm for PeriodIndexStar {
             self.boundaries.push(bucket.time_range.end);
             self.buckets.push(bucket);
         }
-
-        // info!("Computing ECDF of start times");
-        // let start_times_ecdf: Vec<u32> = ecdf(dataset.iter().map(|interval| interval.start));
-        // let max_time = dataset.iter().map(|interval| interval.end).max().unwrap();
-
-        // info!("Creating the buckets");
-        // let step = dataset.len() as u32 / self.num_buckets;
-        // let mut count_threshold = step;
-        // let mut last_time = 0;
-        // for (time, &count) in start_times_ecdf.iter().enumerate() {
-        //     let time = time as Time;
-        //     if count >= count_threshold {
-        //         assert!(time > last_time);
-        //         let bucket = Bucket::new(
-        //             Interval {
-        //                 start: last_time,
-        //                 end: time,
-        //             },
-        //             self.num_levels,
-        //         );
-        //         info!(
-        //             "Created bucket {:?}\n{:?}",
-        //             bucket.time_range,
-        //             bucket.level_cells()
-        //         );
-        //         self.boundaries.push(bucket.time_range.end);
-        //         self.buckets.push(bucket);
-        //         last_time = time;
-        //         count_threshold += step;
-        //     }
-        // }
-        // // push the last bucket
-        // let bucket = Bucket::new(
-        //     Interval {
-        //         start: last_time,
-        //         end: max_time,
-        //     },
-        //     self.num_levels,
-        // );
-        // self.boundaries.push(bucket.time_range.end);
-        // self.buckets.push(bucket);
         self.report_levels();
 
         let mut pl = progress_logger::ProgressLogger::builder()
