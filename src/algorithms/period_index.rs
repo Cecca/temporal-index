@@ -303,6 +303,11 @@ impl Bucket {
             .map(|level| level.iter().map(|cs| cs.intervals.len()).sum::<usize>())
             .sum()
     }
+
+    /// Reports, in a vector, the number of cells in each level
+    fn level_cells(&self) -> Vec<usize> {
+        self.cells.iter().map(|level| level.len()).collect()
+    }
 }
 
 #[derive(DeepSizeOf)]
@@ -547,6 +552,15 @@ impl PeriodIndexStar {
         })
     }
 
+    fn report_levels(&self) -> () {
+        for (i, bucket) in self.buckets.iter().enumerate() {
+            info!(" bucket {}: [{:?}]", i, bucket.time_range,);
+            for (j, c) in bucket.level_cells().iter().enumerate() {
+                info!(" .   {}: {}", j, c);
+            }
+        }
+    }
+
     fn first_bucket_for(&self, interval: &Interval) -> usize {
         // on small vectors, linear search is faster than
         // binary search because of cache effects
@@ -590,39 +604,65 @@ impl Algorithm for PeriodIndexStar {
     fn index(&mut self, dataset: &[Interval]) {
         self.clear();
 
-        let start_times_ecdf: Vec<u32> = ecdf(dataset.iter().map(|interval| interval.start));
         let max_time = dataset.iter().map(|interval| interval.end).max().unwrap();
-
-        let step = dataset.len() as u32 / self.num_buckets;
-        let mut count_threshold = step;
-        let mut last_time = 0;
-        for (time, &count) in start_times_ecdf.iter().enumerate() {
-            let time = time as Time;
-            if count >= count_threshold {
-                assert!(time > last_time);
-                let bucket = Bucket::new(
-                    Interval {
-                        start: last_time,
-                        end: time,
-                    },
-                    self.num_levels,
-                );
-                self.boundaries.push(bucket.time_range.end);
-                self.buckets.push(bucket);
-                last_time = time;
-                count_threshold += step;
-            }
-        }
-        // push the last bucket
-        let bucket = Bucket::new(
-            Interval {
-                start: last_time,
-                end: max_time,
-            },
-            self.num_levels,
+        let breaks = build_break_points(
+            dataset.iter().map(|interval| interval.start),
+            self.num_buckets as usize,
+            max_time,
         );
-        self.boundaries.push(bucket.time_range.end);
-        self.buckets.push(bucket);
+        for (&start, &end) in breaks.iter().zip(breaks.iter().skip(1)) {
+            assert!(start < end);
+            let bucket = Bucket::new(Interval { start, end }, self.num_levels);
+            info!(
+                "Created bucket {:?}\n{:?}",
+                bucket.time_range,
+                bucket.level_cells()
+            );
+            self.boundaries.push(bucket.time_range.end);
+            self.buckets.push(bucket);
+        }
+
+        // info!("Computing ECDF of start times");
+        // let start_times_ecdf: Vec<u32> = ecdf(dataset.iter().map(|interval| interval.start));
+        // let max_time = dataset.iter().map(|interval| interval.end).max().unwrap();
+
+        // info!("Creating the buckets");
+        // let step = dataset.len() as u32 / self.num_buckets;
+        // let mut count_threshold = step;
+        // let mut last_time = 0;
+        // for (time, &count) in start_times_ecdf.iter().enumerate() {
+        //     let time = time as Time;
+        //     if count >= count_threshold {
+        //         assert!(time > last_time);
+        //         let bucket = Bucket::new(
+        //             Interval {
+        //                 start: last_time,
+        //                 end: time,
+        //             },
+        //             self.num_levels,
+        //         );
+        //         info!(
+        //             "Created bucket {:?}\n{:?}",
+        //             bucket.time_range,
+        //             bucket.level_cells()
+        //         );
+        //         self.boundaries.push(bucket.time_range.end);
+        //         self.buckets.push(bucket);
+        //         last_time = time;
+        //         count_threshold += step;
+        //     }
+        // }
+        // // push the last bucket
+        // let bucket = Bucket::new(
+        //     Interval {
+        //         start: last_time,
+        //         end: max_time,
+        //     },
+        //     self.num_levels,
+        // );
+        // self.boundaries.push(bucket.time_range.end);
+        // self.buckets.push(bucket);
+        self.report_levels();
 
         let mut pl = progress_logger::ProgressLogger::builder()
             .with_items_name("intervals")
@@ -734,4 +774,34 @@ fn ecdf<I: IntoIterator<Item = Time>>(times: I) -> Vec<u32> {
         cumulative_count
     );
     ecdf
+}
+
+fn build_break_points<I: IntoIterator<Item = Time>>(
+    times: I,
+    n_buckets: usize,
+    max_time: Time,
+) -> Vec<Time> {
+    use std::iter::FromIterator;
+    let mut times = Vec::from_iter(times.into_iter());
+    times.sort_unstable();
+
+    let step = times.len() / n_buckets;
+    let count_threshold = step;
+
+    let mut breaks = Vec::new();
+    breaks.push(0);
+    let mut cnt = 0;
+    let mut last_time = times[0];
+    for &t in &times {
+        if t != last_time && cnt >= count_threshold {
+            breaks.push(t);
+            last_time = t;
+            cnt = 0;
+        } else {
+            cnt += 1;
+        }
+    }
+    breaks.push(max_time);
+
+    breaks
 }
