@@ -1,26 +1,28 @@
 ---
+
 - datasets:
-    - Flight
+    - Webkit
 
   queries:
-    - RandomGranule:
+    - Random:
         seed: [23512]
-        n: [100000]
-        # Granularity of days, in minutes
-        granule: [1440]
+        n: [10000]
         range:
-          - Pair: [
-              Uniform: { low: 1, high: 666 },
-              # Durations up to a couple of months for the range queries
-              Uniform: { low: 1, high: 60 }
-          ]
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 6980952 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
         duration:
           - Single: 
-              Uniform: { low: 1, high: 365 }
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
 
   algorithms:
-    - BTree
-    - IntervalTree
-    - LinearScan
-    - PeriodIndexPlusPlus:
-        page_size: [10,100]
+    - PeriodIndexStar:
+        num_buckets: [32, 64, 128]
+        num_levels: [4, 8]
