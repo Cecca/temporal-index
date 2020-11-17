@@ -3,29 +3,33 @@
 
 \begin{tabular}{rrrrrrr}
 \toprule
-dataset & queries & PI++ & GF & PI* & BT & IT\\
+dataset & queries & PI++ & GF & BT & PI* & IT\\
 \midrule
-$Flight$ & $(R_{unif}, D_{unif})$ & \underline{163\,934} & 149\,254 & 31\,847 & 18\,382 & 25\,000\\
+$Flight$ & $(R_{unif}, D_{unif})$ & \underline{163\,934} & 149\,254 & 18\,382 & 31\,847 & 25\,000\\
 \cmidrule{1-7}
- & $(R_{cz}, D_{unif})$ & \underline{14\,706} & 1\,380 & 1\,388 & 446 & 249\\
+ & $(nil, D_{unif})$ & 986 & 72 & \underline{991} & 67 & 15\\
 
- & $(R_{cz}, nil)$ & \underline{444} & 375 & 172 & 9 & 238\\
+ & $(R_{cz}, D_{unif})$ & \underline{14\,706} & 1\,380 & 446 & 1\,388 & 249\\
 
- & $(R_{uz}, D_{unif})$ & \underline{19\,305} & 1\,880 & 1\,795 & 554 & 328\\
+ & $(R_{cz}, nil)$ & \underline{444} & 375 & 9 & 172 & 238\\
 
-\multirow{-4}{*}{\raggedleft\arraybackslash $R_{cz}$} & $(R_{uz}, nil)$ & \underline{565} & 483 & 214 & 8 & 308\\
+ & $(R_{uz}, D_{unif})$ & \underline{19\,305} & 1\,880 & 554 & 1\,795 & 328\\
+
+\multirow{-5}{*}{\raggedleft\arraybackslash $R_{cz}$} & $(R_{uz}, nil)$ & \underline{565} & 483 & 8 & 214 & 308\\
 \cmidrule{1-7}
- & $(R_{cz}, D_{unif})$ & \underline{13\,405} & 1\,296 & 1\,258 & 421 & 202\\
+ & $(nil, D_{unif})$ & 982 & 72 & \underline{991} & 67 & 12\\
 
- & $(R_{cz}, nil)$ & \underline{535} & 447 & 214 & 7 & 206\\
+ & $(R_{cz}, D_{unif})$ & \underline{13\,405} & 1\,296 & 421 & 1\,258 & 202\\
 
- & $(R_{uz}, D_{unif})$ & \underline{16\,502} & 1\,578 & 1\,526 & 488 & 237\\
+ & $(R_{cz}, nil)$ & \underline{535} & 447 & 7 & 214 & 206\\
 
-\multirow{-4}{*}{\raggedleft\arraybackslash $R_{uz}$} & $(R_{uz}, nil)$ & \underline{560} & 456 & 238 & 9 & 234\\
+ & $(R_{uz}, D_{unif})$ & \underline{16\,502} & 1\,578 & 488 & 1\,526 & 237\\
+
+\multirow{-5}{*}{\raggedleft\arraybackslash $R_{uz}$} & $(R_{uz}, nil)$ & \underline{560} & 456 & 9 & 238 & 234\\
 \cmidrule{1-7}
-$Tourism$ & $(R_{unif}, D_{unif})$ & \underline{119\,048} & 103\,093 & 16\,367 & 6\,053 & 24\,155\\
+$Tourism$ & $(R_{unif}, D_{unif})$ & \underline{119\,048} & 103\,093 & 6\,053 & 16\,367 & 24\,155\\
 \cmidrule{1-7}
-$Webkit$ & $(R_{unif}, D_{unif})$ & \underline{2\,915} & 2\,195 & 79 & 632 & 220\\
+$Webkit$ & $(R_{unif}, D_{unif})$ & \underline{2\,915} & 2\,195 & 632 & 79 & 220\\
 \bottomrule
 \end{tabular}
 \endgroup{}

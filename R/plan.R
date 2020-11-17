@@ -203,13 +203,18 @@ plan <- drake_plan(
 
   plot_selectivity_vs_query_time = {
     p <- data_selectivity_vs_queries %>%
-      ggplot(aes(x=selectivity, y=drop_units(query_time), color=workload_type)) +
-      geom_point(size=.1, alpha=0.5) +
+      # filter(start_times_distribution == "uniform") %>%
+      # ggplot(aes(x=cut_interval(selectivity, n=5), 
+      ggplot(aes(x=selectivity, 
+                 y=drop_units(query_time), 
+                 color=workload_type)) +
+      geom_point(size=.1, alpha=0.4) +
+      # geom_tufteboxplot() +
       facet_grid(vars(start_times_distribution), vars(algorithm), scales="fixed") +
       scale_y_continuous() +
       scale_x_continuous(breaks=c(0,0.1,0.2), labels=scales::number_format(accuracy=0.1)) +
       scale_color_workload() +
-      guides(colour = guide_legend(override.aes = list(size=5, alpha=1))) +
+      guides(colour = guide_legend(override.aes = list(size=2, alpha=1))) +
       labs(x="selectivity",
            y="query time (ms)",
            color="query type") +
@@ -348,17 +353,14 @@ plan <- drake_plan(
       save_png("paper/images/param_dependency.png",
                width=5, height=3),
 
-  best_latex = best %>% 
+  best_latex_data = best %>% 
     as_tibble() %>% 
     filter(algorithm != "linear-scan") %>%
     inner_join(dataset_labels) %>%
-    (function(d) {print(distinct(d, dataset, queryset)); d}) %>%
     inner_join(queryset_labels) %>%
     get_params(queryset_params, "q_") %>%
-    group_by(dataset, queryset, algorithm) %>%
-    slice(which.min(q_start_high)) %>%
-    ungroup() %>%
-    select(qps, algorithm, dataset_label, query_interval_label, query_duration_label) %>%
+    filter(na_or_in(q_start_high, c(10000000, 666, 2055, 6980952))) %>%
+    select(algorithm, dataset_label, query_interval_label, query_duration_label, qps) %>%
     mutate(algorithm = case_when(
              algorithm == "period-index++" ~ "PI++",
              algorithm == "BTree" ~ "BT",
@@ -369,6 +371,7 @@ plan <- drake_plan(
            ),
            algorithm = fct_reorder(algorithm, qps)) %>%
     arrange(desc(algorithm)) %>%
+    (function(d) {d %>% print(n=100); d}) %>%
     group_by(dataset_label, query_interval_label, query_duration_label) %>%
     mutate(query_str = str_c("$(", query_interval_label, ", ", query_duration_label, ")$"),
            dataset_label = str_c("$", dataset_label, "$"),
@@ -378,9 +381,10 @@ plan <- drake_plan(
     ungroup() %>%
     select(-qps_num, -query_interval_label, -query_duration_label) %>%
     pivot_wider(names_from="algorithm", values_from="qps") %>%
-    (function(d) {print(d, n=100); d}) %>%
     arrange(dataset_label, query_str) %>%
-    rename(dataset = dataset_label, queries = query_str) %>%
+    rename(dataset = dataset_label, queries = query_str),
+
+  best_latex = best_latex_data %>% 
     kable("latex", escape=F, booktabs=T, align="r") %>%
     kable_styling(position = "center",
                   font_size = 8) %>%
