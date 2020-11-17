@@ -409,23 +409,24 @@ logsnap <- function(x, step=10) {
   as.integer(10^(ceiling(log10(x) * step) / step))
 }
 
-plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=which.max) {
-    best <- data %>% 
-      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
-      slice(which.max({{metric}})) %>%
-      mutate(
-        workload_type = case_when(
-          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
-          queryset == "random-None-uniform-uniform" ~ "duration",
-          queryset == "random-uniform-zipf-None" ~ "time",
-          queryset == "random-clustered-zipf-None" ~ "time",
-          queryset == "Mixed" ~ "mixed",
-          TRUE ~ "Unknown"
-        )
-      ) %>%
-      ungroup() %>%
-      mutate(bin = logsnap(drop_units({{ metric }}), 10)) %>%
+plot_overview2 <- function(best, metric, xlab, n_bins=60, annotations_selector=which.max) {
+    # best <- data %>% 
+    #   group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
+    #   slice(which.max({{metric}})) %>%
+    #   mutate(
+    #     workload_type = case_when(
+    #       queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
+    #       queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
+    #       queryset == "random-None-uniform-uniform" ~ "duration",
+    #       queryset == "random-uniform-zipf-None" ~ "time",
+    #       queryset == "random-clustered-zipf-None" ~ "time",
+    #       queryset == "Mixed" ~ "mixed",
+    #       TRUE ~ "Unknown"
+    #     )
+    #   ) %>%
+    #   ungroup() %>%
+    best <- best %>%
+      mutate(bin = logsnap({{ metric }}, 10)) %>%
       mutate(data_id = interaction(dataset, dataset_params, queryset, queryset_params)) %>%
       mutate(labelshow = str_c(
         dataset, dataset_params, "\n",
@@ -435,7 +436,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
 
     y_breaks_data <- best %>%
       group_by(bin) %>%
-      summarise(m = scales::number(drop_units(median({{metric}})))) %>%
+      summarise(m = scales::number(median({{metric}}))) %>%
       ungroup() %>%
       arrange(bin) %>%
       filter(bin %in% pretty(bin))
@@ -516,7 +517,7 @@ plot_overview2 <- function(data, metric, xlab, n_bins=60, annotations_selector=w
                                  tooltip=algorithm_params),
                              size=1.4) +
       geom_text_interactive(aes(x=algo_id - 0.1 , y=bin, data_id=data_id, 
-                                label=scales::number(drop_units(qps))),
+                                label=scales::number(qps)),
                             color="black",
                             alpha=0,
                             size=3) +
