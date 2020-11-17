@@ -40,14 +40,12 @@ plan <- drake_plan(
       algorithm_wpar = interaction(algorithm, algorithm_params),
       algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
       qps = queryset_n / set_units(time_queries, "s")
-      # output_throughput = output_throughput_ints_ns %>%
-      #   set_units("records/ns") %>% set_units("records/s")
     ) %>%
     mutate(
       workload_type = case_when(
-        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-        queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
-        queryset == "random-None-uniform-uniform" ~ "duration",
+        queryset == "random-uniform-zipf-uniform" ~ "both",
+        queryset == "random-clustered-zipf-uniform" ~ "both",
+        queryset == "random-None-uniform" ~ "duration",
         queryset == "random-uniform-zipf-None" ~ "time",
         queryset == "random-clustered-zipf-None" ~ "time",
         queryset == "Mixed" ~ "mixed",
@@ -84,7 +82,7 @@ plan <- drake_plan(
     ) %>%
     mutate(
       workload_type = case_when(
-        str_detect("random-granules-uniform-uniform-uniform", queryset) ~ "both",
+        str_detect("random-granules-uniform-uniform", queryset) ~ "both",
         TRUE ~ "Unknown"
       )
     ) %>%
@@ -102,6 +100,16 @@ plan <- drake_plan(
     data %>%
       bind_rows(data_real) %>%
       lazy_dt() %>%
+      filter(queryset %in% c(
+        "random-uniform-uniform-uniform",
+        "random-uniform-scaled-uniform-scaled-uniform",
+        "random-uniform-scaled-uniform-scaled-uniform-scaled",
+        "random-None-uniform",
+        "random-clustered-zipf-None",
+        "random-clustered-zipf-uniform",
+        "random-uniform-zipf-None",
+        "random-uniform-zipf-uniform"
+      )) %>%
       group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
       slice(which.max(qps)) %>%
       ungroup() %>%
@@ -143,9 +151,9 @@ plan <- drake_plan(
       lazy_dt() %>%
       mutate(
         workload_type = case_when(
-          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
-          queryset == "random-None-uniform-uniform" ~ "duration",
+          queryset == "random-uniform-zipf-uniform" ~ "both",
+          queryset == "random-clustered-zipf-uniform" ~ "both",
+          queryset == "random-None-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
           queryset == "random-clustered-zipf-None" ~ "time",
           queryset == "Mixed" ~ "mixed",
@@ -166,15 +174,16 @@ plan <- drake_plan(
   data_selectivity_vs_queries = lazy_dt(best) %>%
       mutate(
         workload_type = case_when(
-          queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-          queryset == "random-clustered-zipf-uniform-uniform" ~ "both",
-          queryset == "random-None-uniform-uniform" ~ "duration",
+          queryset == "random-uniform-zipf-uniform" ~ "both",
+          queryset == "random-clustered-zipf-uniform" ~ "both",
+          queryset == "random-None-uniform" ~ "duration",
           queryset == "random-uniform-zipf-None" ~ "time",
           queryset == "random-clustered-zipf-None" ~ "time",
           queryset == "Mixed" ~ "mixed",
           TRUE ~ "Unknown"
         )
       ) %>%
+      filter(workload_type != "Unknown") %>%
       mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
       filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
       inner_join(lazy_dt(queries)) %>%
@@ -186,7 +195,8 @@ plan <- drake_plan(
       filter(if_else(algorithm == "interval-tree", workload_type != "duration", TRUE)) %>%
       filter(selectivity <= .2) %>%
       group_by(algorithm, start_times_distribution) %>%
-      filter(row_number(query_time) < n() - 100),
+      filter(row_number(query_time) < n() - 100) %>%
+      ungroup(),
 
   plot_selectivity_vs_query_time = {
     p <- data_selectivity_vs_queries %>%
@@ -213,8 +223,8 @@ plan <- drake_plan(
       algorithm != "linear-scan",
       algorithm != "period-index-old-*",
       dataset == "random-uniform-zipf",
-      queryset == "random-uniform-zipf-uniform-uniform",
-      queryset_params == "seed=23512 n=5000 start_low=1 start_high=1000000000 dur_n=1000000000 dur_beta=1 durmin_low=1 durmin_high=10000 durmax_low=1 durmax_high=10000"
+      queryset == "random-uniform-zipf-uniform",
+      queryset_params == "seed=23512 n=5000 start_low=1 start_high=1000000000 dur_n=1000000000 dur_beta=1 dur_dist_low=1 dur_dist_high=10000"
     ) %>%
     collect() %>%
     mutate(
@@ -232,8 +242,6 @@ plan <- drake_plan(
       algorithm_wpar = interaction(algorithm, algorithm_params),
       algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
       qps = queryset_n / set_units(time_queries, "s")
-      # output_throughput = output_throughput_ints_ns %>%
-      #   set_units("records/ns") %>% set_units("records/s")
     ) %>%
     select(-time_query_ms, -time_index_ms) %>%
     group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
@@ -305,8 +313,8 @@ plan <- drake_plan(
     ) %>%
     mutate(
       workload_type = case_when(
-        queryset == "random-uniform-zipf-uniform-uniform" ~ "both",
-        queryset == "random-None-uniform-uniform" ~ "duration",
+        queryset == "random-uniform-zipf-uniform" ~ "both",
+        queryset == "random-None-uniform" ~ "duration",
         queryset == "random-uniform-zipf-None" ~ "time",
         TRUE ~ "Unknown"
       )
@@ -336,9 +344,14 @@ plan <- drake_plan(
 
   best_latex = best %>% 
     as_tibble() %>% 
-    inner_join(queryset_labels) %>%
+    filter(algorithm != "linear-scan") %>%
     inner_join(dataset_labels) %>%
+    (function(d) {print(distinct(d, dataset, queryset)); d}) %>%
+    inner_join(queryset_labels) %>%
     get_params(queryset_params, "q_") %>%
+    group_by(dataset, queryset, algorithm) %>%
+    slice(which.min(q_start_high)) %>%
+    ungroup() %>%
     select(qps, algorithm, dataset_label, query_interval_label, query_duration_label) %>%
     mutate(algorithm = case_when(
              algorithm == "period-index++" ~ "PI++",
@@ -354,14 +367,14 @@ plan <- drake_plan(
     mutate(query_str = str_c("$(", query_interval_label, ", ", query_duration_label, ")$"),
            dataset_label = str_c("$", dataset_label, "$"),
            qps_num = qps,
-           qps = scales::number(qps, big.mark="\\,"),
+           qps = scales::number(qps, big.mark="\\\\,"),
            qps = if_else(qps_num == max(qps_num), str_c("\\underline{",qps,"}"), qps)) %>%
     ungroup() %>%
     select(-qps_num, -query_interval_label, -query_duration_label) %>%
     pivot_wider(names_from="algorithm", values_from="qps") %>%
+    (function(d) {print(d, n=100); d}) %>%
     arrange(dataset_label, query_str) %>%
     rename(dataset = dataset_label, queries = query_str) %>%
-    (function(d) {print(d, n=100); d}) %>%
     kable("latex", escape=F, booktabs=T, align="r") %>%
     kable_styling(position = "center",
                   font_size = 8) %>%
@@ -373,35 +386,57 @@ plan <- drake_plan(
     as_tibble() %>%
     distinct(dataset, dataset_params) %>%
     mutate(dataset_label = case_when(
-      (dataset_params == "seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1") ~
-        "R_1",
-      (dataset_params == "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1") ~
-        "R_2",
+      dataset == "random-uniform-zipf" ~ "R_{uz}",
+      dataset == "random-clustered-zipf" ~ "R_{cz}",
       TRUE ~ dataset
     )) %>%
     drop_na() %>%
-    select(dataset_label, dataset_params)
+    select(dataset, dataset_label, dataset_params)
     ,
 
   queryset_labels = best %>%
     as_tibble() %>%
-    distinct(queryset, queryset_params) %>%
-    get_params(queryset_params, "") %>%
-    mutate(query_duration_label = case_when(
-      str_detect(queryset, "granule") ~ "real",
-      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==100) ~ "D_1",
-      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==100) ~ "D_2",
-      (durmin_low==1 & durmin_high==100 & durmax_low==1 & durmax_high==10000) ~ "D_3",
-      (durmin_low==1 & durmin_high==10000 & durmax_low==1 & durmax_high==10000) ~ "D_4",
-      (is.na(durmin_low)) ~ "nil"
-    )) %>%
-    mutate(query_interval_label = case_when(
-      (is.na(start_n) & start_low==1 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_1",
-      (start_n==10 & start_stddev==100000 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_2",
-      (str_detect(queryset, "-None-")) ~ "nil"
-    )) %>%
-    select(queryset_params, query_interval_label, query_duration_label) %>%
-    drop_na()
-  ,
+    distinct(queryset) %>%
+    mutate(
+      query_duration_label = case_when(
+        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "D_{unif}",
+        queryset == "random-uniform-uniform-uniform" ~ "D_{unif}",
+        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "D_{unif}",
+        str_detect(queryset, ".*-uniform$") ~ "D_{unif}",
+        str_detect(queryset, ".*-None$") ~ "nil"
+      ),
+      query_interval_label = case_when(
+        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "R_{unif}",
+        queryset == "random-uniform-uniform-uniform" ~ "R_{unif}",
+        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "R_{unif}",
+        str_detect(queryset, "^random-None-uniform") ~ "nil",
+        str_detect(queryset, "^random-clustered-zipf-(None|uniform)$") ~ "R_{cz}",
+        str_detect(queryset, "^random-clustered-uniform-(None|uniform)$") ~ "R_{cu}",
+        str_detect(queryset, "^random-uniform-uniform-(None|uniform)$") ~ "R_{uu}",
+        str_detect(queryset, "^random-uniform-zipf-(None|uniform)$") ~ "R_{uz}"
+      )
+    ) %>%
+    drop_na(),
+
+  # queryset_labels = best %>%
+  #   as_tibble() %>%
+  #   distinct(queryset, queryset_params) %>%
+  #   get_params(queryset_params, "") %>%
+  #   (function(d) {print(distinct(d, dur_dist_high), n=100); d}) %>%
+  #   filter(is.na(durmin_low)) %>%
+  #   mutate(query_duration_label = case_when(
+  #     (is.na(dur_dist_high)) ~ "nil",
+  #     (!is.na(dur_dist_high)) ~ "D_{unif}"
+  #   )) %>%
+  #   drop_na(query_duration_label) %>%
+  #   mutate(query_interval_label = case_when(
+  #     (is.na(start_n) & start_low==1 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_1",
+  #     (start_n==10 & start_stddev==100000 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_2",
+  #     (str_detect(queryset, "-None-")) ~ "nil",
+  #     TRUE ~ "other"
+  #   )) %>%
+  #   select(queryset_params, query_interval_label, query_duration_label) %>%
+  #   drop_na()
+  # ,
 
 )
