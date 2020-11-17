@@ -113,6 +113,7 @@ plan <- drake_plan(
         "random-uniform-zipf-None",
         "random-uniform-zipf-uniform"
       )) %>%
+      filter(workload_type != "Unknown") %>%
       group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
       slice(which.max(qps)) %>%
       ungroup() %>%
@@ -279,7 +280,7 @@ plan <- drake_plan(
     ungroup(),
 
   overview_qps = {
-    p <- plot_overview2(data, qps, n_bins=60, xlab="queries per second")
+    p <- plot_overview2(as_tibble(best), qps, n_bins=60, xlab="queries per second")
     save_png(p, file_out("paper/images/overview-qps.png"),
              width=8, height=5)
     girafe(
