@@ -1,3 +1,7 @@
+na_or_in <- function(column, values) {
+  (is.na({{ column }}) | {{ column }} %in% values)
+}
+
 get_dump <- function(what, conf_file) {
   tmp_file <- "/tmp/dump.csv"
   cmd <- str_c("target/release/temporal-index --dump", 
