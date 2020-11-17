@@ -82,6 +82,9 @@ plan <- drake_plan(
     ) %>%
     mutate(
       workload_type = case_when(
+        queryset == "random-uniform-uniform-uniform" ~ "both",
+        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "both" ,
+        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "both",
         str_detect("random-granules-uniform-uniform", queryset) ~ "both",
         TRUE ~ "Unknown"
       )
@@ -289,7 +292,7 @@ plan <- drake_plan(
     as_tibble() %>%
     filter(
       algorithm == "period-index++",
-      !(dataset %in% c("Flight", "Webkit", "Tourism"))
+      # !(dataset %in% c("Flight", "Webkit", "Tourism"))
     ) %>%
     mutate(
       date = parse_datetime(date),
@@ -313,12 +316,15 @@ plan <- drake_plan(
     ) %>%
     mutate(
       workload_type = case_when(
+        queryset == "random-uniform-uniform-uniform" ~ "both",
+        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "both" ,
+        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "both",
         queryset == "random-uniform-zipf-uniform" ~ "both",
         queryset == "random-None-uniform" ~ "duration",
-        queryset == "random-uniform-zipf-None" ~ "time",
-        TRUE ~ "Unknown"
+        queryset == "random-uniform-zipf-None" ~ "time"
       )
     ) %>%
+    drop_na(workload_type) %>%
     mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
     get_params(algorithm_params, ""),
 
