@@ -105,16 +105,27 @@ known as time travel. However, index structures to support efficient query proce
 Past research has concentrated on operation-specific indexes to support the three most important types of temporal operations, namely time travel, temporal aggregations, and temporal
 joins~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/icde/PiatovHD16,DBLP:conf/ssd/PiatovH17}.  Such approaches focus on optimizing operational details and  neglect the fact that time intervals contain two important pieces of information: they are anchored on the timeline and have a duration.
 
-In this paper, we argue that in many applications both pieces of temporal information are relevant for querying databases and hence should be supported by database management systems.  For instance, applications that offer situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access both to the duration and the position of events.
-As a motivating example, consider  in a patient care scenario~\cite{DBLP:conf/adbis/BehrendSXFGLCG14}:
+In this paper, we argue that in many applications both pieces of temporal
+information are relevant for querying databases and hence should be supported
+by database management systems. For instance, applications that offer
+situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
+both to the duration and the position of events.
+As motivating examples, consider the following queries from different application scenarios
 \begin{itemize}
-	\item[$Q1$:] \emph{``What patients suffered from fever and tachycardia for more than 90 minutes?''}
-	\item[$Q2$:] \emph{"Find all patients who had fever last week?"}
-	\item[$Q3$:] \emph{``Find all patients in the first half of 2015 who were in treatment for less than one month''}
+	\item[$Q1$:] \emph{"In a source code repository, find all the files that have not been modifyied for more than 2 years."}
+	\item[$Q2$:] \emph{"Given a flight, find all the aircrafts that were flying at the same time."}
+	\item[$Q3$:] \emph{"Find all the tourists who stayed between 2 and 4 weeks in August last year."}
 \end{itemize}
 
-The first query $Q1$ imposes constraints on the duration of matching events, and we call it \emph{duration query}.  In contrast, query $Q2$ retrieves tuples based on the position of the events on the timeline; we call it \emph{range query}. Finally, query $Q3$ constrains both types of information; we call it \emph{range-duration query}.
-Similar queries have been reported in other application scenarios, e.g., air traffic analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
+The first query $Q1$ imposes constraints on the duration of matching events,
+and we call it \emph{duration query}. In contrast, query $Q2$ retrieves
+tuples based on the position of the events on the timeline; we call it
+\emph{range query}. Finally, query $Q3$ constrains both types of information;
+we call it \emph{range-duration query}.
+\cetodo{What should we do about the citations below?}
+Similar queries have been reported in
+other application scenarios, e.g., air traffic
+analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
 
 As shown in the above examples, time periods comprise information about their position on the timeline and the length of the period. However, index structures over time intervals typically use only one of the two aspects.  For instance, the well-known relational interval tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for efficiently determining temporal relationships between intervals but not interval lengths. In the worst case, the entire index tree must be traversed if a query solely contains restrictions on the interval length.
 
