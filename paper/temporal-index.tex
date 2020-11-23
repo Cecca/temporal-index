@@ -196,8 +196,6 @@ Furthermore, given two intervals $T$ and $T'$, we denote with
 $T \cap T'$ the set of time points shared by the two intervals, which, if
 not empty, is itself an interval.
 
-\cetodo{Fix the assumption that we are dealing with sets of intervals rather than relations.}
-
 \subsection{Temporal queries}
 
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
@@ -231,13 +229,15 @@ The latter type of query is a combination of the former two.
 
 \section{Data structure}
 
+\cetodo{Use a balanced search tree, with guaranteed log query time, to store the boundaries and the buckets themselves,
+	if we want to allow updates. Otherwise we can get away with simpler sorted arrays and binary searches.}
+
 Our index is a grid, partitioning the tuples into disjoint buckets according
 to the durations and the start times of their intervals.
 The boundaries between cells are defined by using the empirical cumulative
 distribution function of the duration and the starting times, so that
 each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
-\cetodo{Should we show how to update the data structure?}
 Therefore the structure is adaptive to the distribution of the input.
 
 In the following we will focus on the interval attribute $T$ of relation $R$:
@@ -356,33 +356,42 @@ predicate for all the intervals it contains.
 \subsection{Updating the index}
 \label{sec:updating-index}
 
-Let $t=(\TS, \TE)$ be an interval to be inserted into the index.
-First, we query the index for the cell containing the duration $|t|$ and the
+Let $r$ be a tuple to be indexed, with $r.t=(\TS, \TE)$ being the interval to be used for indexing.
+First, we query the index for the cell containing the duration $|r.t|$ and the
 time $\TS$.
-The interval $t$ is inserted in such cell.
-\cetodo{Say what happens in the case of duplicate intervals referring to different records}
-We have one of the following cases
+Let $C$ be such cell, spanning durations $[\bar{d}_{min}, \bar{d}_{max})$ and
+start times $[\bar{t}_{min}, \bar{t}_{max})$.
+We have one of the following cases, evaluated in order
 \begin{enumerate}
-	\item The interval is already indexed. In this case we just add the tuple $r$ to the reference list of the interval.
+	\item The interval is already indexed, i.e. $r.t \in C$. In this case we just add the
+	      tuple $r$ to the reference list of the interval.
 	\item The insertion of $t$ results in a column containing more than $2s^2$ intervals.
-	      Let $[\bar{d}_{min}, \bar{d}_{max})$ be duration range spanned by the column.
-	      In this case, \emph{all} the intervals contained in the column are sorted by duration,
-	      the median duration $\bar{d}$ is considered, and the original column is replaced by two new columns
+	      Let $\bar{d}$ be the median duration in the column, considering also $|r.t|$.
+	      The original column is replaced by two new columns
 	      spanning $[\bar{d}_{min}, \bar{d})$ and $[\bar{d},\bar{d}_{max})$, respectively.
 	      The array of column boundaries is updated by inserting $\bar{d}$ in sorted order.
-	      The cells in both columns are built using the same procedure described in Section~\ref{sec:index-construction}.
+	      Algorithm~\ref{alg:define-boundaries} is then invoked on both columns to define the
+	      new cell boundaries.
 	      \cetodo{Probably to get constant time access to the columns we now have to index them in a
 		      hash table? Or a tree? Otherwise the update requires to shift all the references, with a
 		      cost of $n/s^2$}
 	\item The insertion of $t$ results in the cell containing more than $2s$ intervals.
-	      Let $[\bar{t}_{min}, \bar{t}_{max})$ be the range of times spanned by the cell,
-	      and let $\bar{t}$ be the median start time of the cell after the insertion of $t$.
-	      The cell is split into two new cells, whith boundaries $[\bar{t}_{min}, \bar{t})$
+	      Let $\bar{t}$ be the median start time of $C \cup r.t$.
+	      $C$ is split into two new cells, whith boundaries $[\bar{t}_{min}, \bar{t})$
 	      and $[\bar{t}, \bar{t}_{max})$, respectively.
 	      The array of cell boundaries is updated by inserting $\bar{t}$ in sorted order.
 	      The intervals in each of the two new cells are then sorted by end time.
-	\item Otherwise there is no overflow, and the insertion terminates with no required restructuring.
+	\item Otherwise there is no overflow, and the insertion terminates with no restructuring.
 \end{enumerate}
+
+As for the removal of tuples from the index, let $r$ be the tuple to be removed.
+Again, we query the index to find the cell $C$ containing $|r.t|$ and $\TS$, and we
+remove r from the reference list of the interval.
+If this results in an empty reference list, then the interval is removed from the cell.
+As a consequence, the cell might be empty.
+In such case, the cell is removed and the boundaries of the smallest of its neighboring cells are
+modified so to cover its span.
+If the removal of the cell results in an empty column, the same is applied to the set of columns.
 
 \subsection{Analysis}
 
@@ -453,12 +462,9 @@ can be made polynomially smaller than the input size.
 		\BO{\frac{n}{s^2}\log\frac{n}{s} + \frac{n}{s} + s^2 + k}
 	\]
 	where $k$ is the number of intervals matching the query predicate.
-	% For $s = \BO{n^\epsilon}$, we have that the query time is
-	% \[
-	%     \BO{n^\epsilon + k}
-	% \]
 \end{theorem}
 \begin{proof}[Proof draft]
+	\cetodo{consider the fact that some cells might be updated, so they may be a factor 2 away from the optimum}
 	First, let us establish some notation.
 	Let $e = (e_s, e_e)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
 	The intervals are arranged into a grid where the \emph{columns} are dictated by the
@@ -502,9 +508,7 @@ can be made polynomially smaller than the input size.
 
 	Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
 	\begin{enumerate}
-		\item %$d_{min}^C \le d_{min} \le d_{max} < d_{max}^C$ and
-		      %$s_{min}^C < e_e$
-		      Both the cell's durations range and start times range fall within the query polygon.
+		\item Both the cell's durations range and start times range fall within the query polygon.
 		      In such cell, the query constraints on the duration and the start time are satisfied by construction.
 		      The algorithm considers just the intervals of $C$ which are part of the output (since it iterates over
 		      the cell's intervals by decreasing end time).
@@ -518,19 +522,6 @@ can be made polynomially smaller than the input size.
 		\item The cell's start times all satisfy the query constraints, but not all its durations do.
 		      In this case we cannot be in a heavy column (which contains a single duration) and thus
 		      the column containing the cell contains at most $s^2$ intervals.
-		      %   If we are in a heavy cell, then all the intervals have the same
-		      %   start time:
-		      %   \begin{enumerate}
-		      %       \item If the first interval in
-		      %             increasing sorted order of end time (and hence duration)
-		      %             satisfies the duration constraint, scan the intervals by
-		      %             ascending end time, stopping as soon as the duration no longer
-		      %             satisfies the predicate
-		      %       \item Otherwise, do the same in decreasing order of end time
-		      %   \end{enumerate}
-		      %   In both cases the algorithm will visit just $k_C$ intervals.
-
-		      %   If we are not in a heavy cell, then we need to visit all the $\BO{s}$ intervals.
 		\item The cell doesn't completely satisfy neither constraint. In this case neither the column nor the cell can be heavy,
 		      therefore the algorithm must only evaluate $\BO{s}$ intervals.
 	\end{enumerate}
@@ -554,6 +545,32 @@ The above theorem exposes a fundamental tradeoff of our data structure:
 using a smaller page size allows to improve the precision of the data structure
 (by looking at fewer intervals that are not part of the query output), while
 at the same time increasing the number of columns that need to be queried.
+
+\begin{theorem}
+	Inserting a tuple $r$ into the index requires
+	time $\BO{\log n/s + n/s + s^2 \log s}$.
+\end{theorem}
+\begin{proof}
+	Finding the cell that should contain $r.t$ requires time $\BO{\log\frac{n}{s^2}}$ to find the column, and
+	time $\BO{\log\frac{n}{s}}$ to find the cell within the column (as in the worst case all the intervals
+	in the index have the same duration).
+
+	\cetodo{Define that splitting does not happen for \emph{heavy} columns or cells.}
+	In such case, splitting a column with $2s^2 + 1$ intervals requires to find the median and
+	to apply Algorithm~\ref{alg:define-boundaries} on the
+	two newly defined columns, both operations that require time $\BO{s^2\log s^2}$.
+	Furthermore, inserting the new column boundaries in order in the sorted array of boundaries requires
+	$\BO{\frac{n}{s^2}}$ time.
+	By similar reasoning, splitting a cell with $2s+1$ intervals requires time $\BO{s\log s}$,
+	and updating cell boundaries by inserting in-order requires $\BO{\frac{n}{s}}$
+\end{proof}
+
+In a similar way we can prove the follwing theorem.
+
+\begin{theorem}
+	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
+\end{theorem}
+
 
 \section{Experimental evaluation}
 
