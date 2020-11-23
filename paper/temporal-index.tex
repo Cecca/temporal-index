@@ -245,9 +245,7 @@ in the discussion we assume that each interval being inserted in the index
 is associated with a pointer to the tuple in $R$ it belongs to.
 
 \subsection{Index construction}
-\cetodo{It's difficult to use the cumulative distribution function to define cell boundaries,
-	because of heavy columns and heavy cells. We might have two or more CDF boundaries falling
-	within the same heavy column, which makes for an ambiguous situation.}
+\label{sec:index-construction}
 
 \begin{algorithm}[t]
 	\caption{\textsc{DefineBoundaries}$(I, b, k)$\label{alg:define-boundaries}}
@@ -358,7 +356,33 @@ predicate for all the intervals it contains.
 \subsection{Updating the index}
 \label{sec:updating-index}
 
-Let $(\TS, \TE)$ be an interval to be inserted into the index.
+Let $t=(\TS, \TE)$ be an interval to be inserted into the index.
+First, we query the index for the cell containing the duration $|t|$ and the
+time $\TS$.
+The interval $t$ is inserted in such cell.
+\cetodo{Say what happens in the case of duplicate intervals referring to different records}
+We have one of the following cases
+\begin{enumerate}
+	\item The interval is already indexed. In this case we just add the tuple $r$ to the reference list of the interval.
+	\item The insertion of $t$ results in a column containing more than $2s^2$ intervals.
+	      Let $[\bar{d}_{min}, \bar{d}_{max})$ be duration range spanned by the column.
+	      In this case, \emph{all} the intervals contained in the column are sorted by duration,
+	      the median duration $\bar{d}$ is considered, and the original column is replaced by two new columns
+	      spanning $[\bar{d}_{min}, \bar{d})$ and $[\bar{d},\bar{d}_{max})$, respectively.
+	      The array of column boundaries is updated by inserting $\bar{d}$ in sorted order.
+	      The cells in both columns are built using the same procedure described in Section~\ref{sec:index-construction}.
+	      \cetodo{Probably to get constant time access to the columns we now have to index them in a
+		      hash table? Or a tree? Otherwise the update requires to shift all the references, with a
+		      cost of $n/s^2$}
+	\item The insertion of $t$ results in the cell containing more than $2s$ intervals.
+	      Let $[\bar{t}_{min}, \bar{t}_{max})$ be the range of times spanned by the cell,
+	      and let $\bar{t}$ be the median start time of the cell after the insertion of $t$.
+	      The cell is split into two new cells, whith boundaries $[\bar{t}_{min}, \bar{t})$
+	      and $[\bar{t}, \bar{t}_{max})$, respectively.
+	      The array of cell boundaries is updated by inserting $\bar{t}$ in sorted order.
+	      The intervals in each of the two new cells are then sorted by end time.
+	\item Otherwise there is no overflow, and the insertion terminates with no required restructuring.
+\end{enumerate}
 
 \subsection{Analysis}
 
