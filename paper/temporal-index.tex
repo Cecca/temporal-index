@@ -51,7 +51,7 @@
 \newcommand\vldbauthors{\authors}
 \newcommand\vldbtitle{\shorttitle} 
 % leave empty if no availability url should be set
-\newcommand\vldbavailabilityurl{http://vldb.org/pvldb/format_vol14.html}
+\newcommand\vldbavailabilityurl{https://github.com/Cecca/temporal-index}
 % whether page numbers should be shown or not, use 'plain' for review versions, 'empty' for camera ready
 \newcommand\vldbpagestyle{plain} 
 
@@ -356,42 +356,41 @@ predicate for all the intervals it contains.
 \subsection{Updating the index}
 \label{sec:updating-index}
 
-Let $r$ be a tuple to be indexed, with $r.t=(\TS, \TE)$ being the interval to be used for indexing.
-First, we query the index for the cell containing the duration $|r.t|$ and the
-time $\TS$.
-Let $C$ be such cell, spanning durations $[\bar{d}_{min}, \bar{d}_{max})$ and
-start times $[\bar{t}_{min}, \bar{t}_{max})$.
-We have one of the following cases, evaluated in order
-\begin{enumerate}
-	\item The interval is already indexed, i.e. $r.t \in C$. In this case we just add the
-	      tuple $r$ to the reference list of the interval.
-	\item The insertion of $t$ results in a column containing more than $2s^2$ intervals.
-	      Let $\bar{d}$ be the median duration in the column, considering also $|r.t|$.
-	      The original column is replaced by two new columns
-	      spanning $[\bar{d}_{min}, \bar{d})$ and $[\bar{d},\bar{d}_{max})$, respectively.
-	      The array of column boundaries is updated by inserting $\bar{d}$ in sorted order.
-	      Algorithm~\ref{alg:define-boundaries} is then invoked on both columns to define the
-	      new cell boundaries.
-	      \cetodo{Probably to get constant time access to the columns we now have to index them in a
-		      hash table? Or a tree? Otherwise the update requires to shift all the references, with a
-		      cost of $n/s^2$}
-	\item The insertion of $t$ results in the cell containing more than $2s$ intervals.
-	      Let $\bar{t}$ be the median start time of $C \cup r.t$.
-	      $C$ is split into two new cells, whith boundaries $[\bar{t}_{min}, \bar{t})$
-	      and $[\bar{t}, \bar{t}_{max})$, respectively.
-	      The array of cell boundaries is updated by inserting $\bar{t}$ in sorted order.
-	      The intervals in each of the two new cells are then sorted by end time.
-	\item Otherwise there is no overflow, and the insertion terminates with no restructuring.
-\end{enumerate}
+Our index data structure can be extended to support both insertion and
+removals of tuples. For a tuple $r$, with $r.t=(\TS, \TE)$,
+by querying the index for the duration $|r.t|$ and the
+start time $\TS$, we can identify the cell that should contain the tuple $r$.
+If the interval $r.t$ is already indexed in the returned cell, then we simply append $r$ to its reference list.
+Otherwise, inserting new intervals directly into cells might make them grow too large to be
+able to make performance guarantees on the query time.
+Therefore, we set a threshold $2s^2$ for \emph{light} columns and $2s$ for \emph{light} cells
+(as we shall see in the next sections, we can bound the performance of \emph{heavy} cells and
+columns even though they exceed the page size).
+If a light column exceeds size $2s^2$ then we split the column,
+if a light cell exceeds size $2s$ then we split the cell.
 
-As for the removal of tuples from the index, let $r$ be the tuple to be removed.
-Again, we query the index to find the cell $C$ containing $|r.t|$ and $\TS$, and we
-remove r from the reference list of the interval.
+Splitting a column entails finding the median duration $\bar{d}$ among its intervals, and then replacing it
+with two new columns with boundaries $[\bar{d}_{min}, \bar{d})$ and $[\bar{d},\bar{d}_{max})$, respectively.
+Each of the two new columns requires the construction of new cell boundaries, which can be done by invoking
+Algorithm~\ref{alg:define-boundaries}.
+
+Similarly, to split a cell we replace it with two new cells with boundaries $[\bar{t}_{min}, \bar{t})$
+and $[\bar{t}, \bar{t}_{max})$, where $\bar{t}$ is the median start time in the cell being split.
+Then the intervals in each of the two newly created cells are sorted by end time.
+
+In both cases, the boundaries are updated by inserting in order $\bar{d}$ (resp. $\bar{t}$) in the sorted
+array of column (resp. cell) boundaries.
+
+As for the removal of a tuple $r$ from the index,
+we query the index to find the cell $C$ containing $r.t$, and we
+remove $r$ from the reference list of the interval.
 If this results in an empty reference list, then the interval is removed from the cell.
-As a consequence, the cell might be empty.
-In such case, the cell is removed and the boundaries of the smallest of its neighboring cells are
-modified so to cover its span.
-If the removal of the cell results in an empty column, the same is applied to the set of columns.
+As a consequence the cell might be empty,
+in which case case we remove the cell from the column, removing its lower boundary from the
+array of boundaries unless it is the first cell, in which case we remove the upper boundary from the array.
+This has the effect of making the neighboring cell \emph{cover} the span of times contained in the cell being removed.
+Finally, if the removal of the cell results in an empty column, we remove the column, updating the boundaries array
+in a similar fashion.
 
 \subsection{Analysis}
 
