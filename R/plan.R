@@ -294,6 +294,13 @@ plan <- drake_plan(
     )
   },
 
+  data_ranking = target(
+    best[,
+         ranking := rank(desc(.SD[,"qps"])), 
+         by=c("dataset", "dataset_params", "queryset", "queryset_params")],
+    format = "fst_dt"
+  ),
+
   data_algo_param_dep = table_main(conn, file_in("temporal-index-results.sqlite")) %>%
     as_tibble() %>%
     filter(

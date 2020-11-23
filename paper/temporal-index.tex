@@ -34,8 +34,8 @@
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
 \newcommand{\A}{\dbattset{A}}
 \newcommand{\T}{\ensuremath{T}}
-\newcommand{\TS}{\ensuremath{T_s}}
-\newcommand{\TE}{\ensuremath{T_e}}
+\newcommand{\TS}{\ensuremath{t_s}}
+\newcommand{\TE}{\ensuremath{t_e}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -354,6 +354,11 @@ For each matching cell, we are in one of two cases:
 evaluate the query
 predicate for all the intervals it contains.
 \cetodo{treat specially the case of the heavy cell: you can do it in time $k + \log s^2$.}
+
+\subsection{Updating the index}
+\label{sec:updating-index}
+
+Let $(\TS, \TE)$ be an interval to be inserted into the index.
 
 \subsection{Analysis}
 
