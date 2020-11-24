@@ -34,8 +34,8 @@
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
 \newcommand{\A}{\dbattset{A}}
 \newcommand{\T}{\ensuremath{T}}
-\newcommand{\TS}{\ensuremath{t_s}}
-\newcommand{\TE}{\ensuremath{t_e}}
+\newcommand{\TS}{\ensuremath{T_s}}
+\newcommand{\TE}{\ensuremath{T_e}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -255,13 +255,10 @@ The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a f
 
 \section{Preliminaries}
 
-
-\ad{These are the once we usually use.}
-
 We assume a linearly ordered, discrete time domain, $\domT$.  A
 time interval is a contiguous set of time points, and $[\TS,\TE)$
 denotes the closed-open interval of points from $\TS$ to $\TE$.  A
-tuple in a temporal relation is timestamped with an interval that
+tuple in a temporal relation is timestamped with an interval that, for instance,
 represents the tuple's valid time.  The schema of a temporal relation
 is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
 nontemporal attributes with domains $\Omega_i$ and $\T$ is the
@@ -321,7 +318,7 @@ Therefore the structure is adaptive to the distribution of the input.
 
 In the following we will focus on the interval attribute $T$ of relation $R$:
 in the discussion we assume that each interval being inserted in the index
-is associated with a pointer to the tuple in $R$ it belongs to.
+is associated with a reference to the tuple in $R$ it belongs to.
 
 \subsection{Index construction}
 \label{sec:index-construction}
@@ -331,10 +328,11 @@ is associated with a pointer to the tuple in $R$ it belongs to.
 	\KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
 	\KwOut{An array of boundaries partitioning $I$ into up to $I/b$ buckets}
 
-	Sort $I$ according to $k$, so that $I_i$ is the $i$-th interval in sorted order\;
+	Sort $I$ according to $k$, so that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
 	\Let{$B$}{$[]$}\;
 	\Let{$i$}{$0$}\;
 	\While{$i < |I|$}{
+		\nllabel{line:iterate}
 		\Let{$j$}{$i+b$}\;
 		\If{$k(I_i) = k(I_{j})$} {
 			\nllabel{line:heavy-bucket}
@@ -363,14 +361,16 @@ In the latter case, all the intervals in the column shall have the same duration
 To this end, we invoke Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
 setting the bucket size to $s^2$ and the key function $k$ to the duration.
 In this invocation, we first sort all the intervals by increasing duration.
+Runs of duplicate intervals are replaced by a single instance, equipped
+with a list of references to the tuples timestamped with that interval.
 Then, we iterativaly define bucket boundaries as follows.
 We set the start of the first bucket to the duration of the first interval.
 Then, we look ahead at the interval $s^2$ positions from it, and we can have one of three cases:
 \begin{enumerate}
 	\item the look ahead interval has the same duration as the one starting the column,
 	      meaning that we are considering a run of more than $s^2$
-	      intervals all with the same duration (line~\ref{line:heavy-bucket} of Algorithm~\ref{alg:define-boundaries}). T
-	      hen, the boundary of the bucket is set
+	      intervals all with the same duration (line~\ref{line:heavy-bucket} of Algorithm~\ref{alg:define-boundaries}).
+	      Then, the boundary of the bucket is set
 	      to the current duration, and the start of the next column is set to the first interval
 	      with duration strictly larger than the current one.
 	\item the look ahead interval and the one immediately following it have the same duration,
@@ -398,13 +398,13 @@ of cells containing intervals that match a given query.
 
 \subsection{Querying the index}
 
-Given a range-duration query $Q(A, e, d)$ with $e=[e_s, e_e)$ and $d=[d_min, d_max]$,
-recall that an interval $e'$ satisfies the query if the three following conditions
+Given a range-duration query $Q(R, \T, d)$ with $\T=[\TS, \TE)$ and $d=[d_min, d_max]$,
+recall that a tuple $r \in R$ satisfies the query if the three following conditions
 are met:
 \begin{align}
-	 & |e'| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
-	 & e_s < e'_e                  \label{eq:start-condition}    \\
-	 & e'_s < e_e                  \label{eq:end-condition}
+	 & |r.\T| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
+	 & \TS < r.\TE                  \label{eq:start-condition}     \\
+	 & r.\TS < \TE                  \label{eq:end-condition}
 \end{align}
 
 First, find the two indices which identify the range of cells in the duration
@@ -423,14 +423,12 @@ is strictly less than the end time of the query
 
 For each matching cell, we are in one of two cases:
 \begin{enumerate}
-	\item the cell is \emph{light}, i.e. it contains less the $s$ intervals.
-	      In this case all the intervals are evaluate against the query.
-	\item the cell is \emph{heavy}, with more than $s$ intervals.
+	\item the cell's duration range is contained in the query's duration range.
+	      In this case we iterate through just the intervals such that $\TS < r.\TE$,
+	      leveraging the fact that intervals are sorted by end time, and we report them
+	      as matches.
+	\item otherwise all the intervals in the cell are evaluated against the query.
 \end{enumerate}
-
-evaluate the query
-predicate for all the intervals it contains.
-\cetodo{treat specially the case of the heavy cell: you can do it in time $k + \log s^2$.}
 
 \subsection{Updating the index}
 \label{sec:updating-index}
@@ -477,15 +475,13 @@ in a similar fashion.
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
 \end{theorem}
 \begin{proof}
-	Computing the Empirical Cumulative Distribution Function for the duration can be done by first sorting
-	the intervals by duration, then by counting the lengths of same-duration groups, and finally
-	computing the cumulative sum of these counts.
-	Sorting takes $\BO{n\log n}$, all the other operation require linear time.
-	A final linear scan of all the intervals allows to associate each interval to appropriate bucket.
+	Computing the the bucket boundaries for the duration using Algorithm~\ref{alg:define-boundaries}
+	requires time $\BO{n\log n}$ for sorting (line~\ref{line:sorting}) and time $\BO{n}$ for iterating through
+	the sorted intervals to find the boundaries (line~\ref{line:iterate}): in fact, each of the $n$ intervals
+	is visited at most once.
 
-	Each bucket is then further partitioned according to the start times.
-	Let $n_i$ be the size of the $i$-th bucket.
-	Then, partitioning it according to the cumulative distribution function
+	Let $n_i$ be the number of intervals in the $i$-th column.
+	Then, the invocation of Algorithm~\ref{alg:define-boundaries} to find cell boundaries
 	requires time $\BO{n_i \log n_i}$, following the same argument as above.
 	Therefore, the time for building the second level of the index is
 	\[
@@ -493,6 +489,7 @@ in a similar fashion.
 		= \BO{\log n \cdot \sum_i n_i}
 		= \BO{n \log n}
 	\]
+	and the theorem follows.
 \end{proof}
 
 \begin{figure}
@@ -531,8 +528,6 @@ in a similar fashion.
 	\label{fig:example-polygon}
 \end{figure}
 
-The following theorem ensures that, by setting the page size $s$ appropriately, the query time
-can be made polynomially smaller than the input size.
 \begin{theorem}
 	Given an index over a set of $n$ intervals, with page size $s$, the time for
 	answering a range-duration query is
@@ -542,18 +537,15 @@ can be made polynomially smaller than the input size.
 	where $k$ is the number of intervals matching the query predicate.
 \end{theorem}
 \begin{proof}[Proof draft]
-	\cetodo{consider the fact that some cells might be updated, so they may be a factor 2 away from the optimum}
 	First, let us establish some notation.
-	Let $e = (e_s, e_e)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
-	The intervals are arranged into a grid where the \emph{columns} are dictated by the
-	durations, and each column is further partitioned in cells according to the start time.
-	A cell $C$ is thus identified by a duration range $[d_{min}^C, d_{max}^C)$ and by a start time range
-	$[s^C_{min}, s^C_{max})$.
-	We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
-	Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
+	Let $\T = (\TS, \TE)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
+	% We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
+	% Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
 	Recall that the algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same duration or start time.
 	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space.
+	% Consider a cell $C$ of the grid: we denote its duration range with $[d_{min}^C, d_{max}^C)$
+	% and its start time range by $[t^C_{min}, t^C_{max})$.
 	For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
 
 	Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
