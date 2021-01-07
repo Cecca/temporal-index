@@ -158,6 +158,12 @@ impl QueryAnswerBuilder {
     }
 }
 
+pub struct FocusResult {
+    n_matches: u32,
+    n_examined: u32,
+    query_time: std::time::Duration,
+}
+
 pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
@@ -185,6 +191,45 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
             cnt += query_result.n_matches;
         }
         cnt
+    }
+
+    fn run_focus(&self, queries: &[Query], n_samples: u32) -> Vec<FocusResult> {
+        let mut results = Vec::with_capacity(queries.len());
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+        for query in queries {
+            // Get the results in terms of number of matches and number of intervals examined
+            let mut query_result = QueryAnswer::builder();
+            self.query(query, &mut query_result);
+            let n_matches = query_result.n_matches;
+            let n_examined = query_result.examined;
+
+            // Warm up the cache etc.. in the hope of having more stable measurements
+            for _ in 0..5 {
+                let mut query_result = QueryAnswer::builder();
+                self.query(query, &mut query_result);
+            }
+
+            // Now run the estimate
+            let mut query_result = QueryAnswer::builder();
+            let start = std::time::Instant::now();
+            for _ in 0..n_samples {
+                self.query(query, &mut query_result);
+            }
+            let query_time = start.elapsed() / n_samples;
+
+            results.push(FocusResult {
+                n_matches,
+                n_examined,
+                query_time,
+            });
+            pl.update(1u64);
+        }
+        pl.stop();
+
+        results
     }
 
     /// Returns either the query results or, if running too slow,

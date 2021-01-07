@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct ExperimentConfiguration {
-    pub min_qps: f64,
+    pub experiment_type: ExperimentType,
     pub dataset: Rc<dyn Dataset>,
     pub queries: Rc<dyn Queryset>,
     pub algorithm: Rc<RefCell<dyn Algorithm>>,
@@ -335,9 +335,15 @@ impl QueryConfiguration {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ExperimentType {
+    Focused { samples: u32 },
+    Batch,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
-    min_qps: Option<f64>,
+    experiment_type: ExperimentType,
     datasets: Vec<DataConfiguration>,
     queries: Vec<QueryConfiguration>,
     algorithms: Vec<AlgorithmConfiguration>,
@@ -348,7 +354,6 @@ impl Configuration {
         self,
         mut action: F,
     ) -> Result<()> {
-        let min_qps = self.min_qps.unwrap_or(10.0);
         for dataset in self.datasets.iter().flat_map(|d| d.datasets()) {
             info!("{:=<60}", "");
             info!(
@@ -360,7 +365,7 @@ impl Configuration {
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
                     let conf = ExperimentConfiguration {
-                        min_qps,
+                        experiment_type: self.experiment_type.clone(),
                         dataset: Rc::clone(&dataset),
                         queries: Rc::clone(&queries),
                         algorithm: Rc::clone(&algorithm),
