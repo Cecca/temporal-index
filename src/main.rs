@@ -125,36 +125,60 @@ fn main() -> Result<()> {
                 experiment.algorithm.borrow().parameters()
             );
 
-            let (elapsed_index, elapsed_run, index_size_bytes) = {
-                let mut algorithm = experiment.algorithm.borrow_mut();
+            let queryset_queries = experiment.queries.get();
+            let dataset_intervals = experiment.dataset.get()?;
 
-                let queryset_queries = experiment.queries.get();
-                let dataset_intervals = experiment.dataset.get()?;
+            match experiment.experiment_type {
+                ExperimentType::Batch => {
+                    let (elapsed_index, elapsed_run, index_size_bytes) = {
+                        // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
+                        // on the RefCell which is borrowed mutable by the algorithm
 
-                info!("Building index");
-                let start = Instant::now();
-                algorithm.index(&dataset_intervals);
-                let end = Instant::now();
-                let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+                        let mut algorithm = experiment.algorithm.borrow_mut();
+                        info!("Building index");
+                        let start = Instant::now();
+                        algorithm.index(&dataset_intervals);
+                        let end = Instant::now();
+                        let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+                        let index_size_bytes = algorithm.index_size() as u32;
 
-                info!("Running queries");
-                let start = Instant::now();
-                let matches = algorithm.run_batch(&queryset_queries);
-                let end = Instant::now();
-                let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+                        info!("Running queries [batch]");
+                        let start = Instant::now();
+                        let _matches = algorithm.run_batch(&queryset_queries);
+                        let end = Instant::now();
+                        let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
-                algorithm.reporter_hook(&reporter)?;
-                // Clear up the index to free resources
-                algorithm.clear();
-                (elapsed_index, elapsed_run, algorithm.index_size() as u32)
-            };
+                        info!(
+                            "time for index {}ms, time for query {}ms",
+                            elapsed_index, elapsed_run
+                        );
+                        // Clear up the index to free resources
+                        algorithm.clear();
+                        (elapsed_index, elapsed_run, index_size_bytes)
+                    };
 
-            info!(
-                "time for index {}ms, time for query {}ms",
-                elapsed_index, elapsed_run
-            );
+                    reporter.report_batch(elapsed_index, elapsed_run, index_size_bytes)?;
+                }
+                ExperimentType::Focus { samples } => {
+                    let results = {
+                        // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
+                        // on the RefCell which is borrowed mutable by the algorithm
+                        let mut algorithm = experiment.algorithm.borrow_mut();
 
-            reporter.report(elapsed_index, elapsed_run, index_size_bytes)?;
+                        info!("Building index");
+                        algorithm.index(&dataset_intervals);
+
+                        info!("Running queries [focus with {} samples]", samples);
+                        let results = algorithm.run_focus(&queryset_queries, samples);
+
+                        // Clear up the index to free resources
+                        algorithm.clear();
+                        results
+                    };
+
+                    reporter.report_focus(results)?;
+                }
+            }
 
             Ok(())
         })?;

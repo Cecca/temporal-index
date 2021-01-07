@@ -337,7 +337,7 @@ impl QueryConfiguration {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ExperimentType {
-    Focused { samples: u32 },
+    Focus { samples: u32 },
     Batch,
 }
 
