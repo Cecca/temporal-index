@@ -176,15 +176,15 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
         )
     }
 
-    fn run_batch(&self, queries: &[Query]) -> std::result::Result<u32, std::time::Duration> {
+    fn run_batch(&self, queries: &[Query]) -> u32 {
         // Set a timeout given by 10 queries per second
         let mut cnt = 0;
-        let mut query_result = QueryAnswer::builder();
         for query in queries.iter() {
+            let mut query_result = QueryAnswer::builder();
             self.query(query, &mut query_result);
-            cnt += 1;
+            cnt += query_result.n_matches;
         }
-        Ok(cnt)
+        cnt
     }
 
     /// Returns either the query results or, if running too slow,
