@@ -76,15 +76,15 @@ pub struct Query {
 
 #[derive(Debug)]
 pub struct QueryAnswer {
-    elapsed: std::time::Duration,
+    elapsed: Option<std::time::Duration>,
     intervals: Option<Vec<Interval>>,
     examined: u32,
     n_matches: u32,
 }
 
 impl QueryAnswer {
-    pub fn elapsed_nanos(&self) -> i64 {
-        self.elapsed.as_nanos() as i64
+    pub fn elapsed_nanos(&self) -> Option<i64> {
+        self.elapsed.map(|d| d.as_nanos() as i64)
     }
 
     pub fn num_matches(&self) -> u32 {
@@ -97,7 +97,7 @@ impl QueryAnswer {
 
     pub fn builder() -> QueryAnswerBuilder {
         QueryAnswerBuilder {
-            start: std::time::Instant::now(),
+            start: None,
             intervals: None,
             examined: 0,
             n_matches: 0,
@@ -117,7 +117,7 @@ impl QueryAnswer {
 }
 
 pub struct QueryAnswerBuilder {
-    start: std::time::Instant,
+    start: Option<std::time::Instant>,
     intervals: Option<Vec<Interval>>,
     examined: u32,
     n_matches: u32,
@@ -127,11 +127,16 @@ impl QueryAnswerBuilder {
     #[allow(dead_code)]
     pub fn record_intervals(self) -> Self {
         Self {
-            start: std::time::Instant::now(),
+            start: None,
             intervals: Some(Vec::new()),
             examined: 0,
             n_matches: 0,
         }
+    }
+
+    pub fn start(mut self) -> Self {
+        self.start = Some(std::time::Instant::now());
+        self
     }
 
     #[inline]
@@ -139,9 +144,14 @@ impl QueryAnswerBuilder {
         self.examined += cnt;
     }
 
-    pub fn push(&mut self, interval: Interval) {
-        if let Some(intervals) = self.intervals.as_mut() {
-            intervals.push(interval);
+    #[inline]
+    pub fn push(&mut self, _interval: Interval) {
+        #[cfg(test)]
+        {
+            // This block makes sense only in testing mode, when we actually collect the intervals
+            if let Some(intervals) = self.intervals.as_mut() {
+                intervals.push(_interval);
+            }
         }
         self.n_matches += 1;
     }
@@ -154,7 +164,7 @@ impl QueryAnswerBuilder {
             self.n_matches
         );
         QueryAnswer {
-            elapsed: std::time::Instant::now() - self.start,
+            elapsed: self.start.map(|s| s.elapsed()),
             intervals: self.intervals,
             examined: self.examined,
             n_matches: self.n_matches,
@@ -178,6 +188,17 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
             self.parameters(),
             self.version()
         )
+    }
+
+    fn run_batch(&self, queries: &[Query]) -> std::result::Result<u32, std::time::Duration> {
+        // Set a timeout given by 10 queries per second
+        let mut cnt = 0;
+        let mut query_result = QueryAnswer::builder();
+        for query in queries.iter() {
+            self.query(query, &mut query_result);
+            cnt += 1;
+        }
+        Ok(cnt)
     }
 
     /// Returns either the query results or, if running too slow,
