@@ -104,7 +104,6 @@ fn main() -> Result<()> {
                 }
             }
 
-            let min_qps = experiment.min_qps;
             log_memory(&mut system);
             info!("{:-<60}", "");
             info!(
