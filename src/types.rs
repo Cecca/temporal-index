@@ -76,17 +76,13 @@ pub struct Query {
 
 #[derive(Debug)]
 pub struct QueryAnswer {
-    elapsed: Option<std::time::Duration>,
-    intervals: Option<Vec<Interval>>,
+    #[cfg(test)]
+    intervals: Vec<Interval>,
     examined: u32,
     n_matches: u32,
 }
 
 impl QueryAnswer {
-    pub fn elapsed_nanos(&self) -> Option<i64> {
-        self.elapsed.map(|d| d.as_nanos() as i64)
-    }
-
     pub fn num_matches(&self) -> u32 {
         self.n_matches
     }
@@ -97,8 +93,8 @@ impl QueryAnswer {
 
     pub fn builder() -> QueryAnswerBuilder {
         QueryAnswerBuilder {
-            start: None,
-            intervals: None,
+            #[cfg(test)]
+            intervals: Vec::new(),
             examined: 0,
             n_matches: 0,
         }
@@ -106,19 +102,15 @@ impl QueryAnswer {
 
     #[cfg(test)]
     pub fn intervals(&self) -> Vec<Interval> {
-        let mut res = self
-            .intervals
-            .as_ref()
-            .expect("intervals not recorded")
-            .clone();
+        let mut res = self.intervals.clone();
         res.sort();
         res
     }
 }
 
 pub struct QueryAnswerBuilder {
-    start: Option<std::time::Instant>,
-    intervals: Option<Vec<Interval>>,
+    #[cfg(test)]
+    intervals: Vec<Interval>,
     examined: u32,
     n_matches: u32,
 }
@@ -127,16 +119,11 @@ impl QueryAnswerBuilder {
     #[allow(dead_code)]
     pub fn record_intervals(self) -> Self {
         Self {
-            start: None,
-            intervals: Some(Vec::new()),
+            #[cfg(test)]
+            intervals: Vec::new(),
             examined: 0,
             n_matches: 0,
         }
-    }
-
-    pub fn start(mut self) -> Self {
-        self.start = Some(std::time::Instant::now());
-        self
     }
 
     #[inline]
@@ -149,9 +136,7 @@ impl QueryAnswerBuilder {
         #[cfg(test)]
         {
             // This block makes sense only in testing mode, when we actually collect the intervals
-            if let Some(intervals) = self.intervals.as_mut() {
-                intervals.push(_interval);
-            }
+            self.intervals.push(_interval);
         }
         self.n_matches += 1;
     }
@@ -163,8 +148,9 @@ impl QueryAnswerBuilder {
             self.examined,
             self.n_matches
         );
+
         QueryAnswer {
-            elapsed: self.start.map(|s| s.elapsed()),
+            #[cfg(test)]
             intervals: self.intervals,
             examined: self.examined,
             n_matches: self.n_matches,
