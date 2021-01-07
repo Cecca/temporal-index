@@ -67,7 +67,11 @@ impl Reporter {
         .context("problem checking if the algorithm already ran")
     }
 
-    pub fn report(
+    pub fn report_focus(&self, results: Vec<FocusResult>) -> Result<()> {
+        todo!()
+    }
+
+    pub fn report_batch(
         &self,
         elapsed_index: i64,
         elapsed_query: i64,
@@ -89,33 +93,34 @@ impl Reporter {
 
         let tx = conn.transaction()?;
         {
-            let updated_cnt = tx.execute(
-                "INSERT INTO raw ( date, git_rev, hostname, conf_file,
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO raw ( date, git_rev, hostname, conf_file,
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
                                     time_index_ms, time_query_ms, index_size_bytes )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17 )",
-                params![
-                    self.date.to_rfc3339(),
-                    env!("VERGEN_SHA_SHORT"),
-                    hostname,
-                    conf_file,
-                    dataset.name(),
-                    dataset.parameters(),
-                    dataset.version(),
-                    queryset.name(),
-                    queryset.parameters(),
-                    queryset.version(),
-                    algorithm.borrow().name(),
-                    algorithm.borrow().parameters(),
-                    algorithm.borrow().version(),
-                    elapsed_index,
-                    elapsed_query,
-                    index_size_bytes
-                ],
-            )
-            .context("error inserting into main table")?;
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        dataset.name(),
+                        dataset.parameters(),
+                        dataset.version(),
+                        queryset.name(),
+                        queryset.parameters(),
+                        queryset.version(),
+                        algorithm.borrow().name(),
+                        algorithm.borrow().parameters(),
+                        algorithm.borrow().version(),
+                        elapsed_index,
+                        elapsed_query,
+                        index_size_bytes
+                    ],
+                )
+                .context("error inserting into main table")?;
             if updated_cnt == 0 {
                 anyhow::bail!("Insertion didn't happen");
             }
