@@ -131,22 +131,6 @@ impl Reporter {
 
             let id = tx.last_insert_rowid();
             info!("last inserted row id is {}", id);
-
-            if let Ok(answers) = answers {
-                let mut stmt = tx.prepare(
-                "INSERT INTO query_stats (id, query_index, query_time_ns, query_count, query_examined)
-                VALUES (?1, ?2, ?3, ?4, ?5)",
-            )?;
-                for (i, ans) in answers.into_iter().enumerate() {
-                    stmt.execute(params![
-                        id,
-                        i as u32,
-                        ans.elapsed_nanos(),
-                        ans.num_matches(),
-                        ans.num_examined(),
-                    ])?;
-                }
-            }
         }
 
         tx.commit()?;
@@ -504,6 +488,14 @@ pub fn db_setup() -> Result<()> {
         info!(" . Clean up and reclaim space");
         conn.execute("VACUUM", NO_PARAMS)?;
         bump(&conn, 8)?;
+    }
+    if version < 9 {
+        Reporter::backup()?;
+        info!("Dropping table query_stats");
+        conn.execute("DROP TABLE query_stats;", NO_PARAMS)?;
+        info!(" . Clean up and reclaim space");
+        conn.execute("VACUUM", NO_PARAMS)?;
+        bump(&conn, 9)?;
     }
 
     info!("database schema up to date");
