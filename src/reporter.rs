@@ -72,7 +72,6 @@ impl Reporter {
         elapsed_index: i64,
         elapsed_query: i64,
         index_size_bytes: u32,
-        answers: std::result::Result<Vec<QueryAnswer>, Duration>,
     ) -> Result<()> {
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
@@ -90,19 +89,12 @@ impl Reporter {
 
         let tx = conn.transaction()?;
         {
-            let elapsed_query = if answers.is_err() {
-                warn!("using estimated query time");
-                answers.as_ref().unwrap_err().as_millis() as i64
-            } else {
-                elapsed_query
-            };
-
             let updated_cnt = tx.execute(
                 "INSERT INTO raw ( date, git_rev, hostname, conf_file,
                                     dataset, dataset_params, dataset_version, 
                                     queryset, queryset_params, queryset_version,
                                     algorithm, algorithm_params, algorithm_version,
-                                    time_index_ms, time_query_ms, index_size_bytes, is_estimate )
+                                    time_index_ms, time_query_ms, index_size_bytes )
                 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17 )",
                 params![
                     self.date.to_rfc3339(),
@@ -120,8 +112,7 @@ impl Reporter {
                     algorithm.borrow().version(),
                     elapsed_index,
                     elapsed_query,
-                    index_size_bytes,
-                    answers.is_err()
+                    index_size_bytes
                 ],
             )
             .context("error inserting into main table")?;

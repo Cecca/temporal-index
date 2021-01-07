@@ -126,7 +126,7 @@ fn main() -> Result<()> {
                 experiment.algorithm.borrow().parameters()
             );
 
-            let (elapsed_index, elapsed_run, index_size_bytes, answers) = {
+            let (elapsed_index, elapsed_run, index_size_bytes) = {
                 let mut algorithm = experiment.algorithm.borrow_mut();
 
                 let queryset_queries = experiment.queries.get();
@@ -140,19 +140,14 @@ fn main() -> Result<()> {
 
                 info!("Running queries");
                 let start = Instant::now();
-                let answers = algorithm.run(&queryset_queries, min_qps);
+                let matches = algorithm.run_batch(&queryset_queries);
                 let end = Instant::now();
                 let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
                 algorithm.reporter_hook(&reporter)?;
                 // Clear up the index to free resources
                 algorithm.clear();
-                (
-                    elapsed_index,
-                    elapsed_run,
-                    algorithm.index_size() as u32,
-                    answers,
-                )
+                (elapsed_index, elapsed_run, algorithm.index_size() as u32)
             };
 
             info!(
@@ -160,7 +155,7 @@ fn main() -> Result<()> {
                 elapsed_index, elapsed_run
             );
 
-            reporter.report(elapsed_index, elapsed_run, index_size_bytes, answers)?;
+            reporter.report(elapsed_index, elapsed_run, index_size_bytes)?;
 
             Ok(())
         })?;
