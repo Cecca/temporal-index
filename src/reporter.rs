@@ -31,44 +31,67 @@ impl Reporter {
         std::path::PathBuf::from("temporal-index-results.sqlite")
     }
 
-    pub fn already_run(&self) -> Result<Option<i64>> {
-        // TODO cover focus experiments, add a experiment_type parameter to the function
-        let algorithm = &self.config.algorithm;
+    pub fn already_run(&self, mode: ExperimentType) -> Result<Option<i64>> {
+        let algorithm = &self.config.algorithm.borrow();
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
 
         let dbpath = Self::get_db_path();
         let hostname = get_hostname()?;
         let conn = Connection::open(dbpath).context("error connecting to the database")?;
-        conn.query_row(
-            "SELECT id FROM raw
-            WHERE hostname == ?1
-              AND dataset == ?2
-              AND dataset_params == ?3
-              AND dataset_version == ?4
-              AND queryset == ?5
-              AND queryset_params == ?6
-              AND queryset_version == ?7
-              AND algorithm == ?8
-              AND algorithm_params == ?9
-              AND algorithm_version == ?10
-            ",
-            params![
-                hostname,
-                dataset.name(),
-                dataset.parameters(),
-                dataset.version(),
-                queryset.name(),
-                queryset.parameters(),
-                queryset.version(),
-                algorithm.borrow().name(),
-                algorithm.borrow().parameters(),
-                algorithm.borrow().version()
-            ],
-            |row| row.get(0),
-        )
-        .optional()
-        .context("problem checking if the algorithm already ran")
+
+        let dataset_id: Option<u32> = conn.query_row(
+            "SELECT dataset_id from dataset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![dataset.name(), dataset.parameters(), dataset.version()],
+            |row| row.get(0)
+        ).optional()
+        .context("query dataset id")?;
+        let queryset_id: Option<u32> = conn.query_row(
+            "SELECT queryset_id from queryset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![queryset.name(), queryset.parameters(), queryset.version()],
+            |row| row.get(0)
+        ).optional()
+        .context("query queryset id")?;
+        let algorithm_id: Option<u32> = conn.query_row(
+            "SELECT algorithm_id from algorithm_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![algorithm.name(), algorithm.parameters(), algorithm.version()],
+            |row| row.get(0)
+        ).optional()
+        .context("query algorithm id")?;
+
+        if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
+            // This configuration has not been run, neither in batch nor in focus mode
+            return Ok(None);
+        }
+
+        match mode {
+            ExperimentType::Batch => conn
+                .query_row(
+                    "SELECT id FROM batch_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND queryset_id == ?3
+                    AND algorithm_id == ?4
+                    ",
+                    params![hostname, dataset_id, queryset_id, algorithm_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, batch mode"),
+            ExperimentType::Focus { samples } => conn
+                .query_row(
+                    "SELECT id FROM focus_configuration_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND queryset_id == ?3
+                    AND algorithm_id == ?4
+                    ",
+                    params![hostname, dataset_id, queryset_id, algorithm_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, focus mode"),
+        }
     }
 
     fn get_or_insert_dataset(tx: &Transaction, dataset: &Rc<dyn Dataset>) -> Result<u32> {
@@ -193,7 +216,6 @@ impl Reporter {
             }
 
             // Finally insert query statistics in the appropriate table
-            // TODO: check that this is needed
             let count_existing: u32 = tx.query_row(
                 "SELECT COUNT(*) FROM queryset_info WHERE dataset_id == ?1 AND queryset_id == ?2",
                 params![dataset_id, queryset_id],
