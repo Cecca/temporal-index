@@ -1,10 +1,13 @@
 use crate::configuration::*;
+use crate::dataset::{Dataset, Queryset};
 use crate::types::*;
 use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
 use rusqlite::{params, Connection};
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::time::Duration;
 
 pub struct Reporter {
@@ -29,6 +32,7 @@ impl Reporter {
     }
 
     pub fn already_run(&self) -> Result<Option<i64>> {
+        // TODO cover focus experiments, add a experiment_type parameter to the function
         let algorithm = &self.config.algorithm;
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
@@ -67,8 +71,160 @@ impl Reporter {
         .context("problem checking if the algorithm already ran")
     }
 
+    fn get_or_insert_dataset(tx: &Transaction, dataset: &Rc<dyn Dataset>) -> Result<u32> {
+        tx.execute(
+            "INSERT OR IGNORE INTO dataset_spec (name, params, version) VALUES (?1, ?2, ?3)",
+            params![dataset.name(), dataset.parameters(), dataset.version()],
+        )
+        .context("insert into dataset_spec")?;
+        tx.query_row(
+            "SELECT dataset_id from dataset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![dataset.name(), dataset.parameters(), dataset.version()],
+            |row| row.get(0)
+        ).context("query dataset id")
+    }
+
+    fn get_or_insert_queryset(tx: &Transaction, queryset: &Rc<dyn Queryset>) -> Result<u32> {
+        tx.execute(
+            "INSERT OR IGNORE INTO queryset_spec (name, params, version) VALUES (?1, ?2, ?3)",
+            params![queryset.name(), queryset.parameters(), queryset.version()],
+        )
+        .context("insert into queryset_spec")?;
+        tx.query_row(
+            "SELECT queryset_id from queryset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![queryset.name(), queryset.parameters(), queryset.version()],
+            |row| row.get(0)
+        ).context("query queryset id")
+    }
+
+    fn get_or_insert_algorithm(
+        tx: &Transaction,
+        algorithm: &Rc<RefCell<dyn Algorithm>>,
+    ) -> Result<u32> {
+        let algorithm = algorithm.borrow();
+        tx.execute(
+            "INSERT OR IGNORE INTO algorithm_spec (name, params, version) VALUES (?1, ?2, ?3)",
+            params![
+                algorithm.name(),
+                algorithm.parameters(),
+                algorithm.version()
+            ],
+        )
+        .context("insert into algorithm_spec")?;
+        tx.query_row(
+            "SELECT algorithm_id from algorithm_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![algorithm.name(), algorithm.parameters(), algorithm.version()],
+            |row| row.get(0)
+        ).context("query algorithm id")
+    }
+
     pub fn report_focus(&self, results: Vec<FocusResult>) -> Result<()> {
-        todo!()
+        let dbpath = Self::get_db_path();
+        let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let hostname = get_hostname()?;
+
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+        let queryset = &self.config.queries;
+
+        let conf_file = self
+            .config_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
+            .to_owned();
+
+        let tx = conn.transaction()?;
+        {
+            // First get the component spec ids, inserting them if necessary
+            info!("Getting dataset, queryset, and algorithm IDs");
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let queryset_id = Self::get_or_insert_queryset(&tx, queryset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
+
+            // Then insert into the configuration_raw table
+            info!("Inserting into the configuration table");
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO configuration_raw ( 
+                            date, 
+                            git_rev, 
+                            hostname, 
+                            conf_file,
+                            dataset_id,
+                            queryset_id,
+                            algorithm_id)
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id
+                    ],
+                )
+                .context("error inserting into main table")?;
+            if updated_cnt == 0 {
+                anyhow::bail!("Insertion didn't happen");
+            }
+
+            // Then insert into the query_focus table
+            info!("Inserting into the query_focus table");
+            let id = tx.last_insert_rowid();
+            info!("last inserted row id is {}", id);
+            let mut stmt = tx.prepare(
+                "INSERT INTO query_focus (
+                    id,
+                    query_index,
+                    query_time_ns,
+                    matches,
+                    examined )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5 )",
+            )?;
+            for (query_index, res) in results.into_iter().enumerate() {
+                stmt.execute(params![
+                    id,
+                    query_index as u32,
+                    res.query_time.as_nanos() as i64,
+                    res.n_matches,
+                    res.n_examined
+                ])?;
+            }
+
+            // Finally insert query statistics in the appropriate table
+            // TODO: check that this is needed
+            let count_existing: u32 = tx.query_row(
+                "SELECT COUNT(*) FROM queryset_info WHERE dataset_id == ?1 AND queryset_id == ?2",
+                params![dataset_id, queryset_id],
+                |row| row.get(0),
+            )?;
+            if count_existing == 0 {
+                info!("Inserting stats into queryset_info");
+                let mut stmt = tx.prepare(
+                    "INSERT INTO queryset_info (
+                        dataset_id,
+                        queryset_id,
+                        query_index,
+                        selectivity_time,
+                        selectivity_duration,
+                        selectivity 
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                )?;
+                for (query_index, query_stats) in queryset.stats(&dataset.get()?) {
+                    stmt.execute(params![
+                        dataset_id,
+                        queryset_id,
+                        query_index,
+                        query_stats.selectivity_time,
+                        query_stats.selectivity_duration,
+                        query_stats.selectivity
+                    ])?;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     pub fn report_batch(
@@ -492,6 +648,100 @@ pub fn db_setup() -> Result<()> {
         info!(" . Clean up and reclaim space");
         conn.execute("VACUUM", NO_PARAMS)?;
         bump(&conn, 9)?;
+    }
+    if version < 10 {
+        // This version introduces a new set of tables that allows to inspect query behaviour
+        let tx = conn.transaction()?;
+        {
+            tx.execute(
+                "CREATE TABLE dataset_spec (
+                    dataset_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name           TEXT NOT NULL,
+                    params         TEXT NOT NULL,
+                    version        INT NOT NULL,
+                    UNIQUE(name, params, version)
+                )",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "CREATE TABLE queryset_spec (
+                    queryset_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name           TEXT NOT NULL,
+                    params         TEXT NOT NULL,
+                    version        INT NOT NULL,
+                    UNIQUE(name, params, version)
+                )",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "CREATE TABLE algorithm_spec (
+                    algorithm_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name           TEXT NOT NULL,
+                    params         TEXT NOT NULL,
+                    version        INT NOT NULL,
+                    UNIQUE(name, params, version)
+                )",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "CREATE TABLE configuration_raw (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date              TEXT NOT NULL,
+                    git_rev           TEXT NOT NULL,
+                    hostname          TEXT NOT NULL,
+                    conf_file         TEXT,
+                    dataset_id      INTEGER,
+                    queryset_id     INTEGER,
+                    algorithm_id    INTEGER,
+                    FOREIGN KEY (dataset_id) REFERENCES dataset_spec(dataset_id),
+                    FOREIGN KEY (queryset_id) REFERENCES queryset_spec(queryset_id),
+                    FOREIGN KEY (algorithm_id) REFERENCES algorithm_spec(algorithm_id)
+                )",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "CREATE TABLE query_focus (
+                    id                INTEGER NOT NULL,
+                    query_index       INT,
+                    query_time_ns     INT64,
+                    matches           INT64,
+                    examined          INT64,
+                    FOREIGN KEY (id) REFERENCES configuration_raw(id)
+                )",
+                NO_PARAMS,
+            )?;
+            tx.execute(
+                "CREATE TABLE queryset_info (
+                    dataset_id            INTEGER NOT NULL,
+                    queryset_id           INTEGER NOT NULL,
+                    query_index           INT,
+                    selectivity_time      INT64,
+                    selectivity_duration  INT64,
+                    selectivity           INT64,
+                    FOREIGN KEY (dataset_id) REFERENCES dataset_spec(dataset_id),
+                    FOREIGN KEY (queryset_id) REFERENCES queryset_spec(queryset_id)
+                )",
+                NO_PARAMS,
+            )?;
+            // tx.execute(
+            //     "CREATE VIEW top_component_spec AS
+            //     SELECT type, name, max(version)
+            //     FROM component_spec
+            //     GROUP_BY type, name
+            //     NATURAL JOIN
+            //     component_spec;
+            //     ",
+            //     NO_PARAMS,
+            // )?;
+            // tx.execute(
+            //     "CREATE VIEW configuration AS
+            //     SELECT id, date, git_rev, hostname, conf_file,
+            //     ",
+            //     NO_PARAMS,
+            // )?;
+            tx.commit()?;
+        }
+        bump(&conn, 10)?;
     }
 
     info!("database schema up to date");

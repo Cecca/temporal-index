@@ -7,6 +7,7 @@ use crate::zipf::ZipfDistribution;
 use anyhow::Context;
 use anyhow::Result;
 use csv;
+use progress_logger::ProgressLogger;
 use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -242,6 +243,12 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 }
 
+pub struct QueryStats {
+    pub selectivity: f64,
+    pub selectivity_time: f64,
+    pub selectivity_duration: f64,
+}
+
 pub trait Queryset: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
@@ -255,6 +262,66 @@ pub trait Queryset: std::fmt::Debug {
             self.parameters(),
             self.version()
         )
+    }
+
+    fn stats(&self, dataset: &[Interval]) -> Vec<(u32, QueryStats)> {
+        let mut index = crate::algorithms::PeriodIndexPlusPlus::new(50);
+        index.index(dataset);
+        let queries = self.get();
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+
+        let res = queries
+            .into_iter()
+            .enumerate()
+            .map(|(query_index, query)| {
+                let selectivity_time = if let Some(range) = query.range {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(
+                        &Query {
+                            range: Some(range),
+                            duration: None,
+                        },
+                        &mut answer,
+                    );
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                } else {
+                    1.0
+                };
+                let selectivity_duration = if let Some(duration) = query.duration {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(
+                        &Query {
+                            range: None,
+                            duration: Some(duration),
+                        },
+                        &mut answer,
+                    );
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                } else {
+                    1.0
+                };
+                let selectivity = {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(&query, &mut answer);
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                };
+                pl.update(1u64);
+                (
+                    query_index as u32,
+                    QueryStats {
+                        selectivity,
+                        selectivity_duration,
+                        selectivity_time,
+                    },
+                )
+            })
+            .collect();
+
+        pl.stop();
+        res
     }
 }
 
