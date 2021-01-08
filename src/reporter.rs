@@ -679,6 +679,8 @@ pub fn db_setup() -> Result<()> {
         let tx = conn.transaction()?;
         tx.execute_batch(include_str!("migrations/v10.sql"))?;
         tx.commit()?;
+        info!("Cleaning up database");
+        conn.execute("VACUUM", NO_PARAMS)?;
         bump(&conn, 10)?;
     }
 
