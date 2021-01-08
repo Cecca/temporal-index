@@ -311,7 +311,7 @@ impl Reporter {
         Ok(())
     }
 
-    pub fn backup() -> Result<()> {
+    pub fn backup(tag: Option<String>) -> Result<()> {
         use chrono::prelude::*;
         use flate2::write::GzEncoder;
         use flate2::Compression;
@@ -319,7 +319,11 @@ impl Reporter {
 
         let dbpath = Self::get_db_path();
         let mut backup_path = dbpath.clone();
-        backup_path.set_extension(format!("bak.{}.gz", Utc::now().format("%Y%m%d%H%M")));
+        backup_path.set_extension(format!(
+            "bak{}.{}.gz",
+            tag.map(|t| format!(".{}", t)).unwrap_or_else(String::new),
+            Utc::now().format("%Y%m%d%H%M")
+        ));
         let mut input = File::open(&dbpath)?;
         let mut output = GzEncoder::new(File::create(&backup_path)?, Compression::default());
         std::io::copy(&mut input, &mut output)?;
@@ -642,7 +646,7 @@ pub fn db_setup() -> Result<()> {
         bump(&conn, 8)?;
     }
     if version < 9 {
-        Reporter::backup()?;
+        Reporter::backup(Some("v9".to_owned()))?;
         info!("Dropping table query_stats");
         conn.execute("DROP TABLE query_stats;", NO_PARAMS)?;
         info!(" . Clean up and reclaim space");
@@ -651,6 +655,7 @@ pub fn db_setup() -> Result<()> {
     }
     if version < 10 {
         // This version introduces a new set of tables that allows to inspect query behaviour
+        Reporter::backup(Some("v10".to_owned()))?;
         let tx = conn.transaction()?;
         tx.execute_batch(include_str!("migrations/v10.sql"))?;
         tx.commit()?;

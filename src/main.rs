@@ -70,7 +70,7 @@ fn main() -> Result<()> {
         .map(|s| s.eq("backup"))
         .unwrap_or(false)
     {
-        reporter::Reporter::backup()?;
+        reporter::Reporter::backup(None)?;
         return Ok(());
     }
 
