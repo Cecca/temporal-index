@@ -31,7 +31,7 @@ impl Reporter {
         std::path::PathBuf::from("temporal-index-results.sqlite")
     }
 
-    pub fn already_run(&self, mode: ExperimentType) -> Result<Option<i64>> {
+    pub fn already_run(&self, mode: ExperimentMode) -> Result<Option<i64>> {
         let algorithm = &self.config.algorithm.borrow();
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
@@ -65,7 +65,7 @@ impl Reporter {
         }
 
         match mode {
-            ExperimentType::Batch => conn
+            ExperimentMode::Batch => conn
                 .query_row(
                     "SELECT id FROM batch_raw
                     WHERE hostname == ?1
@@ -78,7 +78,7 @@ impl Reporter {
                 )
                 .optional()
                 .context("problem checking if the algorithm already ran, batch mode"),
-            ExperimentType::Focus { samples } => conn
+            ExperimentMode::Focus { samples } => conn
                 .query_row(
                     "SELECT id FROM focus_configuration_raw
                     WHERE hostname == ?1

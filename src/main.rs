@@ -98,7 +98,7 @@ fn main() -> Result<()> {
         configurations.for_each(|experiment| {
             let reporter = reporter::Reporter::new(conf_file_path, experiment.clone())?;
             if !cmdline.rerun {
-                if let Some(id) = reporter.already_run(experiment.experiment_type.clone())? {
+                if let Some(id) = reporter.already_run(experiment.mode.clone())? {
                     debug!("parameter configuration already run: {}, skipping", id);
                     return Ok(());
                 }
@@ -128,8 +128,8 @@ fn main() -> Result<()> {
             let queryset_queries = experiment.queries.get();
             let dataset_intervals = experiment.dataset.get()?;
 
-            match experiment.experiment_type {
-                ExperimentType::Batch => {
+            match experiment.mode {
+                ExperimentMode::Batch => {
                     let (elapsed_index, elapsed_run, index_size_bytes) = {
                         // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
                         // on the RefCell which is borrowed mutable by the algorithm
@@ -159,7 +159,7 @@ fn main() -> Result<()> {
 
                     reporter.report_batch(elapsed_index, elapsed_run, index_size_bytes)?;
                 }
-                ExperimentType::Focus { samples } => {
+                ExperimentMode::Focus { samples } => {
                     let results = {
                         // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
                         // on the RefCell which is borrowed mutable by the algorithm

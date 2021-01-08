@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct ExperimentConfiguration {
-    pub experiment_type: ExperimentType,
+    pub mode: ExperimentMode,
     pub dataset: Rc<dyn Dataset>,
     pub queries: Rc<dyn Queryset>,
     pub algorithm: Rc<RefCell<dyn Algorithm>>,
@@ -336,14 +336,14 @@ impl QueryConfiguration {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ExperimentType {
+pub enum ExperimentMode {
     Focus { samples: u32 },
     Batch,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
-    experiment_type: ExperimentType,
+    mode: ExperimentMode,
     datasets: Vec<DataConfiguration>,
     queries: Vec<QueryConfiguration>,
     algorithms: Vec<AlgorithmConfiguration>,
@@ -365,7 +365,7 @@ impl Configuration {
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
                     let conf = ExperimentConfiguration {
-                        experiment_type: self.experiment_type.clone(),
+                        mode: self.mode.clone(),
                         dataset: Rc::clone(&dataset),
                         queries: Rc::clone(&queries),
                         algorithm: Rc::clone(&algorithm),
