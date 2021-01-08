@@ -20,12 +20,16 @@ real_sizes <- tribble(
 
 plan <- drake_plan(
   # The best configuration for each algorithm
-  best_batch = target(
-    table_best(),
-    trigger = trigger(file = db_file)
-  ),
+  best_batch = target({
+    file_in("temporal-index-results.sqlite")
+    table_best()
+  }),
 
   # Format the table to a latex file
   latex_batch = latex_best(best_batch) %>%
     write_file(file_out("paper/qps.tex")),
+
+  # Export the table as a csv, to use it with D3
+  csv_batch = best_batch %>%
+    write_csv(file_out("docs/best.csv")),
 )

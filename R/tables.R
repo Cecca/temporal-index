@@ -102,3 +102,12 @@ table_best <- function() {
     group_by(algorithm_name, queryset_id, dataset_id) %>%
     slice_max(qps)
 }
+
+# Table about the parameter dependency change
+table_param_dep <- function() {
+  table_batch() %>%
+    filter(algorithm_name == "period-index++") %>%
+    select(dataset_name, queryset_name, algorithm_params, qps, time_queries)
+}
+
+table_param_dep()
