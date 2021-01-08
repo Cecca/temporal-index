@@ -145,7 +145,7 @@ impl Reporter {
             info!("Inserting into the configuration table");
             let updated_cnt = tx
                 .execute(
-                    "INSERT INTO configuration_raw ( 
+                    "INSERT INTO focus_configuration_raw ( 
                             date, 
                             git_rev, 
                             hostname, 
@@ -249,28 +249,26 @@ impl Reporter {
 
         let tx = conn.transaction()?;
         {
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let queryset_id = Self::get_or_insert_queryset(&tx, queryset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
+
             let updated_cnt = tx
                 .execute(
-                    "INSERT INTO raw ( date, git_rev, hostname, conf_file,
-                                    dataset, dataset_params, dataset_version, 
-                                    queryset, queryset_params, queryset_version,
-                                    algorithm, algorithm_params, algorithm_version,
+                    "INSERT INTO batch_raw ( date, git_rev, hostname, conf_file,
+                                    dataset_id,
+                                    queryset_id,
+                                    algorithm_id,
                                     time_index_ms, time_query_ms, index_size_bytes )
-                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16 )",
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10 )",
                     params![
                         self.date.to_rfc3339(),
                         env!("VERGEN_SHA_SHORT"),
                         hostname,
                         conf_file,
-                        dataset.name(),
-                        dataset.parameters(),
-                        dataset.version(),
-                        queryset.name(),
-                        queryset.parameters(),
-                        queryset.version(),
-                        algorithm.borrow().name(),
-                        algorithm.borrow().parameters(),
-                        algorithm.borrow().version(),
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id,
                         elapsed_index,
                         elapsed_query,
                         index_size_bytes
