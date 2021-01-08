@@ -303,8 +303,8 @@ impl Reporter {
                         queryset_id,
                         algorithm_id,
                         elapsed_index,
-                        qps,
                         elapsed_query,
+                        qps,
                         index_size_bytes
                     ],
                 )
