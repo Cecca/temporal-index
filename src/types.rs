@@ -87,10 +87,6 @@ impl QueryAnswer {
         self.n_matches
     }
 
-    pub fn num_examined(&self) -> u32 {
-        self.examined
-    }
-
     pub fn builder() -> QueryAnswerBuilder {
         QueryAnswerBuilder {
             #[cfg(test)]

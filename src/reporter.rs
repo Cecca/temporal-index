@@ -8,7 +8,6 @@ use rusqlite::{params, Connection};
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::time::Duration;
 
 pub struct Reporter {
     date: DateTime<Utc>,
@@ -78,7 +77,7 @@ impl Reporter {
                 )
                 .optional()
                 .context("problem checking if the algorithm already ran, batch mode"),
-            ExperimentMode::Focus { samples } => conn
+            ExperimentMode::Focus { samples: _ } => conn
                 .query_row(
                     "SELECT id FROM focus_configuration_raw
                     WHERE hostname == ?1
