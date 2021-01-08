@@ -265,6 +265,8 @@ impl Reporter {
         // elapsed query is in milliseconds, we turn it to seconds
         let qps = queryset.get().len() as f64 / (elapsed_query as f64 / 1000.0);
 
+        info!("Queries per second {}", qps);
+
         let conf_file = self
             .config_file
             .to_str()
