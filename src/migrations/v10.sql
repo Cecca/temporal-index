@@ -78,9 +78,9 @@ CREATE TABLE queryset_info (
     dataset_id INTEGER NOT NULL,
     queryset_id INTEGER NOT NULL,
     query_index INT,
-    selectivity_time INT64,
-    selectivity_duration INT64,
-    selectivity INT64,
+    selectivity_time REAL,
+    selectivity_duration REAL,
+    selectivity REAL,
     FOREIGN KEY (dataset_id) REFERENCES dataset_spec(dataset_id),
     FOREIGN KEY (queryset_id) REFERENCES queryset_spec(queryset_id)
 );
@@ -99,6 +99,7 @@ CREATE TABLE batch_raw (
     algorithm_id INTEGER,
     time_index_ms INT64 NOT NULL,
     time_query_ms INT64 NOT NULL,
+    qps REAL NOT NULL,
     index_size_bytes INT NOT NULL,
     FOREIGN KEY (dataset_id) REFERENCES dataset_spec(dataset_id),
     FOREIGN KEY (queryset_id) REFERENCES queryset_spec(queryset_id),

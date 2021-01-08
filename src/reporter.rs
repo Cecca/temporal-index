@@ -262,6 +262,9 @@ impl Reporter {
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
 
+        // elapsed query is in milliseconds, we turn it to seconds
+        let qps = queryset.get().len() as f64 / (elapsed_query as f64 / 1000.0);
+
         let conf_file = self
             .config_file
             .to_str()
@@ -276,12 +279,19 @@ impl Reporter {
 
             let updated_cnt = tx
                 .execute(
-                    "INSERT INTO batch_raw ( date, git_rev, hostname, conf_file,
-                                    dataset_id,
-                                    queryset_id,
-                                    algorithm_id,
-                                    time_index_ms, time_query_ms, index_size_bytes )
-                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10 )",
+                    "INSERT INTO batch_raw ( 
+                        date, 
+                        git_rev, 
+                        hostname, 
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id,
+                        time_index_ms, 
+                        time_query_ms, 
+                        qps,
+                        index_size_bytes )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 )",
                     params![
                         self.date.to_rfc3339(),
                         env!("VERGEN_SHA_SHORT"),
@@ -291,6 +301,7 @@ impl Reporter {
                         queryset_id,
                         algorithm_id,
                         elapsed_index,
+                        qps,
                         elapsed_query,
                         index_size_bytes
                     ],
