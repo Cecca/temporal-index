@@ -1,6 +1,7 @@
 ---
 
 - experiment_type: 
+    # Batch
     Focus:
       samples: 10
 
