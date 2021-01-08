@@ -159,9 +159,9 @@ impl QueryAnswerBuilder {
 }
 
 pub struct FocusResult {
-    n_matches: u32,
-    n_examined: u32,
-    query_time: std::time::Duration,
+    pub n_matches: u32,
+    pub n_examined: u32,
+    pub query_time: std::time::Duration,
 }
 
 pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
