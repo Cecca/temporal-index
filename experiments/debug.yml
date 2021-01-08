@@ -1,6 +1,6 @@
 ---
 
-- experiment_type: 
+- mode: 
     Batch
 
   datasets:
@@ -30,7 +30,7 @@
     - PeriodIndexPlusPlus:
         page_size: [10]
 
-- experiment_type: 
+- mode: 
     Focus:
       samples: 10
 
