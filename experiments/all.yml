@@ -1,7 +1,9 @@
 ---
 
 # very large and sparse dataset
-- 
+- mode: 
+    Batch
+
   datasets:
     - Random:
         seed: [123]
@@ -45,7 +47,10 @@
 
 
 # scalability experiments
-- datasets:
+- mode:
+    Batch
+
+  datasets:
     - Random:
         seed: [123]
         n: 
