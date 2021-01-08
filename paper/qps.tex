@@ -1,36 +1,10 @@
-\begin{table}[H]
-\centering\begingroup\fontsize{8}{10}\selectfont
 
-\begin{tabular}{rrrrrrr}
+\begin{tabular}[t]{rrlllll}
 \toprule
-dataset & queries & PI++ & GF & BT & PI* & IT\\
+dataset & queryset & BT & GF & IT & PI* & PI++\\
 \midrule
-$Flight$ & $(R_{unif}, D_{unif})$ & \underline{163\,934} & 149\,254 & 18\,382 & 31\,847 & 25\,000\\
-\cmidrule{1-7}
- & $(nil, D_{unif})$ & 986 & 72 & \underline{991} & 67 & 15\\
-
- & $(R_{cz}, D_{unif})$ & \underline{14\,706} & 1\,380 & 446 & 1\,388 & 249\\
-
- & $(R_{cz}, nil)$ & \underline{444} & 375 & 9 & 172 & 238\\
-
- & $(R_{uz}, D_{unif})$ & \underline{19\,305} & 1\,880 & 554 & 1\,795 & 328\\
-
-\multirow{-5}{*}{\raggedleft\arraybackslash $R_{cz}$} & $(R_{uz}, nil)$ & \underline{565} & 483 & 8 & 214 & 308\\
-\cmidrule{1-7}
- & $(nil, D_{unif})$ & 982 & 72 & \underline{991} & 67 & 12\\
-
- & $(R_{cz}, D_{unif})$ & \underline{13\,405} & 1\,296 & 421 & 1\,258 & 202\\
-
- & $(R_{cz}, nil)$ & \underline{535} & 447 & 7 & 214 & 206\\
-
- & $(R_{uz}, D_{unif})$ & \underline{16\,502} & 1\,578 & 488 & 1\,526 & 237\\
-
-\multirow{-5}{*}{\raggedleft\arraybackslash $R_{uz}$} & $(R_{uz}, nil)$ & \underline{560} & 456 & 9 & 238 & 234\\
-\cmidrule{1-7}
-$Tourism$ & $(R_{unif}, D_{unif})$ & \underline{119\,048} & 103\,093 & 6\,053 & 16\,367 & 24\,155\\
-\cmidrule{1-7}
-$Webkit$ & $(R_{unif}, D_{unif})$ & \underline{2\,915} & 2\,195 & 632 & 79 & 220\\
+1 & 1 & 10\,062 & \underline{28\,517} & 19\,461 & 9\,002 & 1\,864\\
+1 & 27 & \underline{607\,237} & 36\,786 & 18\,204 & 39\,871 & 88\,598\\
+1 & 53 & 11\,379 & \underline{30\,061} & 22\,638 & 10\,214 & 1\,892\\
 \bottomrule
 \end{tabular}
-\endgroup{}
-\end{table}
