@@ -32,4 +32,16 @@ plan <- drake_plan(
   # Export the table as a csv, to use it with D3
   csv_batch = best_batch %>%
     write_csv(file_out("docs/best.csv")),
+
+  # Data for the scalability plot
+  data_scalability = {
+    file_in("temporal-index-results.sqlite")
+    table_scalability()
+  },
+
+  figure_scalability = data_scalability %>%
+    plot_scalability() %>%
+    save_png(file_out("paper/images/scalability.png"),
+      width = 10, height = 4
+    ),
 )
