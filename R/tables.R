@@ -86,7 +86,12 @@ table_batch <- function() {
 
 filter_synthetic <- function(data_batch) {
   data_batch %>%
-    filter(str_detect(dataset_name, "random"))
+    filter(
+      str_detect(dataset_name, "random"),
+      # Focus on experiments on 10 million intervals, without mixing
+      # in experiments about scalability
+      str_detect(dataset_params, "n=10000000 ")
+    )
 }
 
 filter_real <- function(data_batch) {
@@ -100,7 +105,8 @@ table_best <- function() {
   real <- filter_real(data)
   bind_rows(synth, real) %>%
     group_by(algorithm_name, queryset_id, dataset_id) %>%
-    slice_max(qps)
+    slice_max(qps) %>%
+    ungroup()
 }
 
 # Table about the parameter dependency change
@@ -110,4 +116,24 @@ table_param_dep <- function() {
     select(dataset_name, queryset_name, algorithm_params, qps, time_queries)
 }
 
-table_param_dep()
+# Extracts, out of all the batch experiments, the scalability ones
+table_scalability <- function() {
+  batch_data <- table_batch() %>%
+    mutate(
+      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[, 2]),
+      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2])
+    ) %>%
+    filter(
+      queryset_n == 5000,
+      str_detect(queryset_params, "start_high=1000000000")
+    )
+
+  best_param_at_large_size <- batch_data %>%
+    filter(dataset_n == 1000000000) %>%
+    group_by(dataset_id, queryset_id, algorithm_name) %>%
+    slice_max(qps) %>%
+    ungroup() %>%
+    select(dataset_name, queryset_name, algorithm_params)
+
+  semi_join(batch_data, best_param_at_large_size)
+}

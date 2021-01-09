@@ -25,6 +25,7 @@ latex_best <- function(data_best) {
             ),
             algorithm_name = fct_reorder(algorithm_name, qps)
         ) %>%
+        arrange(algorithm_name) %>%
         select(
             dataset = dataset_id, queryset = queryset_id,
             algorithm_name, qps
