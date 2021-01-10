@@ -25,10 +25,6 @@ plot_scalability <- function(data_scalability) {
 }
 
 plot_parameter_dependency <- function(data_parameter_dependency) {
-    print(select(
-        data_parameter_dependency,
-        start_times_distribution, workload_type, page_size, qps
-    ))
     ggplot(
         data_parameter_dependency,
         aes(
@@ -55,5 +51,23 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         )
 }
 
-table_parameter_dependency() %>%
-    plot_parameter_dependency()
+plot_real_distribution <- function(data_start, data_duration) {
+    p1 <- ggplot(data_start, aes(x = start_time, weight = count)) +
+        geom_histogram(aes(y = stat(count) / sum(count))) +
+        facet_wrap(vars(name), scales = "free") +
+        labs(x = "start time") +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+        theme_paper() +
+        theme(axis.title.y = element_blank())
+    p2 <- ggplot(data_duration, aes(x = duration, weight = count)) +
+        geom_histogram(aes(y = stat(count) / sum(count))) +
+        facet_wrap(vars(name), scales = "free") +
+        labs(x = "duration") +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+        theme_paper() +
+        theme(
+            strip.text = element_blank(),
+            axis.title.y = element_blank()
+        )
+    plot_grid(p1, p2, ncol = 1)
+}
