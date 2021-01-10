@@ -109,12 +109,6 @@ table_best <- function() {
     ungroup()
 }
 
-# Table about the parameter dependency change
-table_param_dep <- function() {
-  table_batch() %>%
-    filter(algorithm_name == "period-index++") %>%
-    select(dataset_name, queryset_name, algorithm_params, qps, time_queries)
-}
 
 # Extracts, out of all the batch experiments, the scalability ones
 table_scalability <- function() {
@@ -136,4 +130,24 @@ table_scalability <- function() {
     select(dataset_name, queryset_name, algorithm_params)
 
   semi_join(batch_data, best_param_at_large_size)
+}
+
+# Table about the dependency between period-index++ performance
+# and page size
+table_parameter_dependency <- function() {
+  # batch_data <-
+  table_batch() %>%
+    filter(algorithm_name == "period-index++") %>%
+    mutate(
+      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[, 2]),
+      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2])
+    ) %>%
+    get_params(queryset_params, "q_") %>%
+    filter(
+      dataset_n == 10000000,
+      queryset_n == 20000,
+      na_or_in(q_dur_dist_high, c(10000)),
+      na_or_in(q_start_high, c(10000000))
+    ) %>%
+    get_params(algorithm_params, "")
 }
