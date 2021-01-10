@@ -11,12 +11,12 @@ real_sizes <- tribble(
 )
 
 # TODO:
-# - distribution of start times and durations for the real world datasets
-# - best configurations, also as csv
-# - best configuration latex table
-# - scalability data and plots
-# - parameter dependency plots
-# - query focus plots
+# - [ ] distribution of start times and durations for the real world datasets
+# - [x] best configurations, also as csv
+# - [x] best configuration latex table
+# - [x] scalability data and plots
+# - [x] parameter dependency plots
+# - [ ] query focus plots
 
 plan <- drake_plan(
   # The best configuration for each algorithm
@@ -39,9 +39,28 @@ plan <- drake_plan(
     table_scalability()
   },
 
+  # Scalability plot
   figure_scalability = data_scalability %>%
     plot_scalability() %>%
     save_png(file_out("paper/images/scalability.png"),
       width = 10, height = 4
+    ),
+
+  # Data for the parameter dependency plot
+  data_parameter_dependency = {
+    file_in("temporal-index-results.sqlite")
+    table_parameter_dependency()
+  },
+
+  # Parameter dependency plot
+  #
+  # Compared to the old version (before removing the timing of individual
+  # queries) this plot has the same behaviour (an numbers) for `both` and
+  # `time` workloads. For `duration` workloads instead of the initial plateau
+  # we have a peak, with much better throughputs!
+  figure_parameter_dependency = data_parameter_dependency %>%
+    plot_parameter_dependency() %>%
+    save_png("paper/images/param_dependency.png",
+      width = 5, height = 3
     ),
 )
