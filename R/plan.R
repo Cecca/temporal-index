@@ -11,7 +11,7 @@ real_sizes <- tribble(
 )
 
 # TODO:
-# - [ ] distribution of start times and durations for the real world datasets
+# - [x] distribution of start times and durations for the real world datasets
 # - [x] best configurations, also as csv
 # - [x] best configuration latex table
 # - [x] scalability data and plots
@@ -62,5 +62,21 @@ plan <- drake_plan(
     plot_parameter_dependency() %>%
     save_png("paper/images/param_dependency.png",
       width = 5, height = 3
+    ),
+
+  # Data about the start times of real datasets
+  data_start_times = table_start_times(),
+  # Data about the durations of real datasets
+  data_durations = table_durations(),
+
+  # Plot with the distributions of such data
+  figure_real_distribution = plot_real_distribution(
+    data_start_times,
+    data_durations
+  ) %>%
+    save_png(
+      filename = "paper/images/real-distributions.png",
+      width = 10,
+      height = 3
     ),
 )

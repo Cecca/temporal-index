@@ -135,7 +135,6 @@ table_scalability <- function() {
 # Table about the dependency between period-index++ performance
 # and page size
 table_parameter_dependency <- function() {
-  # batch_data <-
   table_batch() %>%
     filter(algorithm_name == "period-index++") %>%
     mutate(
@@ -150,4 +149,16 @@ table_parameter_dependency <- function() {
       na_or_in(q_start_high, c(10000000))
     ) %>%
     get_params(algorithm_params, "")
+}
+
+# A table of start times of real datasets
+table_start_times <- function() {
+  get_histograms("dataset-start-times", "./experiments/real-world.yml") %>%
+    select(name, start_time = value, count)
+}
+
+# A table of durations of real datasets
+table_durations <- function() {
+  get_histograms("dataset-durations", "./experiments/real-world.yml") %>%
+    select(name, duration = value, count)
 }
