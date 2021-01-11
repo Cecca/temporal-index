@@ -146,7 +146,7 @@ impl AlgorithmConfiguration {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum DataConfiguration {
     ZipfUniform {
         seed: Vec<u64>,
@@ -289,6 +289,11 @@ pub enum QueryConfiguration {
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorConfig>,
     },
+    Systematic {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        base: DataConfiguration,
+    },
 }
 
 impl QueryConfiguration {
@@ -329,6 +334,19 @@ impl QueryConfiguration {
                         }
                     },
                 );
+                Box::new(iter)
+            }
+            Self::Systematic { seed, n, base } => {
+                let mut datasets = base.datasets();
+                let base = datasets.next().expect("missing first dataset");
+
+                assert!(
+                    datasets.next().is_none(),
+                    "only the first dataset is used in Systematic configuration"
+                );
+                let iter = iproduct!(seed, n).flat_map(move |(seed, n)| {
+                    Some(Rc::new(SystematicQueryset::new(*seed, *n, &base)) as Rc<dyn Queryset>)
+                });
                 Box::new(iter)
             }
         }
