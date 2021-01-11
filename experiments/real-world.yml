@@ -24,10 +24,10 @@
         duration:
           - Free
           - Single: 
-              # Up to one day, with granularity of hours
+              # Up to one day, with granularity of minutes
               Scaled:
-                inner: {Uniform: { low: 1, high: 24 }}
-                scale: 60
+                inner: {Uniform: { low: 1, high: 1140 }}
+                scale: 1
 
   algorithms:
     # - LinearScan
