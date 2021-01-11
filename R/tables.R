@@ -90,7 +90,15 @@ filter_synthetic <- function(data_batch) {
       str_detect(dataset_name, "random"),
       # Focus on experiments on 10 million intervals, without mixing
       # in experiments about scalability
-      str_detect(dataset_params, "n=10000000 ")
+      str_detect(dataset_params, "n=10000000 "),
+      # Filter out datasets used in scalability experiments
+      !str_detect(dataset_params, "start_high=1000000000 "),
+      !(queryset_params %in% c(
+        "start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 dur_dist_low=1 dur_dist_high=10000",
+        "seed=23512 n=20000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
+        "seed=23512 n=20000  dur_dist_low=1 dur_dist_high=10000"
+      )),
+      !(queryset_id %in% c(389, 408))
     )
 }
 
