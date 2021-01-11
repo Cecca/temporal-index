@@ -471,7 +471,8 @@ impl Queryset for RandomQueryset {
                 (start_times.stream(rng1), durations.stream(rng2))
             });
         let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
-        while data.len() < self.n {
+        let mut cnt = 0;
+        while data.len() < self.n && cnt < self.n * 2 {
             let interval = interval_gen.as_mut().map(|(start, duration)| {
                 Interval::new(start.next().unwrap(), duration.next().unwrap())
             });
@@ -484,7 +485,14 @@ impl Queryset for RandomQueryset {
                 range: interval,
                 duration: duration_range,
             });
+            cnt += 1;
         }
+        assert!(
+            data.len() == self.n,
+            "Generated too few vectors ({} out of {})",
+            data.len(),
+            self.n,
+        );
         data.into_iter().collect()
     }
 }
