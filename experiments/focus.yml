@@ -20,7 +20,7 @@
   queries:
     - Systematic:
         seed: [23512]
-        n: [2048]
+        n: [1024]
         base:
           Random:
             seed: [123]
@@ -60,7 +60,7 @@
   queries:
     - Systematic:
         seed: [23512]
-        n: [2048]
+        n: [1024]
         base:
           Random:
             seed: [123]
