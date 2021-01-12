@@ -580,7 +580,7 @@ impl Queryset for SystematicQueryset {
         // first, let's generate the time ranges at random
         let mut ranges = BTreeMap::new();
         let mut cnt = 0;
-        while ranges.len() < side as usize && cnt < 10 * side as usize {
+        while ranges.len() < side as usize && cnt < 50 * side as usize {
             let t1 = gen_t.sample(&mut rng);
             let t2 = gen_t.sample(&mut rng);
             let interval = Interval {
