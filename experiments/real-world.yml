@@ -100,8 +100,9 @@
         duration:
           - Free
           - Single: 
-              # Duration ranges of up to two months, in days
-              Uniform: { low: 1, high: 60 }
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
 
   algorithms:
     # - LinearScan
