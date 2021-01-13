@@ -94,4 +94,12 @@ plan <- drake_plan(
       width = 10,
       height = 3
     ),
+
+  figure_selectivity_dependency = data_query_focus %>%
+    plot_selectivity_dependency() %>%
+    save_png(
+      "paper/images/selectivity-dep.png",
+      width = 10,
+      height = 3
+    ),
 )

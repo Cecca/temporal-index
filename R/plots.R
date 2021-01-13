@@ -127,3 +127,26 @@ plot_query_focus <- function(data_focus) {
             legend.key.width = unit(30, "mm")
         )
 }
+
+plot_selectivity_dependency <- function(data_selectivity) {
+    plotdata <- data_selectivity %>%
+        filter(matches > 0) %>%
+        mutate(
+            query_time =
+                set_units(query_time, "milliseconds") %>% drop_units()
+        )
+
+    ggplot(plotdata, aes(
+        x = selectivity,
+        y = query_time
+    )) +
+        geom_point(size = 0.5) +
+        facet_wrap(vars(algorithm_name), ncol = 5) +
+        labs(
+            x = "selectivity",
+            y = "query time (ms)"
+        ) +
+        theme_paper()
+}
+
+table_query_focus() %>% plot_selectivity_dependency()
