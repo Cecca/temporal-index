@@ -170,3 +170,15 @@ table_durations <- function() {
   get_histograms("dataset-durations", "./experiments/real-world.yml") %>%
     select(name, duration = value, count)
 }
+
+table_query_focus <- function() {
+  db_file <- here("temporal-index-results.sqlite")
+  conn <- dbConnect(RSQLite::SQLite(), db_file)
+
+  as_tibble(dbGetQuery(
+    conn,
+    "select * from query_focus_w_stats natural join focus_configuration"
+  )) %>%
+    mutate(query_time = set_units(query_time_ns, "ns")) %>%
+    select(-query_time_ns)
+}

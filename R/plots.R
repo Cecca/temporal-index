@@ -71,3 +71,59 @@ plot_real_distribution <- function(data_start, data_duration) {
         )
     plot_grid(p1, p2, ncol = 1)
 }
+
+plot_query_focus <- function(data_focus) {
+    plotdata <- data_focus %>%
+        filter(matches > 0, dataset_name == "random-uniform-zipf") %>%
+        mutate(
+            query_time =
+                set_units(query_time, "milliseconds"),
+            query_time_tile =
+                query_time %>% drop_units() %>% ntile(8),
+            # selectivity_duration = factor(selectivity_duration),
+            # selectivity_time = factor(selectivity_time)
+        )
+    labels_data <- plotdata %>%
+        mutate(query_time = drop_units(query_time)) %>%
+        group_by(query_time_tile) %>%
+        summarise(
+            max_time = max(query_time),
+            min_time = min(query_time)
+        ) %>%
+        mutate(
+            label = str_c(
+                # scales::number(min_time, accuracy = 0.1),
+                # " to ",
+                scales::number(max_time, accuracy = 0.1),
+                " ms"
+            )
+        ) # %>%
+    # filter(query_time_tile %in% c(2, 4, 6, 8, 10))
+    breaks <- pull(labels_data, query_time_tile)
+    labels <- pull(labels_data, label)
+
+    ggplot(plotdata, aes(
+        x = selectivity_time,
+        y = selectivity_duration,
+        color = query_time_tile,
+        tooltip = query_time
+    )) +
+        geom_point_interactive() +
+        scale_fill_viridis_c(
+            breaks = breaks,
+            labels = labels,
+            option = "viridis",
+            aesthetics = c("fill", "color")
+        ) +
+        facet_wrap(vars(algorithm_name), ncol = 5) +
+        labs(
+            x = "time selectivity",
+            y = "duration selectivity"
+        ) +
+        theme_paper() +
+        theme(
+            legend.title = element_blank(),
+            legend.position = "top",
+            legend.key.width = unit(30, "mm")
+        )
+}
