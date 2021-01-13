@@ -89,7 +89,7 @@
   queries:
     - Random:
         seed: [23512]
-        n: [10000]
+        n: [5000]
         range:
           - Free
           - Pair: [
