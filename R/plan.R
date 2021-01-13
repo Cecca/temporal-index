@@ -79,4 +79,19 @@ plan <- drake_plan(
       width = 10,
       height = 3
     ),
+
+  # Data for the query focus plot
+  data_query_focus = {
+    file_in("temporal-index-results.sqlite")
+    table_query_focus()
+  },
+
+  # Figure for the query focus plot
+  figure_query_focus = data_query_focus %>%
+    plot_query_focus() %>%
+    save_png(
+      "paper/images/query-focus.png",
+      width = 10,
+      height = 3
+    ),
 )
