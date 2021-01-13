@@ -79,9 +79,7 @@ plot_query_focus <- function(data_focus) {
             query_time =
                 set_units(query_time, "milliseconds"),
             query_time_tile =
-                query_time %>% drop_units() %>% ntile(8),
-            # selectivity_duration = factor(selectivity_duration),
-            # selectivity_time = factor(selectivity_time)
+                query_time %>% drop_units() %>% ntile(8)
         )
     labels_data <- plotdata %>%
         mutate(query_time = drop_units(query_time)) %>%
@@ -105,7 +103,7 @@ plot_query_focus <- function(data_focus) {
     ggplot(plotdata, aes(
         x = selectivity_time,
         y = selectivity_duration,
-        color = query_time_tile,
+        fill = query_time_tile,
         tooltip = query_time
     )) +
         geom_point_interactive() +
@@ -123,7 +121,7 @@ plot_query_focus <- function(data_focus) {
         theme_paper() +
         theme(
             legend.title = element_blank(),
-            legend.position = "top",
+            legend.position = "bottom",
             legend.key.width = unit(30, "mm")
         )
 }
@@ -131,22 +129,43 @@ plot_query_focus <- function(data_focus) {
 plot_selectivity_dependency <- function(data_selectivity) {
     plotdata <- data_selectivity %>%
         filter(matches > 0) %>%
+        filter(!(selectivity_time >= 0.99 & selectivity_duration >= 0.99)) %>%
         mutate(
             query_time =
-                set_units(query_time, "milliseconds") %>% drop_units()
+                set_units(query_time, "milliseconds") %>% drop_units(),
+            category = case_when(
+                selectivity_time >= 0.99 ~ "duration-only",
+                selectivity_duration >= 0.99 ~ "time-only",
+                TRUE ~ "both"
+            )
         )
 
     ggplot(plotdata, aes(
         x = selectivity,
-        y = query_time
+        y = query_time,
+        color = category,
+        tooltip = str_c(
+            "sel duration: ",
+            selectivity_duration,
+            "\n",
+            "sel time: ",
+            selectivity_time
+        )
     )) +
-        geom_point(size = 0.5) +
+        geom_point_interactive(size = 0.5) +
+        geom_rangeframe(show.legend = FALSE) +
         facet_wrap(vars(algorithm_name), ncol = 5) +
+        scale_color_manual(values = c(
+            "both" = "#414141",
+            "duration-only" = "#00ccff",
+            "time-only" = "#ff5e00"
+        )) +
+        scale_x_continuous(breaks = c(.25, .5, .75, 1)) +
         labs(
             x = "selectivity",
             y = "query time (ms)"
         ) +
-        theme_paper()
+        guides(colour = guide_legend(override.aes = list(size = 2))) +
+        theme_paper() +
+        theme(legend.position = "top")
 }
-
-table_query_focus() %>% plot_selectivity_dependency()
