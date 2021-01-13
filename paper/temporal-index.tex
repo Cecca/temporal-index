@@ -1,5 +1,6 @@
 \documentclass[sigconf,nonacm]{acmart}
 
+\usepackage{colortbl}
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{tcolorbox}
 \usepackage{todonotes}
@@ -736,14 +737,14 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 	\Description{Overview of the performance of the algortihms.}
 \end{figure*}
 
-\begin{table}
+\begin{table*}
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
 		The first column reports the distribution used to generate dataset intervals, using the notation
 		introduced in Table~\ref{tbl:distributions}.
 		The second column reports the query workload configuration: a $nil$ indicates that a particular
 		query workload is not constraining either the time range or the duration range.\label{tbl:overview-qps}}
 	\input{qps.tex}
-\end{table}
+\end{table*}
 
 In the first set of experiments, we generate datasets of 10 million intervals each,
 using different start time and duration distributions. Similarly we generate several different
