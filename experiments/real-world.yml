@@ -1,5 +1,8 @@
 ---
-- datasets:
+- mode:
+    Batch
+
+  datasets:
     - Flight
 
   queries:
@@ -21,10 +24,10 @@
         duration:
           - Free
           - Single: 
-              # Up to one day, with granularity of hours
+              # Up to one day, with granularity of minutes
               Scaled:
-                inner: {Uniform: { low: 1, high: 24 }}
-                scale: 60
+                inner: {Uniform: { low: 1, high: 1140 }}
+                scale: 1
 
   algorithms:
     # - LinearScan
@@ -38,7 +41,10 @@
     - PeriodIndexPlusPlus:
         page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
 
-- datasets:
+- mode:
+    Batch
+
+  datasets:
     - Webkit
 
   queries:
@@ -74,13 +80,16 @@
     - PeriodIndexPlusPlus:
         page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
 
-- datasets:
+- mode:
+    Batch
+
+  datasets:
     - Tourism
 
   queries:
     - Random:
         seed: [23512]
-        n: [10000]
+        n: [5000]
         range:
           - Free
           - Pair: [
@@ -91,8 +100,9 @@
         duration:
           - Free
           - Single: 
-              # Duration ranges of up to two months, in days
-              Uniform: { low: 1, high: 60 }
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
 
   algorithms:
     # - LinearScan

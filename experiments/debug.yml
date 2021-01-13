@@ -1,27 +1,33 @@
 ---
 
-- datasets:
-    - Webkit
+- mode: 
+    Focus:
+      samples: 10
+
+  datasets:
+    - Random:
+        seed: [123]
+        n: 
+          - 10000000
+        start_times:
+          - Uniform: { low: 1, high: 10000000 }
+        durations:
+          - Zipf: { n: 10000000, beta: 1 }
 
   queries:
-    - Random:
-        seed: [23512]
-        n: [10000]
-        range:
-          # Granularity of minutes, in milliseconds
-          - Pair:
-              - Scaled:
-                  inner: {Uniform: { low: 1, high: 6980952 }}
-                  scale: 60000
-              # Durations up to one year for the range queries, in milliseconds
-              - Scaled:
-                  inner: {Uniform: { low: 1, high: 31556925975 }}
-                  scale: 60000
-        duration:
-          - Single: 
-              # Duration ranges of up to 3 years, in milliseconds
-              Uniform: { low: 1, high: 94670777924 }
+    - Systematic:
+        seed: [1234512]
+        n: [1024]
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times:
+              - Uniform: { low: 1, high: 10000000 }
+            durations:
+              - Zipf: { n: 10000000, beta: 1 }
+
 
   algorithms:
     - PeriodIndexPlusPlus:
-        page_size: [10]
+        page_size: [100]

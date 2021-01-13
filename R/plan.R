@@ -5,456 +5,93 @@ install_symbolic_unit("records")
 
 real_sizes <- tribble(
   ~dataset, ~dataset_n,
-  "Flight",        684838,
-  "Tourism",       835071,
-  "Webkit",       1547419,
+  "Flight", 684838,
+  "Tourism", 835071,
+  "Webkit", 1547419,
 )
 
+# TODO:
+# - [x] distribution of start times and durations for the real world datasets
+# - [x] best configurations, also as csv
+# - [x] best configuration latex table
+# - [x] scalability data and plots
+# - [x] parameter dependency plots
+# - [ ] query focus plots
+
 plan <- drake_plan(
-  data = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
-    as_tibble() %>%
-    filter(
-      hostname == "ironmaiden",
-      algorithm != "ebi-index",
-      algorithm != "linear-scan",
-      algorithm != "grid",
-      algorithm != "grid3D",
-      algorithm != "NestedVecs",
-      algorithm != "NestedBTree",
-      algorithm != "period-index-old-*",
-      !str_detect(queryset, "Mixed"),
-    ) %>%
-    mutate(
-      date = parse_datetime(date),
-      is_estimate = is_estimate > 0
-    ) %>%
-    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
-    slice(which.max(date)) %>%
-    ungroup() %>%
-    mutate(
-      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
-      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[,2]),
-      time_queries = set_units(time_query_ms, "ms"),
-      time_index = set_units(time_index_ms, "ms"),
-      total_time = time_index + time_queries,
-      algorithm_wpar = interaction(algorithm, algorithm_params),
-      algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
-      qps = queryset_n / set_units(time_queries, "s")
-    ) %>%
-    mutate(
-      workload_type = case_when(
-        queryset == "random-uniform-zipf-uniform" ~ "both",
-        queryset == "random-clustered-zipf-uniform" ~ "both",
-        queryset == "random-None-uniform" ~ "duration",
-        queryset == "random-uniform-zipf-None" ~ "time",
-        queryset == "random-clustered-zipf-None" ~ "time",
-        queryset == "Mixed" ~ "mixed",
-        TRUE ~ "Unknown"
-      )
-    ) %>%
-    mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-    filter(dataset_n == 10000000, queryset_n == 5000) %>%
-    select(-time_query_ms, -time_index_ms)
-    ,
+  # The best configuration for each algorithm
+  best_batch = target({
+    file_in("temporal-index-results.sqlite")
+    table_best()
+  }),
 
-  data_real = table_main(conn, file_in("temporal-index-results.sqlite")) %>% 
-    as_tibble() %>%
-    filter(
-      hostname == "ironmaiden",
-      dataset %in% c("Tourism", "Flight", "Webkit")
-    ) %>%
-    mutate(
-      date = parse_datetime(date),
-      is_estimate = is_estimate > 0
-    ) %>%
-    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
-    slice(which.max(date)) %>%
-    ungroup() %>%
-    inner_join(real_sizes) %>%
-    mutate(
-      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
-      time_queries = set_units(time_query_ms, "ms"),
-      time_index = set_units(time_index_ms, "ms"),
-      total_time = time_index + time_queries,
-      algorithm_wpar = interaction(algorithm, algorithm_params),
-      algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
-      qps = queryset_n / set_units(time_queries, "s")
-    ) %>%
-    mutate(
-      workload_type = case_when(
-        queryset == "random-uniform-uniform-uniform" ~ "both",
-        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "both" ,
-        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "both",
-        str_detect("random-granules-uniform-uniform", queryset) ~ "both",
-        TRUE ~ "Unknown"
-      )
-    ) %>%
-    select(-time_query_ms, -time_index_ms)
-    ,
-  
-  queries = target(
-    table_query_stats(conn, file_in("temporal-index-results.sqlite")) %>%
-      mutate(precision = as.double(query_count) / as.double(query_examined)) %>%
-      as.data.table(),
-    format = "fst_dt"
-  ),
+  # Format the table to a latex file
+  latex_batch = latex_best(best_batch) %>%
+    write_file(file_out("paper/qps.tex")),
 
-  best = target(
-    data %>%
-      bind_rows(data_real) %>%
-      lazy_dt() %>%
-      filter(queryset %in% c(
-        "random-uniform-uniform-uniform",
-        "random-uniform-scaled-uniform-scaled-uniform",
-        "random-uniform-scaled-uniform-scaled-uniform-scaled",
-        "random-None-uniform",
-        "random-clustered-zipf-None",
-        "random-clustered-zipf-uniform",
-        "random-uniform-zipf-None",
-        "random-uniform-zipf-uniform"
-      )) %>%
-      filter(workload_type != "Unknown") %>%
-      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
-      slice(which.max(qps)) %>%
-      ungroup() %>%
-      as.data.table(),
-    format = "fst_dt"
-  ),
+  # Export the table as a csv, to use it with D3
+  csv_batch = best_batch %>%
+    write_csv(file_out("docs/best.csv")),
 
-  best_csv = best %>%
-    write_csv(file_out("docs/best.csv"))
-  ,
+  # Data for the scalability plot
+  data_scalability = {
+    file_in("temporal-index-results.sqlite")
+    table_scalability()
+  },
 
-  real_data_start_times = get_histograms("dataset-start-times", "./experiments/real-world.yml"),
-  real_data_durations = get_histograms("dataset-durations", "./experiments/real-world.yml"),
+  # Scalability plot
+  figure_scalability = data_scalability %>%
+    plot_scalability() %>%
+    save_png(file_out("paper/images/scalability.png"),
+      width = 10, height = 4
+    ),
 
-  real_data_distributions = {
-    p1 <- ggplot(real_data_start_times, aes(x=value, weight=count)) +
-      geom_histogram() +
-      facet_wrap(vars(name), scales="free") +
-      labs(x="start time") +
-      theme_tufte() +
-      theme(axis.title.y=element_blank())
-    p2 <- ggplot(real_data_durations, aes(x=value, weight=count)) +
-      geom_histogram() +
-      facet_wrap(vars(name), scales="free") +
-      labs(x="duration") +
-      theme_tufte() +
-      theme(strip.text=element_blank(),
-            axis.title.y=element_blank())
+  # Data for the parameter dependency plot
+  data_parameter_dependency = {
+    file_in("temporal-index-results.sqlite")
+    table_parameter_dependency()
+  },
+
+  # Parameter dependency plot
+  #
+  # Compared to the old version (before removing the timing of individual
+  # queries) this plot has the same behaviour (an numbers) for `both` and
+  # `time` workloads. For `duration` workloads instead of the initial plateau
+  # we have a peak, with much better throughputs!
+  figure_parameter_dependency = data_parameter_dependency %>%
+    plot_parameter_dependency() %>%
+    save_png("paper/images/param_dependency.png",
+      width = 5, height = 3
+    ),
+
+  # Data about the start times of real datasets
+  data_start_times = table_start_times(),
+  # Data about the durations of real datasets
+  data_durations = table_durations(),
+
+  # Plot with the distributions of such data
+  figure_real_distribution = plot_real_distribution(
+    data_start_times,
+    data_durations
+  ) %>%
     save_png(
-      plot_grid(p1, p2, ncol=1),
-      filename="paper/images/real-distributions.png",
-      width=10,
-      height=3
-    )
+      filename = "paper/images/real-distributions.png",
+      width = 10,
+      height = 3
+    ),
+
+  # Data for the query focus plot
+  data_query_focus = {
+    file_in("temporal-index-results.sqlite")
+    table_query_focus()
   },
 
-  querystats_plot = {
-    p <- data %>% 
-      lazy_dt() %>%
-      mutate(
-        workload_type = case_when(
-          queryset == "random-uniform-zipf-uniform" ~ "both",
-          queryset == "random-clustered-zipf-uniform" ~ "both",
-          queryset == "random-None-uniform" ~ "duration",
-          queryset == "random-uniform-zipf-None" ~ "time",
-          queryset == "random-clustered-zipf-None" ~ "time",
-          queryset == "Mixed" ~ "mixed",
-          TRUE ~ "Unknown"
-        )
-      ) %>%
-      filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
-      group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>%
-      slice(which.max(qps)) %>%
-      ungroup() %>%
-      mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-      inner_join(queries) %>%
-      plot_distribution_all()
-    save_png(p, "paper/images/querytimes-distribution.png",
-             width=9, height=4)
-  },
-
-  data_selectivity_vs_queries = lazy_dt(best) %>%
-      mutate(
-        workload_type = case_when(
-          queryset == "random-uniform-zipf-uniform" ~ "both",
-          queryset == "random-clustered-zipf-uniform" ~ "both",
-          queryset == "random-None-uniform" ~ "duration",
-          queryset == "random-uniform-zipf-None" ~ "time",
-          queryset == "random-clustered-zipf-None" ~ "time",
-          queryset == "Mixed" ~ "mixed",
-          TRUE ~ "Unknown"
-        )
-      ) %>%
-      filter(workload_type != "Unknown") %>%
-      mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-      filter(dataset_params %in% c("seed=123 n=10000000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1", "seed=123 n=10000000 start_n=10 start_high=10000000 start_stddev=100000 dur_n=10000000 dur_beta=1")) %>%
-      inner_join(lazy_dt(queries)) %>%
-      as_tibble() %>%
-      mutate(
-        query_time = set_units(as.double(query_time_ns), "ns") %>% set_units("ms"),
-        selectivity = query_count / dataset_n
-      ) %>%
-      filter(if_else(algorithm == "interval-tree", workload_type != "duration", TRUE)) %>%
-      filter(selectivity <= .2) %>%
-      group_by(algorithm, start_times_distribution) %>%
-      filter(row_number(query_time) < n() - 100) %>%
-      ungroup(),
-
-  plot_selectivity_vs_query_time = {
-    p <- data_selectivity_vs_queries %>%
-      # filter(start_times_distribution == "uniform") %>%
-      # ggplot(aes(x=cut_interval(selectivity, n=5), 
-      ggplot(aes(x=selectivity, 
-                 y=drop_units(query_time), 
-                 color=workload_type)) +
-      geom_point(size=.1, alpha=0.4) +
-      # geom_tufteboxplot() +
-      facet_grid(vars(start_times_distribution), vars(algorithm), scales="fixed") +
-      scale_y_continuous() +
-      scale_x_continuous(breaks=c(0,0.1,0.2), labels=scales::number_format(accuracy=0.1)) +
-      scale_color_workload() +
-      guides(colour = guide_legend(override.aes = list(size=2, alpha=1))) +
-      labs(x="selectivity",
-           y="query time (ms)",
-           color="query type") +
-      theme_bw()
-
-    save_png(p, file_out("paper/images/selectivity_vs_time.png"),
-             width=10, height=4)
-  },
-
-  scalability_data = table_main(conn, file_in("temporal-index-results.sqlite")) %>%
-    filter(
-      hostname == "ironmaiden",
-      algorithm != "ebi-index",
-      algorithm != "linear-scan",
-      algorithm != "period-index-old-*",
-      dataset == "random-uniform-zipf",
-      queryset == "random-uniform-zipf-uniform",
-      queryset_params == "seed=23512 n=5000 start_low=1 start_high=1000000000 dur_n=1000000000 dur_beta=1 dur_dist_low=1 dur_dist_high=10000"
-    ) %>%
-    collect() %>%
-    mutate(
-      date = parse_datetime(date),
-      is_estimate = is_estimate > 0
-    ) %>%
-    group_by(dataset, dataset_version, dataset_params, queryset, queryset_version, queryset_params, algorithm, algorithm_version, algorithm_params) %>%
-    slice(which.max(date)) %>%
-    ungroup() %>%
-    mutate(
-      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
-      time_queries = set_units(time_query_ms, "ms"),
-      time_index = set_units(time_index_ms, "ms"),
-      total_time = time_index + time_queries,
-      algorithm_wpar = interaction(algorithm, algorithm_params),
-      algorithm_wpar = fct_reorder(algorithm_wpar, desc(time_queries)),
-      qps = queryset_n / set_units(time_queries, "s")
-    ) %>%
-    select(-time_query_ms, -time_index_ms) %>%
-    group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
-    ungroup() %>%
-    get_params(dataset_params, "d_")
-    ,
-
-  plot_scalability = {
-    p <- scalability_data %>% 
-      group_by(algorithm, dataset, dataset_params, queryset, queryset_params) %>%
-      slice(which.max(qps)) %>%
-      ggplot(aes(x=d_n, y=drop_units(qps), color=algorithm)) +
-        geom_point() +
-        geom_line() +
-        geom_rangeframe(color="black") +
-        scale_x_log10(labels=scales::number_format()) +
-        scale_y_log10(labels=scales::number_format()) +
-        scale_fill_algorithm() +
-        theme_tufte()
-    save_png(p, file_out("paper/images/scalability.png"),
-             width=10, height=4)
-  },
-
-  best_qps = data %>% 
-    group_by(dataset, dataset_params, queryset, queryset_params, algorithm) %>% 
-    slice(which.max(qps)) %>%
-    ungroup(),
-
-  overview_qps = {
-    p <- plot_overview2(as_tibble(best), qps, n_bins=60, xlab="queries per second")
-    save_png(p, file_out("paper/images/overview-qps.png"),
-             width=8, height=5)
-    girafe(
-      ggobj=p, 
-      width_svg=10,
-      height_svg=6,
-      options = list(
-        opts_hover(css = "r:4; opacity: 1.0;"),
-        opts_hover_inv(css = "opacity: 0.2;")
-      ) 
-    )
-  },
-
-  data_ranking = target(
-    best[,
-         ranking := rank(desc(.SD[,"qps"])), 
-         by=c("dataset", "dataset_params", "queryset", "queryset_params")],
-    format = "fst_dt"
-  ),
-
-  data_algo_param_dep = table_main(conn, file_in("temporal-index-results.sqlite")) %>%
-    as_tibble() %>%
-    filter(
-      algorithm == "period-index++",
-      # !(dataset %in% c("Flight", "Webkit", "Tourism"))
-    ) %>%
-    mutate(
-      date = parse_datetime(date),
-      is_estimate = is_estimate > 0
-    ) %>%
-    mutate(
-      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[,2]),
-      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[,2]),
-      time_queries = set_units(time_query_ms, "ms"),
-      time_index = set_units(time_index_ms, "ms"),
-      total_time = time_index + time_queries,
-      qps = queryset_n / set_units(time_queries, "s")
-    ) %>%
-    get_params(queryset_params, "q_") %>%
-    filter(
-      queryset_n == 20000, 
-      dataset_n %in% c(10000000),
-      (q_durmin_high == 10000 | is.na(q_durmin_high)),
-      (q_durmax_high == 10000 | is.na(q_durmax_high)),
-      (q_start_high == 10000000 | is.na(q_start_high))
-    ) %>%
-    mutate(
-      workload_type = case_when(
-        queryset == "random-uniform-uniform-uniform" ~ "both",
-        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "both" ,
-        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "both",
-        queryset == "random-uniform-zipf-uniform" ~ "both",
-        queryset == "random-None-uniform" ~ "duration",
-        queryset == "random-uniform-zipf-None" ~ "time"
-      )
-    ) %>%
-    drop_na(workload_type) %>%
-    mutate(start_times_distribution = if_else(dataset == "random-uniform-zipf", "uniform", "clustered")) %>%
-    get_params(algorithm_params, ""),
-
-  
-  plot_algo_param_dep = (ggplot(data_algo_param_dep, 
-        aes(x=page_size, 
-            y=drop_units(qps),
-            color=workload_type)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(trans="log10", limits=c(10,NA)) +
-      scale_y_continuous(trans="log10", limits=c(NA,NA)) +
-      scale_color_workload() +
-      facet_wrap(vars(start_times_distribution), scales="fixed") +
-      labs(x="page size",
-           y="queries per second",
-           color="workload") +
-      theme_bw() +
-      theme(legend.position='bottom',
-            legend.direction='horizontal')) %>%
-      save_png("paper/images/param_dependency.png",
-               width=5, height=3),
-
-  best_latex_data = best %>% 
-    as_tibble() %>% 
-    filter(algorithm != "linear-scan") %>%
-    inner_join(dataset_labels) %>%
-    inner_join(queryset_labels) %>%
-    get_params(queryset_params, "q_") %>%
-    filter(na_or_in(q_start_high, c(10000000, 666, 2055, 6980952))) %>%
-    select(algorithm, dataset_label, query_interval_label, query_duration_label, qps) %>%
-    mutate(algorithm = case_when(
-             algorithm == "period-index++" ~ "PI++",
-             algorithm == "BTree" ~ "BT",
-             algorithm == "grid-file" ~ "GF",
-             algorithm == "period-index-*" ~ "PI*",
-             algorithm == "interval-tree" ~ "IT",
-             TRUE ~ algorithm
-           ),
-           algorithm = fct_reorder(algorithm, qps)) %>%
-    arrange(desc(algorithm)) %>%
-    (function(d) {d %>% print(n=100); d}) %>%
-    group_by(dataset_label, query_interval_label, query_duration_label) %>%
-    mutate(query_str = str_c("$(", query_interval_label, ", ", query_duration_label, ")$"),
-           dataset_label = str_c("$", dataset_label, "$"),
-           qps_num = qps,
-           qps = scales::number(qps, big.mark="\\\\,"),
-           qps = if_else(qps_num == max(qps_num), str_c("\\underline{",qps,"}"), qps)) %>%
-    ungroup() %>%
-    select(-qps_num, -query_interval_label, -query_duration_label) %>%
-    pivot_wider(names_from="algorithm", values_from="qps") %>%
-    arrange(dataset_label, query_str) %>%
-    rename(dataset = dataset_label, queries = query_str),
-
-  best_latex = best_latex_data %>% 
-    kable("latex", escape=F, booktabs=T, align="r") %>%
-    kable_styling(position = "center",
-                  font_size = 8) %>%
-    collapse_rows(columns=1, latex_hline = "major") %>%
-    write_file("paper/qps.tex")
-  ,
-
-  dataset_labels = best %>%
-    as_tibble() %>%
-    distinct(dataset, dataset_params) %>%
-    mutate(dataset_label = case_when(
-      dataset == "random-uniform-zipf" ~ "R_{uz}",
-      dataset == "random-clustered-zipf" ~ "R_{cz}",
-      TRUE ~ dataset
-    )) %>%
-    drop_na() %>%
-    select(dataset, dataset_label, dataset_params)
-    ,
-
-  queryset_labels = best %>%
-    as_tibble() %>%
-    distinct(queryset) %>%
-    mutate(
-      query_duration_label = case_when(
-        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "D_{unif}",
-        queryset == "random-uniform-uniform-uniform" ~ "D_{unif}",
-        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "D_{unif}",
-        str_detect(queryset, ".*-uniform$") ~ "D_{unif}",
-        str_detect(queryset, ".*-None$") ~ "nil"
-      ),
-      query_interval_label = case_when(
-        queryset == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "R_{unif}",
-        queryset == "random-uniform-uniform-uniform" ~ "R_{unif}",
-        queryset == "random-uniform-scaled-uniform-scaled-uniform" ~ "R_{unif}",
-        str_detect(queryset, "^random-None-uniform") ~ "nil",
-        str_detect(queryset, "^random-clustered-zipf-(None|uniform)$") ~ "R_{cz}",
-        str_detect(queryset, "^random-clustered-uniform-(None|uniform)$") ~ "R_{cu}",
-        str_detect(queryset, "^random-uniform-uniform-(None|uniform)$") ~ "R_{uu}",
-        str_detect(queryset, "^random-uniform-zipf-(None|uniform)$") ~ "R_{uz}"
-      )
-    ) %>%
-    drop_na(),
-
-  # queryset_labels = best %>%
-  #   as_tibble() %>%
-  #   distinct(queryset, queryset_params) %>%
-  #   get_params(queryset_params, "") %>%
-  #   (function(d) {print(distinct(d, dur_dist_high), n=100); d}) %>%
-  #   filter(is.na(durmin_low)) %>%
-  #   mutate(query_duration_label = case_when(
-  #     (is.na(dur_dist_high)) ~ "nil",
-  #     (!is.na(dur_dist_high)) ~ "D_{unif}"
-  #   )) %>%
-  #   drop_na(query_duration_label) %>%
-  #   mutate(query_interval_label = case_when(
-  #     (is.na(start_n) & start_low==1 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_1",
-  #     (start_n==10 & start_stddev==100000 & start_high==10000000 & dur_n==10000000 & dur_beta==1) ~ "R_2",
-  #     (str_detect(queryset, "-None-")) ~ "nil",
-  #     TRUE ~ "other"
-  #   )) %>%
-  #   select(queryset_params, query_interval_label, query_duration_label) %>%
-  #   drop_na()
-  # ,
-
+  # Figure for the query focus plot
+  figure_query_focus = data_query_focus %>%
+    plot_query_focus() %>%
+    save_png(
+      "paper/images/query-focus.png",
+      width = 10,
+      height = 3
+    ),
 )

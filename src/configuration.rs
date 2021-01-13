@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct ExperimentConfiguration {
-    pub min_qps: f64,
+    pub mode: ExperimentMode,
     pub dataset: Rc<dyn Dataset>,
     pub queries: Rc<dyn Queryset>,
     pub algorithm: Rc<RefCell<dyn Algorithm>>,
@@ -146,7 +146,7 @@ impl AlgorithmConfiguration {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum DataConfiguration {
     ZipfUniform {
         seed: Vec<u64>,
@@ -289,6 +289,11 @@ pub enum QueryConfiguration {
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorConfig>,
     },
+    Systematic {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        base: DataConfiguration,
+    },
 }
 
 impl QueryConfiguration {
@@ -331,13 +336,32 @@ impl QueryConfiguration {
                 );
                 Box::new(iter)
             }
+            Self::Systematic { seed, n, base } => {
+                let mut datasets = base.datasets();
+                let base = datasets.next().expect("missing first dataset");
+
+                assert!(
+                    datasets.next().is_none(),
+                    "only the first dataset is used in Systematic configuration"
+                );
+                let iter = iproduct!(seed, n).flat_map(move |(seed, n)| {
+                    Some(Rc::new(SystematicQueryset::new(*seed, *n, &base)) as Rc<dyn Queryset>)
+                });
+                Box::new(iter)
+            }
         }
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ExperimentMode {
+    Focus { samples: u32 },
+    Batch,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
-    min_qps: Option<f64>,
+    mode: ExperimentMode,
     datasets: Vec<DataConfiguration>,
     queries: Vec<QueryConfiguration>,
     algorithms: Vec<AlgorithmConfiguration>,
@@ -348,7 +372,6 @@ impl Configuration {
         self,
         mut action: F,
     ) -> Result<()> {
-        let min_qps = self.min_qps.unwrap_or(10.0);
         for dataset in self.datasets.iter().flat_map(|d| d.datasets()) {
             info!("{:=<60}", "");
             info!(
@@ -360,7 +383,7 @@ impl Configuration {
             for queries in self.queries.iter().flat_map(|q| q.queries()) {
                 for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
                     let conf = ExperimentConfiguration {
-                        min_qps,
+                        mode: self.mode.clone(),
                         dataset: Rc::clone(&dataset),
                         queries: Rc::clone(&queries),
                         algorithm: Rc::clone(&algorithm),
