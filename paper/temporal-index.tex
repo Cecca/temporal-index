@@ -729,14 +729,6 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 \subsection{Robustness of index structures across different workloads}
 \label{sec:overview}
 
-\begin{figure*}
-	\includegraphics[width=\textwidth]{images/overview-qps.png}
-	\caption{Overview of the performance of the tested index structures
-		over a variety of workloads and datasets. All the datasets have 10 million
-		points and, for each workload, we perform 5\,000 queries. The scale is logarithmic.\label{fig:overview-qps}}
-	\Description{Overview of the performance of the algortihms.}
-\end{figure*}
-
 \begin{table*}
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
 		The first column reports the distribution used to generate dataset intervals, using the notation
@@ -749,9 +741,9 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 In the first set of experiments, we generate datasets of 10 million intervals each,
 using different start time and duration distributions. Similarly we generate several different
 query workloads.
-Figure~\ref{fig:overview-qps} report on the performance, in terms of queries per second, of
+Table~\ref{tbl:overview-qps} reports 
+on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
-Table~\ref{tbl:overview-qps} reports the precise measurements.
 For index structures that take parameters, we report on the best configuration for each
 combination of dataset and query workload.
 
