@@ -1,7 +1,10 @@
 ---
 
 # Experiments on the influence of parameters
-- datasets:
+- mode:
+    Batch
+
+  datasets:
     - Random:
         seed: [123]
         n: 

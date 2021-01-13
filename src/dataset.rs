@@ -2,15 +2,17 @@ extern crate rand;
 extern crate rand_xoshiro;
 //extern crate zipf;
 
-use crate::types::*;
 use crate::zipf::ZipfDistribution;
+use crate::{algorithms::PeriodIndexPlusPlus, types::*};
 use anyhow::Context;
 use anyhow::Result;
 use csv;
+use progress_logger::ProgressLogger;
 use rand::distributions::*;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 pub trait Dataset: std::fmt::Debug {
     fn name(&self) -> String;
@@ -242,6 +244,12 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 }
 
+pub struct QueryStats {
+    pub selectivity: f64,
+    pub selectivity_time: f64,
+    pub selectivity_duration: f64,
+}
+
 pub trait Queryset: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
@@ -255,6 +263,66 @@ pub trait Queryset: std::fmt::Debug {
             self.parameters(),
             self.version()
         )
+    }
+
+    fn stats(&self, dataset: &[Interval]) -> Vec<(u32, QueryStats)> {
+        let mut index = PeriodIndexPlusPlus::new(50);
+        index.index(dataset);
+        let queries = self.get();
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+
+        let res = queries
+            .into_iter()
+            .enumerate()
+            .map(|(query_index, query)| {
+                let selectivity_time = if let Some(range) = query.range {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(
+                        &Query {
+                            range: Some(range),
+                            duration: None,
+                        },
+                        &mut answer,
+                    );
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                } else {
+                    1.0
+                };
+                let selectivity_duration = if let Some(duration) = query.duration {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(
+                        &Query {
+                            range: None,
+                            duration: Some(duration),
+                        },
+                        &mut answer,
+                    );
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                } else {
+                    1.0
+                };
+                let selectivity = {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(&query, &mut answer);
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                };
+                pl.update(1u64);
+                (
+                    query_index as u32,
+                    QueryStats {
+                        selectivity,
+                        selectivity_duration,
+                        selectivity_time,
+                    },
+                )
+            })
+            .collect();
+
+        pl.stop();
+        res
     }
 }
 
@@ -404,7 +472,8 @@ impl Queryset for RandomQueryset {
                 (start_times.stream(rng1), durations.stream(rng2))
             });
         let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
-        while data.len() < self.n {
+        let mut cnt = 0;
+        while data.len() < self.n && cnt < self.n * 2 {
             let interval = interval_gen.as_mut().map(|(start, duration)| {
                 Interval::new(start.next().unwrap(), duration.next().unwrap())
             });
@@ -417,8 +486,250 @@ impl Queryset for RandomQueryset {
                 range: interval,
                 duration: duration_range,
             });
+            cnt += 1;
         }
+        assert!(
+            data.len() == self.n,
+            "Generated too few vectors ({} out of {})",
+            data.len(),
+            self.n,
+        );
         data.into_iter().collect()
+    }
+}
+
+#[derive(Debug)]
+pub struct SystematicQueryset {
+    seed: u64,
+    n: usize,
+    base: Vec<Interval>,
+    base_name: String,
+    base_params: String,
+    base_version: u8,
+}
+
+impl SystematicQueryset {
+    pub fn new(seed: u64, n: usize, base: &Rc<dyn Dataset>) -> Self {
+        Self {
+            seed,
+            n,
+            base: base.get().expect("problems getting the vectors"),
+            base_name: base.name(),
+            base_params: base.parameters(),
+            base_version: base.version(),
+        }
+    }
+}
+
+impl Queryset for SystematicQueryset {
+    fn name(&self) -> String {
+        "systematic".to_owned()
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "seed={} n={} base=[{} {} {}]",
+            self.seed, self.n, self.base_name, self.base_version, self.base_params
+        )
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Vec<Query> {
+        use std::collections::BTreeMap;
+        let side = (self.n as f64).sqrt().ceil();
+
+        let base_size = self.base.len();
+        let step = (base_size as f64 / side).ceil() as usize;
+
+        // Collect information about the dataset
+        let mut durations: Vec<Time> = self
+            .base
+            .iter()
+            .map(|interval| interval.duration())
+            .collect();
+        durations.sort();
+        let min_start_time = self
+            .base
+            .iter()
+            .map(|interval| interval.start)
+            .min()
+            .expect("min in empty vec");
+        let max_end_time = self
+            .base
+            .iter()
+            .map(|interval| interval.end)
+            .max()
+            .expect("max in empty vec");
+
+        let mut index = crate::algorithms::PeriodIndexPlusPlus::new(100);
+        index.index(&self.base);
+
+        // Function to snap the selectivity of randomly generated queries to a grid side*side
+        let snap = |matching_n: u32| {
+            let sel = matching_n as f64 / base_size as f64;
+            (sel * side).ceil() as usize
+        };
+
+        let gen_t = Uniform::new(min_start_time, max_end_time);
+        let gen_idx_d = Uniform::new(0, durations.len());
+        let mut rng = Xoshiro256PlusPlus::seed_from_u64(self.seed);
+
+        // first, let's generate the time ranges at random
+        let mut ranges = BTreeMap::new();
+        let mut cnt = 0;
+        while ranges.len() < side as usize && cnt < 50 * side as usize {
+            let t1 = gen_t.sample(&mut rng);
+            let t2 = gen_t.sample(&mut rng);
+            let interval = Interval {
+                start: std::cmp::min(t1, t2),
+                end: std::cmp::max(t1, t2),
+            };
+            let mut ans = QueryAnswer::builder();
+            index.query(
+                &Query {
+                    range: Some(interval),
+                    duration: None,
+                },
+                &mut ans,
+            );
+            let matching = ans.finalize().num_matches();
+            ranges.entry(snap(matching)).or_insert(interval);
+            cnt += 1;
+        }
+        assert!(
+            ranges.len() == side as usize,
+            "not enough intervals generated ({} out of {})",
+            ranges.len(),
+            side as usize
+        );
+
+        // now generate the durations
+        let mut duration_ranges = BTreeMap::new();
+        for sel_parameter in 1..=(side as usize) {
+            let steps = sel_parameter * step;
+
+            let mut tentatives = 100usize;
+
+            while tentatives > 0 {
+                let mut idx1 = gen_idx_d.sample(&mut rng);
+                // slide the first index until the first element with that duration
+                let d_reference = durations[idx1];
+                while idx1 > 0 && durations[idx1 - 1] == d_reference {
+                    idx1 -= 1;
+                }
+
+                let idx2 = std::cmp::min(idx1 + steps, durations.len() - 1);
+                while idx2 - idx1 < steps && idx1 > 0 {
+                    idx1 -= 1;
+                }
+
+                let range = DurationRange {
+                    min: durations[idx1],
+                    max: durations[idx2],
+                };
+
+                let mut ans = QueryAnswer::builder();
+                index.query(
+                    &Query {
+                        range: None,
+                        duration: Some(range),
+                    },
+                    &mut ans,
+                );
+                let matching = ans.finalize().num_matches();
+                let snapped = snap(matching);
+                duration_ranges.entry(snapped).or_insert(range);
+                if snapped == sel_parameter {
+                    break;
+                } else {
+                    tentatives -= 1;
+                }
+            }
+        }
+
+        ranges
+            .values()
+            .flat_map(|range: &Interval| {
+                duration_ranges
+                    .values()
+                    .map(move |duration: &DurationRange| Query {
+                        range: Some(*range),
+                        duration: Some(*duration),
+                    })
+            })
+            .collect()
+    }
+
+    fn descr(&self) -> String {
+        format!(
+            "{} ({}) [v{}]",
+            self.name(),
+            self.parameters(),
+            self.version()
+        )
+    }
+
+    fn stats(&self, dataset: &[Interval]) -> Vec<(u32, QueryStats)> {
+        let mut index = PeriodIndexPlusPlus::new(50);
+        index.index(dataset);
+        let queries = self.get();
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+
+        let res = queries
+            .into_iter()
+            .enumerate()
+            .map(|(query_index, query)| {
+                let selectivity_time = if let Some(range) = query.range {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(
+                        &Query {
+                            range: Some(range),
+                            duration: None,
+                        },
+                        &mut answer,
+                    );
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                } else {
+                    1.0
+                };
+                let selectivity_duration = if let Some(duration) = query.duration {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(
+                        &Query {
+                            range: None,
+                            duration: Some(duration),
+                        },
+                        &mut answer,
+                    );
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                } else {
+                    1.0
+                };
+                let selectivity = {
+                    let mut answer = QueryAnswer::builder();
+                    index.query(&query, &mut answer);
+                    answer.finalize().num_matches() as f64 / dataset.len() as f64
+                };
+                pl.update(1u64);
+                (
+                    query_index as u32,
+                    QueryStats {
+                        selectivity,
+                        selectivity_duration,
+                        selectivity_time,
+                    },
+                )
+            })
+            .collect();
+
+        pl.stop();
+        res
     }
 }
 

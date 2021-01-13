@@ -76,29 +76,21 @@ pub struct Query {
 
 #[derive(Debug)]
 pub struct QueryAnswer {
-    elapsed: std::time::Duration,
-    intervals: Option<Vec<Interval>>,
+    #[cfg(test)]
+    intervals: Vec<Interval>,
     examined: u32,
     n_matches: u32,
 }
 
 impl QueryAnswer {
-    pub fn elapsed_nanos(&self) -> i64 {
-        self.elapsed.as_nanos() as i64
-    }
-
     pub fn num_matches(&self) -> u32 {
         self.n_matches
     }
 
-    pub fn num_examined(&self) -> u32 {
-        self.examined
-    }
-
     pub fn builder() -> QueryAnswerBuilder {
         QueryAnswerBuilder {
-            start: std::time::Instant::now(),
-            intervals: None,
+            #[cfg(test)]
+            intervals: Vec::new(),
             examined: 0,
             n_matches: 0,
         }
@@ -106,19 +98,15 @@ impl QueryAnswer {
 
     #[cfg(test)]
     pub fn intervals(&self) -> Vec<Interval> {
-        let mut res = self
-            .intervals
-            .as_ref()
-            .expect("intervals not recorded")
-            .clone();
+        let mut res = self.intervals.clone();
         res.sort();
         res
     }
 }
 
 pub struct QueryAnswerBuilder {
-    start: std::time::Instant,
-    intervals: Option<Vec<Interval>>,
+    #[cfg(test)]
+    intervals: Vec<Interval>,
     examined: u32,
     n_matches: u32,
 }
@@ -127,8 +115,8 @@ impl QueryAnswerBuilder {
     #[allow(dead_code)]
     pub fn record_intervals(self) -> Self {
         Self {
-            start: std::time::Instant::now(),
-            intervals: Some(Vec::new()),
+            #[cfg(test)]
+            intervals: Vec::new(),
             examined: 0,
             n_matches: 0,
         }
@@ -139,9 +127,12 @@ impl QueryAnswerBuilder {
         self.examined += cnt;
     }
 
-    pub fn push(&mut self, interval: Interval) {
-        if let Some(intervals) = self.intervals.as_mut() {
-            intervals.push(interval);
+    #[inline]
+    pub fn push(&mut self, _interval: Interval) {
+        #[cfg(test)]
+        {
+            // This block makes sense only in testing mode, when we actually collect the intervals
+            self.intervals.push(_interval);
         }
         self.n_matches += 1;
     }
@@ -153,13 +144,20 @@ impl QueryAnswerBuilder {
             self.examined,
             self.n_matches
         );
+
         QueryAnswer {
-            elapsed: std::time::Instant::now() - self.start,
+            #[cfg(test)]
             intervals: self.intervals,
             examined: self.examined,
             n_matches: self.n_matches,
         }
     }
+}
+
+pub struct FocusResult {
+    pub n_matches: u32,
+    pub n_examined: u32,
+    pub query_time: std::time::Duration,
 }
 
 pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
@@ -178,6 +176,56 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
             self.parameters(),
             self.version()
         )
+    }
+
+    fn run_batch(&self, queries: &[Query]) -> u32 {
+        // Set a timeout given by 10 queries per second
+        let mut cnt = 0;
+        for query in queries.iter() {
+            let mut query_result = QueryAnswer::builder();
+            self.query(query, &mut query_result);
+            cnt += query_result.n_matches;
+        }
+        cnt
+    }
+
+    fn run_focus(&self, queries: &[Query], n_samples: u32) -> Vec<FocusResult> {
+        let mut results = Vec::with_capacity(queries.len());
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+        for query in queries {
+            // Get the results in terms of number of matches and number of intervals examined
+            let mut query_result = QueryAnswer::builder();
+            self.query(query, &mut query_result);
+            let n_matches = query_result.n_matches;
+            let n_examined = query_result.examined;
+
+            // Warm up the cache etc.. in the hope of having more stable measurements
+            for _ in 0..5 {
+                let mut query_result = QueryAnswer::builder();
+                self.query(query, &mut query_result);
+            }
+
+            // Now run the estimate
+            let mut query_result = QueryAnswer::builder();
+            let start = std::time::Instant::now();
+            for _ in 0..n_samples {
+                self.query(query, &mut query_result);
+            }
+            let query_time = start.elapsed() / n_samples;
+
+            results.push(FocusResult {
+                n_matches,
+                n_examined,
+                query_time,
+            });
+            pl.update(1u64);
+        }
+        pl.stop();
+
+        results
     }
 
     /// Returns either the query results or, if running too slow,

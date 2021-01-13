@@ -1,11 +1,13 @@
 use crate::configuration::*;
+use crate::dataset::{Dataset, Queryset};
 use crate::types::*;
 use anyhow::{Context, Result};
 use chrono::prelude::*;
 use rusqlite::*;
 use rusqlite::{params, Connection};
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::rc::Rc;
 
 pub struct Reporter {
     date: DateTime<Utc>,
@@ -28,52 +30,117 @@ impl Reporter {
         std::path::PathBuf::from("temporal-index-results.sqlite")
     }
 
-    pub fn already_run(&self) -> Result<Option<i64>> {
-        let algorithm = &self.config.algorithm;
+    pub fn already_run(&self, mode: ExperimentMode) -> Result<Option<i64>> {
+        let algorithm = &self.config.algorithm.borrow();
         let dataset = &self.config.dataset;
         let queryset = &self.config.queries;
 
         let dbpath = Self::get_db_path();
         let hostname = get_hostname()?;
         let conn = Connection::open(dbpath).context("error connecting to the database")?;
-        conn.query_row(
-            "SELECT id FROM raw
-            WHERE hostname == ?1
-              AND dataset == ?2
-              AND dataset_params == ?3
-              AND dataset_version == ?4
-              AND queryset == ?5
-              AND queryset_params == ?6
-              AND queryset_version == ?7
-              AND algorithm == ?8
-              AND algorithm_params == ?9
-              AND algorithm_version == ?10
-            ",
-            params![
-                hostname,
-                dataset.name(),
-                dataset.parameters(),
-                dataset.version(),
-                queryset.name(),
-                queryset.parameters(),
-                queryset.version(),
-                algorithm.borrow().name(),
-                algorithm.borrow().parameters(),
-                algorithm.borrow().version()
-            ],
-            |row| row.get(0),
-        )
-        .optional()
-        .context("problem checking if the algorithm already ran")
+
+        let dataset_id: Option<u32> = conn.query_row(
+            "SELECT dataset_id from dataset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![dataset.name(), dataset.parameters(), dataset.version()],
+            |row| row.get(0)
+        ).optional()
+        .context("query dataset id")?;
+        let queryset_id: Option<u32> = conn.query_row(
+            "SELECT queryset_id from queryset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![queryset.name(), queryset.parameters(), queryset.version()],
+            |row| row.get(0)
+        ).optional()
+        .context("query queryset id")?;
+        let algorithm_id: Option<u32> = conn.query_row(
+            "SELECT algorithm_id from algorithm_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![algorithm.name(), algorithm.parameters(), algorithm.version()],
+            |row| row.get(0)
+        ).optional()
+        .context("query algorithm id")?;
+
+        if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
+            // This configuration has not been run, neither in batch nor in focus mode
+            return Ok(None);
+        }
+
+        match mode {
+            ExperimentMode::Batch => conn
+                .query_row(
+                    "SELECT id FROM batch_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND queryset_id == ?3
+                    AND algorithm_id == ?4
+                    ",
+                    params![hostname, dataset_id, queryset_id, algorithm_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, batch mode"),
+            ExperimentMode::Focus { samples: _ } => conn
+                .query_row(
+                    "SELECT id FROM focus_configuration_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND queryset_id == ?3
+                    AND algorithm_id == ?4
+                    ",
+                    params![hostname, dataset_id, queryset_id, algorithm_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, focus mode"),
+        }
     }
 
-    pub fn report(
-        &self,
-        elapsed_index: i64,
-        elapsed_query: i64,
-        index_size_bytes: u32,
-        answers: std::result::Result<Vec<QueryAnswer>, Duration>,
-    ) -> Result<()> {
+    fn get_or_insert_dataset(tx: &Transaction, dataset: &Rc<dyn Dataset>) -> Result<u32> {
+        tx.execute(
+            "INSERT OR IGNORE INTO dataset_spec (name, params, version) VALUES (?1, ?2, ?3)",
+            params![dataset.name(), dataset.parameters(), dataset.version()],
+        )
+        .context("insert into dataset_spec")?;
+        tx.query_row(
+            "SELECT dataset_id from dataset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![dataset.name(), dataset.parameters(), dataset.version()],
+            |row| row.get(0)
+        ).context("query dataset id")
+    }
+
+    fn get_or_insert_queryset(tx: &Transaction, queryset: &Rc<dyn Queryset>) -> Result<u32> {
+        tx.execute(
+            "INSERT OR IGNORE INTO queryset_spec (name, params, version) VALUES (?1, ?2, ?3)",
+            params![queryset.name(), queryset.parameters(), queryset.version()],
+        )
+        .context("insert into queryset_spec")?;
+        tx.query_row(
+            "SELECT queryset_id from queryset_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![queryset.name(), queryset.parameters(), queryset.version()],
+            |row| row.get(0)
+        ).context("query queryset id")
+    }
+
+    fn get_or_insert_algorithm(
+        tx: &Transaction,
+        algorithm: &Rc<RefCell<dyn Algorithm>>,
+    ) -> Result<u32> {
+        let algorithm = algorithm.borrow();
+        tx.execute(
+            "INSERT OR IGNORE INTO algorithm_spec (name, params, version) VALUES (?1, ?2, ?3)",
+            params![
+                algorithm.name(),
+                algorithm.parameters(),
+                algorithm.version()
+            ],
+        )
+        .context("insert into algorithm_spec")?;
+        tx.query_row(
+            "SELECT algorithm_id from algorithm_spec WHERE name == ?1 AND params == ?2 AND version == ?",
+            params![algorithm.name(), algorithm.parameters(), algorithm.version()],
+            |row| row.get(0)
+        ).context("query algorithm id")
+    }
+
+    pub fn report_focus(&self, results: Vec<FocusResult>) -> Result<()> {
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
         let hostname = get_hostname()?;
@@ -90,63 +157,164 @@ impl Reporter {
 
         let tx = conn.transaction()?;
         {
-            let elapsed_query = if answers.is_err() {
-                warn!("using estimated query time");
-                answers.as_ref().unwrap_err().as_millis() as i64
-            } else {
-                elapsed_query
-            };
+            // First get the component spec ids, inserting them if necessary
+            info!("Getting dataset, queryset, and algorithm IDs");
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let queryset_id = Self::get_or_insert_queryset(&tx, queryset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
 
-            let updated_cnt = tx.execute(
-                "INSERT INTO raw ( date, git_rev, hostname, conf_file,
-                                    dataset, dataset_params, dataset_version, 
-                                    queryset, queryset_params, queryset_version,
-                                    algorithm, algorithm_params, algorithm_version,
-                                    time_index_ms, time_query_ms, index_size_bytes, is_estimate )
-                VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17 )",
-                params![
-                    self.date.to_rfc3339(),
-                    env!("VERGEN_SHA_SHORT"),
-                    hostname,
-                    conf_file,
-                    dataset.name(),
-                    dataset.parameters(),
-                    dataset.version(),
-                    queryset.name(),
-                    queryset.parameters(),
-                    queryset.version(),
-                    algorithm.borrow().name(),
-                    algorithm.borrow().parameters(),
-                    algorithm.borrow().version(),
-                    elapsed_index,
-                    elapsed_query,
-                    index_size_bytes,
-                    answers.is_err()
-                ],
-            )
-            .context("error inserting into main table")?;
+            // Then insert into the configuration_raw table
+            info!("Inserting into the configuration table");
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO focus_configuration_raw ( 
+                            date, 
+                            git_rev, 
+                            hostname, 
+                            conf_file,
+                            dataset_id,
+                            queryset_id,
+                            algorithm_id)
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id
+                    ],
+                )
+                .context("error inserting into main table")?;
+            if updated_cnt == 0 {
+                anyhow::bail!("Insertion didn't happen");
+            }
+
+            // Then insert into the query_focus table
+            info!("Inserting into the query_focus table");
+            let id = tx.last_insert_rowid();
+            info!("last inserted row id is {}", id);
+            let mut stmt = tx.prepare(
+                "INSERT INTO query_focus (
+                    id,
+                    query_index,
+                    query_time_ns,
+                    matches,
+                    examined )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5 )",
+            )?;
+            for (query_index, res) in results.into_iter().enumerate() {
+                stmt.execute(params![
+                    id,
+                    query_index as u32,
+                    res.query_time.as_nanos() as i64,
+                    res.n_matches,
+                    res.n_examined
+                ])?;
+            }
+
+            // Finally insert query statistics in the appropriate table
+            let count_existing: u32 = tx.query_row(
+                "SELECT COUNT(*) FROM queryset_info WHERE dataset_id == ?1 AND queryset_id == ?2",
+                params![dataset_id, queryset_id],
+                |row| row.get(0),
+            )?;
+            if count_existing == 0 {
+                info!("Inserting stats into queryset_info");
+                let mut stmt = tx.prepare(
+                    "INSERT INTO queryset_info (
+                        dataset_id,
+                        queryset_id,
+                        query_index,
+                        selectivity_time,
+                        selectivity_duration,
+                        selectivity 
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                )?;
+                for (query_index, query_stats) in queryset.stats(&dataset.get()?) {
+                    stmt.execute(params![
+                        dataset_id,
+                        queryset_id,
+                        query_index,
+                        query_stats.selectivity_time,
+                        query_stats.selectivity_duration,
+                        query_stats.selectivity
+                    ])?;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn report_batch(
+        &self,
+        elapsed_index: i64,
+        elapsed_query: i64,
+        index_size_bytes: u32,
+    ) -> Result<()> {
+        let dbpath = Self::get_db_path();
+        let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let hostname = get_hostname()?;
+
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+        let queryset = &self.config.queries;
+
+        // elapsed query is in milliseconds, we turn it to seconds
+        let qps = queryset.get().len() as f64 / (elapsed_query as f64 / 1000.0);
+
+        info!("Queries per second {}", qps);
+
+        let conf_file = self
+            .config_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
+            .to_owned();
+
+        let tx = conn.transaction()?;
+        {
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let queryset_id = Self::get_or_insert_queryset(&tx, queryset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
+
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO batch_raw ( 
+                        date, 
+                        git_rev, 
+                        hostname, 
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id,
+                        time_index_ms, 
+                        time_query_ms, 
+                        qps,
+                        index_size_bytes )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id,
+                        elapsed_index,
+                        elapsed_query,
+                        qps,
+                        index_size_bytes
+                    ],
+                )
+                .context("error inserting into main table")?;
             if updated_cnt == 0 {
                 anyhow::bail!("Insertion didn't happen");
             }
 
             let id = tx.last_insert_rowid();
             info!("last inserted row id is {}", id);
-
-            if let Ok(answers) = answers {
-                let mut stmt = tx.prepare(
-                "INSERT INTO query_stats (id, query_index, query_time_ns, query_count, query_examined)
-                VALUES (?1, ?2, ?3, ?4, ?5)",
-            )?;
-                for (i, ans) in answers.into_iter().enumerate() {
-                    stmt.execute(params![
-                        id,
-                        i as u32,
-                        ans.elapsed_nanos(),
-                        ans.num_matches(),
-                        ans.num_examined(),
-                    ])?;
-                }
-            }
         }
 
         tx.commit()?;
@@ -175,7 +343,7 @@ impl Reporter {
         Ok(())
     }
 
-    pub fn backup() -> Result<()> {
+    pub fn backup(tag: Option<String>) -> Result<()> {
         use chrono::prelude::*;
         use flate2::write::GzEncoder;
         use flate2::Compression;
@@ -183,7 +351,11 @@ impl Reporter {
 
         let dbpath = Self::get_db_path();
         let mut backup_path = dbpath.clone();
-        backup_path.set_extension(format!("bak.{}.gz", Utc::now().format("%Y%m%d%H%M")));
+        backup_path.set_extension(format!(
+            "bak{}.{}.gz",
+            tag.map(|t| format!(".{}", t)).unwrap_or_else(String::new),
+            Utc::now().format("%Y%m%d%H%M")
+        ));
         let mut input = File::open(&dbpath)?;
         let mut output = GzEncoder::new(File::create(&backup_path)?, Compression::default());
         std::io::copy(&mut input, &mut output)?;
@@ -504,6 +676,24 @@ pub fn db_setup() -> Result<()> {
         info!(" . Clean up and reclaim space");
         conn.execute("VACUUM", NO_PARAMS)?;
         bump(&conn, 8)?;
+    }
+    if version < 9 {
+        Reporter::backup(Some("v9".to_owned()))?;
+        info!("Dropping table query_stats");
+        conn.execute("DROP TABLE query_stats;", NO_PARAMS)?;
+        info!(" . Clean up and reclaim space");
+        conn.execute("VACUUM", NO_PARAMS)?;
+        bump(&conn, 9)?;
+    }
+    if version < 10 {
+        // This version introduces a new set of tables that allows to inspect query behaviour
+        Reporter::backup(Some("v10".to_owned()))?;
+        let tx = conn.transaction()?;
+        tx.execute_batch(include_str!("migrations/v10.sql"))?;
+        tx.commit()?;
+        info!("Cleaning up database");
+        conn.execute("VACUUM", NO_PARAMS)?;
+        bump(&conn, 10)?;
     }
 
     info!("database schema up to date");

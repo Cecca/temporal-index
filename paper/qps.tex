@@ -1,36 +1,26 @@
-\begin{table}[H]
-\centering\begingroup\fontsize{8}{10}\selectfont
 
-\begin{tabular}{rrrrrrr}
+\begin{tabular}[t]{rrlllll}
 \toprule
-dataset & queries & PI++ & GF & BT & PI* & IT\\
+dataset & queryset & PI++ & GF & PI* & BT & IT\\
 \midrule
-$Flight$ & $(R_{unif}, D_{unif})$ & \underline{163\,934} & 149\,254 & 18\,382 & 31\,847 & 25\,000\\
-\cmidrule{1-7}
- & $(nil, D_{unif})$ & 986 & 72 & \underline{991} & 67 & 15\\
-
- & $(R_{cz}, D_{unif})$ & \underline{14\,706} & 1\,380 & 446 & 1\,388 & 249\\
-
- & $(R_{cz}, nil)$ & \underline{444} & 375 & 9 & 172 & 238\\
-
- & $(R_{uz}, D_{unif})$ & \underline{19\,305} & 1\,880 & 554 & 1\,795 & 328\\
-
-\multirow{-5}{*}{\raggedleft\arraybackslash $R_{cz}$} & $(R_{uz}, nil)$ & \underline{565} & 483 & 8 & 214 & 308\\
-\cmidrule{1-7}
- & $(nil, D_{unif})$ & 982 & 72 & \underline{991} & 67 & 12\\
-
- & $(R_{cz}, D_{unif})$ & \underline{13\,405} & 1\,296 & 421 & 1\,258 & 202\\
-
- & $(R_{cz}, nil)$ & \underline{535} & 447 & 7 & 214 & 206\\
-
- & $(R_{uz}, D_{unif})$ & \underline{16\,502} & 1\,578 & 488 & 1\,526 & 237\\
-
-\multirow{-5}{*}{\raggedleft\arraybackslash $R_{uz}$} & $(R_{uz}, nil)$ & \underline{560} & 456 & 9 & 238 & 234\\
-\cmidrule{1-7}
-$Tourism$ & $(R_{unif}, D_{unif})$ & \underline{119\,048} & 103\,093 & 6\,053 & 16\,367 & 24\,155\\
-\cmidrule{1-7}
-$Webkit$ & $(R_{unif}, D_{unif})$ & \underline{2\,915} & 2\,195 & 632 & 79 & 220\\
+1 & 1 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{17\,301} {\footnotesize(x\,68)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{1\,525 {\footnotesize(x\,6)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{1\,508 {\footnotesize(x\,6)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{495 {\footnotesize(x\,2)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{256}}\\
+76 & 1 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{20\,921} {\footnotesize(x\,60)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{1\,929 {\footnotesize(x\,6)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{1\,780 {\footnotesize(x\,5)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{574 {\footnotesize(x\,2)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{351}}\\
+1 & 16 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{612} {\footnotesize(x\,75)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{469 {\footnotesize(x\,57)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{239 {\footnotesize(x\,29)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{8}} & \cellcolor[HTML]{21908C}{\textcolor{white}{256 {\footnotesize(x\,31)}}}\\
+76 & 16 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{617} {\footnotesize(x\,72)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{482 {\footnotesize(x\,56)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{218 {\footnotesize(x\,25)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{9}} & \cellcolor[HTML]{21908C}{\textcolor{white}{358 {\footnotesize(x\,42)}}}\\
+1 & 31 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{14\,409} {\footnotesize(x\,79)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{1\,337 {\footnotesize(x\,7)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{1\,248 {\footnotesize(x\,7)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{433 {\footnotesize(x\,2)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{183}}\\
+\addlinespace
+76 & 31 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{15\,674} {\footnotesize(x\,70)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{1\,415 {\footnotesize(x\,6)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{1\,379 {\footnotesize(x\,6)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{461 {\footnotesize(x\,2)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{225}}\\
+1 & 46 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{587} {\footnotesize(x\,74)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{458 {\footnotesize(x\,58)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{215 {\footnotesize(x\,27)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{8}} & \cellcolor[HTML]{21908C}{\textcolor{white}{216 {\footnotesize(x\,27)}}}\\
+76 & 46 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{483} {\footnotesize(x\,60)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{368 {\footnotesize(x\,46)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{173 {\footnotesize(x\,22)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{8}} & \cellcolor[HTML]{21908C}{\textcolor{white}{274 {\footnotesize(x\,34)}}}\\
+1 & 61 & \cellcolor[HTML]{5DC863}{\textcolor{black}{23\,256 {\footnotesize(x\,1 763)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{76 {\footnotesize(x\,6)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{67 {\footnotesize(x\,5)}}} & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{43\,103} {\footnotesize(x\,3 268)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{13}}\\
+76 & 61 & \cellcolor[HTML]{5DC863}{\textcolor{black}{23\,148 {\footnotesize(x\,1 429)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{77 {\footnotesize(x\,5)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{68 {\footnotesize(x\,4)}}} & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{42\,735} {\footnotesize(x\,2 639)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{16}}\\
+\addlinespace
+809 & 809 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{73\,529} {\footnotesize(x\,1 055)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{1\,941 {\footnotesize(x\,28)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{70}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{3\,451 {\footnotesize(x\,49)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{160 {\footnotesize(x\,2)}}}\\
+809 & 835 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{480} {\footnotesize(x\,10)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{461 {\footnotesize(x\,10)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{83 {\footnotesize(x\,2)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{47}} & \cellcolor[HTML]{21908C}{\textcolor{white}{386 {\footnotesize(x\,8)}}}\\
+809 & 861 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{3\,176} {\footnotesize(x\,40)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{2\,339 {\footnotesize(x\,30)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{79}} & \cellcolor[HTML]{21908C}{\textcolor{white}{755 {\footnotesize(x\,10)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{258 {\footnotesize(x\,3)}}}\\
+897 & 897 & \cellcolor[HTML]{5DC863}{\textcolor{black}{277\,778 {\footnotesize(x\,440)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{5\,171 {\footnotesize(x\,8)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{758 {\footnotesize(x\,1)}}} & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{5\,000\,000} {\footnotesize(x\,7 922)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{631}}\\
+897 & 923 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{28\,736} {\footnotesize(x\,21)}}} & \cellcolor[HTML]{21908C}{\textcolor{white}{16\,340 {\footnotesize(x\,12)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{6\,460 {\footnotesize(x\,5)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{1\,347}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{28\,090 {\footnotesize(x\,21)}}}\\
+\addlinespace
+897 & 949 & \cellcolor[HTML]{FDE725}{\textcolor{black}{\underline{238\,095} {\footnotesize(x\,18)}}} & \cellcolor[HTML]{5DC863}{\textcolor{black}{161\,290 {\footnotesize(x\,12)}}} & \cellcolor[HTML]{3B528B}{\textcolor{white}{27\,933 {\footnotesize(x\,2)}}} & \cellcolor[HTML]{440154}{\textcolor{white}{13\,405}} & \cellcolor[HTML]{21908C}{\textcolor{white}{33\,333 {\footnotesize(x\,2)}}}\\
 \bottomrule
 \end{tabular}
-\endgroup{}
-\end{table}

@@ -6,3 +6,4 @@ imgs/*.png
 .vscode
 .drake
 report.html
+temporal-index-*.gz
