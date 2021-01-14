@@ -73,8 +73,34 @@ plot_real_distribution <- function(data_start, data_duration) {
 }
 
 plot_query_focus <- function(data_focus) {
+    datasets <- data_focus %>% pull(dataset_name)
+    assertthat::are_equal(length(datasets), 1)
+    stops <- seq(0, 1.0, by = 1 / 32)
     plotdata <- data_focus %>%
         filter(matches > 0, dataset_name == "random-uniform-zipf") %>%
+        mutate(
+            selectivity_time_group = cut(
+                selectivity_time,
+                breaks = stops,
+                labels = stops[-1],
+                right = T,
+                ordered_result = T
+            ),
+            selectivity_duration_group = cut(
+                selectivity_duration,
+                breaks = stops,
+                labels = stops[-1],
+                right = T,
+                ordered_result = T
+            )
+        ) %>%
+        group_by(
+            algorithm_name,
+            selectivity_time_group,
+            selectivity_duration_group
+        ) %>%
+        summarise(query_time = mean(query_time)) %>%
+        ungroup() %>%
         mutate(
             query_time =
                 set_units(query_time, "milliseconds"),
@@ -90,8 +116,6 @@ plot_query_focus <- function(data_focus) {
         ) %>%
         mutate(
             label = str_c(
-                # scales::number(min_time, accuracy = 0.1),
-                # " to ",
                 scales::number(max_time, accuracy = 0.1),
                 " ms"
             )
@@ -101,18 +125,22 @@ plot_query_focus <- function(data_focus) {
     labels <- pull(labels_data, label)
 
     ggplot(plotdata, aes(
-        x = selectivity_time,
-        y = selectivity_duration,
+        x = selectivity_time_group,
+        y = selectivity_duration_group,
+        color = query_time_tile,
         fill = query_time_tile,
         tooltip = query_time
     )) +
-        geom_point_interactive() +
+        # geom_point_interactive() +
+        geom_tile() +
         scale_fill_viridis_c(
             breaks = breaks,
             labels = labels,
             option = "viridis",
             aesthetics = c("fill", "color")
         ) +
+        scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
+        scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
         facet_wrap(vars(algorithm_name), ncol = 5) +
         labs(
             x = "time selectivity",
@@ -169,3 +197,5 @@ plot_selectivity_dependency <- function(data_selectivity) {
         theme_paper() +
         theme(legend.position = "top")
 }
+
+table_query_focus() %>% plot_query_focus()
