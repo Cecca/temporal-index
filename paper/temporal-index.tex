@@ -709,7 +709,7 @@ three real-world datasets we consider in this experimental evaluation.
 
 In the remainder of the paper, we denote queries constraining both the time range and the
 duration with \qrd (Range-Duration queries), queries constraining only the time range with
-\qro (Range-Only queries) and queries constraining just the duration with \qrd (Duration-Only queries).
+\qro (Range-Only queries) and queries constraining just the duration with \qdo (Duration-Only queries).
 
 
 \subsection{Robustness of index structures across different workloads}
@@ -743,38 +743,32 @@ on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
 For index structures that take parameters, we report on the best configuration
 
-Each dot in the figure represents the performance of an index structure on a given
-combination of dataset and query workload. For readability, the scale of the plot
-is logarithmic, and points are snapped to a grid, so that points representing configurations
-with similar performance are stacked on top of one another.
-We remark that with this experimental evaluation we want to compare the algorithmic ideas underlying each data structure.
-Therefore, we consider as equivalent indices
-performing within the same order of magnitude, to account for artifacts introduced by the implementation.
-The online interactive version\footnote{https://cecca.github.io/temporal-index/} of the plot allows
-to get a detailed comparison of the performance of the index structures.
-
 We remark that the overall difference in throughput for different workloads is
 due to the different output sizes: \qdo queries are in general less selective than \qrd queries,
 hence it takes more time to iterate through the output.
 This explains why, in general, \qrd queries enjoy a higher throughput across all the index structures.
 
-From the plot we can see that \ours has better median performance across all the tested
-workloads, and also higher minimum and maximum throughput.
-Since it builds an index on the durations of the intervals,
-the \algo{b-tree} performs poorly on query workloads constraining only the time range, since
-in this case the query falls back to a scan of the entire dataset.
-Similarly, the \algo{interval-tree} performs poorly on query workloads constraining
-only the duration.
+From the table we can see that \ours has in general a better performance compared to the other
+structures.
+In particular, it is up to one order of magnitude faster than the second-ranked baseline.
 
-We also observe that the \algo{grid-file} performs consistently worse than \ours,
-despite being both grid-based structures. This shows the benefit of a data structure
-that is adaptive with respect to the data.
+We also observe that the \algo{grid-file} ranks second in several cases.
+Recall that this data structure is rather similar to \ours, the difference being
+that the latter is adaptive to the input distribution.
+This shows the performance benefits of a data structure that takes into account the data distribution.
 
-On duration-only query workloads, \algo{b-tree} is always the best performing index, with
-\ours being just slightly slower.
+On \qdo workloads, \algo{b-tree} is always the best performing index, up to one order of
+magnitude faster than \ours.
+However, on \qrd workloads, its performance is much worse.
+As for the \algo{interval-tree} it shows performance comparable to the \algo{grid-file} on \qro
+workloads, but is comparatively much slower on \qrd workloads.
 
-Furthermore, we also observe that \ours is very stable with respect to the start time distribution,
-having similar performance for a given query workload.
+We can therefore conclude that \ours is the index structure achieving the best compromise
+for all three types of queries: \qrd, \qdo, and \qro.
+
+Finally, we observe that the distribution of start times does not seem to play a crucial role
+in determining the performance of the index structures we tested: similar workloads differing only by
+their start time distribution show similar performance.
 
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
