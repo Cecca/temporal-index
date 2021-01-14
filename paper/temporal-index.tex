@@ -774,50 +774,87 @@ their start time distribution show similar performance.
 \label{sec:query-inspect}
 
 \begin{figure*}
-	\includegraphics[width=\textwidth]{images/selectivity-dep.png}
-	\caption{
-		\label{fig:time-vs-selectivity}}
-	\Description{Time versus selectivity}
-\end{figure*}
-
-\begin{figure*}
 	\includegraphics[width=\textwidth]{images/query-focus.png}
 	\caption{
+		Heatmaps of query times against selectivity in the time and duration dimensions,
+		for different index structures.
+		Note that for readability we bin running in 8 groups, assigning a color to each group.
+		As can be seen from the color scale, such groups are not evenly distributed.
 		\label{fig:selectivity-grid}}
 	\Description{Time versus selectivity in two dimensions}
 \end{figure*}
 
+\begin{figure*}
+	\includegraphics[width=\textwidth]{images/selectivity-dep.png}
+	\caption{
+		Query time against selectivity for different index structures.
+		Each point represents a query:
+		red dots are \qro queries, blue dots are \qdo queries.
+		\label{fig:time-vs-selectivity}}
+	\Description{Time versus selectivity}
+\end{figure*}
+
 We investigate the relationship between the selectivity of the queries (i.e. the fraction of the
 input that satisfies them) and the time taken by different data structures to answer them.
-Ideally, a data structure should answer the queries in time linearly dependent on the selectivity.
+Given that range-duration queries constrain both the time and the duration ranges,
+for a query $q$ we can define the \emph{time selectivity} as the fraction of the input that
+satisfies the time range constraint of $q$, and the \emph{duration selectivity} as the fraction
+of the input satisfying the duration constraint of $q$.
 
-Figure~\ref{fig:time-vs-selectivity} reports, for all the queries from different workloads
-on the same dataset with selectivity at most $20\%$.
-From the figure, we observe that \ours indeed shows the ideal behavior, irrespective from the
-query type.
+For a given dataset, we build a query set such that queries are uniformly distributed on the
+\emph{time}$\times$\emph{duration} selectivity plan: this way we have queries which are
+very selective in only one dimension, or that are very selective in both dimensions, or that are not
+selective at all.
+The goal is to investigate the behaviour of each index structure for queries with different characteristics.
+To account for the overhead of measuring time and to level out the effect of the CPU cache,
+we measure the time taken to repeat a given query 100 consecutive times, which divided by 100
+gives an estimate of the time required by the query.
+
+Figure~\ref{fig:selectivity-grid} reports results for such a setup, with 1024 queries arranged in a 32$\times$32
+grid, running on the \dataset{UZ Synthetic} dataset. Colors encode the time required by queries having
+a particular combination of selectivity in the time and duration dimensions.
+When reading Figure~\ref{fig:selectivity-grid}, remember that less selective queries require more time
+just to iterate through the output.
+Interestingly, different data structures exhibit different patterns in this plot, as a result
+of how they access data.
+The \algo{interval-tree} plot exhibits vertical bands: the data structure is only able to select intervals
+based only on their position on the timeline, therefore for a fixed time selectivity of the query
+the time employed to filter in the duration dimension does not depend on the selectivity of the query,
+since all the candidate intervals need to be examined.
+For similar reasons, \algo{b-tree} shows horizontal bands.
+The data structures that explicitly index both dimensions, instead, tend to exhibit a more \emph{diagonal}
+pattern, in particular \ours.
+The pattern exhibited by \algo{period-index*} tends to be more similar to the \algo{interval-tree}.
+This means that this index is more responsive to queries that are selective in the time dimension.
+This is to be expected, since \algo{period-index*} is adaptive to the distribution of start times
+in the dataset.
+Its worse performance compared to \ours and \algo{grid-file} for queries of a given selectivity
+is explained by the fact that some intervals might be represented multiple times in the index.
+
+Figure~\ref{fig:time-vs-selectivity} reports the performance (in terms of query time) against
+the \emph{overall} selectivity of the same queries.
+Ideally, a data structure should answer the queries in time linearly dependent on the selectivity,
+irrespective of whether the query is more selective in the time or duration dimension.
+From the figure, we observe that \ours indeed shows the ideal behavior.
 This is consistent with the theoretical analysis: the query time depends on the
-output size, and in practice the overhead for cell inspection can be amortized with
-the correct parameter choice (more on that in the next section).
+output size plus some overhead proportional to the cell size, that can be amortized with
+the correct parameter choice (which we will discuss in the next section).
 Moreover, \ours is able to answer queries in a more timely fashion, compared to the other indices.
-
-If we consider the \algo{b-tree}, instead, we observe that \qdo queries
-follow indeed the ideal behaviour, whereas queries \qrd queries
-are answered with varying efficiency, depending on how selective is the time range component of the query.
-We don't report on \qro queries for the \algo{b-tree}, since they are answered by simple enumeration.
-
-The \algo{interval-tree} shows a behavior similar to the \algo{b-tree}, with \qro queries
-being the ones that are efficiently answered.
 
 As for the \algo{grid-file}, the query times are more scattered: the efficiency of a query
 in this case is in fact dependent on the density of the cells being considered.
 
-\cetodo{Should detail a little bit more on this.}
+Considering the \algo{b-tree} and \algo{interval-tree}, we have \qro and \qdo respectively
+are answered with the worst performance, as we expect given that they are answered
+by simple enumeration.
+Other queries are answered with varying degrees of efficiency, with queries constraining
+just the dimension on which the index specializes exhibiting a close-to-ideal behaviour.
+\cetodo{Actually this is not strictly true for the \algo{b-tree}, why?}
+
 Finally, \algo{period-index$\star$} answers queries with mixed performance, possibly as an effect of intervals
 being replicated across several cells.
-Furthermore, despite being adaptive in the start time distribution, this data structure is not adaptive
-in the duration, which explains the mixed performance of queries constraining the duration.
-\cetodo{I know that buckets decrease the duration in levels with powers of 2, but if the power law distribution
-	of the actual intervals does not match this progression, \algo{period-index$\star$ is out of luck.}}
+As we observed previously, queries restricting only the time are the ones answered most efficiently
+by this data structure.
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
@@ -836,7 +873,6 @@ distributed between 0 and 10 million and clustered around 10 random centers,
 and durations distributed according to a
 Zipf's law with $\beta = 1$.
 As for the query workload, we consider batches of 20\,000 \qrd, \qro, and \qdo queries.
-\cetodo{We consider more queries for stability in the estimate. With 5000 queries the curves look more noisy.}
 
 Figure~\ref{fig:param-dependency} reports the results of varying the page size of the
 index under these different workloads, in terms of queries per second.
