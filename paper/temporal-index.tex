@@ -37,6 +37,7 @@
 \newcommand{\T}{\ensuremath{T}}
 \newcommand{\TS}{\ensuremath{T_s}}
 \newcommand{\TE}{\ensuremath{T_e}}
+\newcommand{\dataset}[1]{\texttt{#1}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -642,7 +643,6 @@ In a similar way we can prove the follwing theorem.
 	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
 \end{theorem}
 
-
 \section{Experimental evaluation}
 
 \begin{table}
@@ -687,25 +687,47 @@ In this section we compare experimentally our proposed index with alternative ap
 In particular, we aim to answer the following questions:
 \begin{enumerate}
 	\item How robust are the indices over different workloads? (Section~\ref{sec:overview})
-	\item How are query times distributed? (Section~\ref{sec:query-inspect})
+	\item How do query times relate with the selectivity of the query? (Section~\ref{sec:query-inspect})
 	\item How does the page size parameter affect the performance of the index? (Section~\ref{sec:param-dep})
-	\item How do the indices scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
+	\item How does the performance scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
 \end{enumerate}
 
 To this end, we implemented our index, as well as some baseline competitors,
 using Rust 1.44.0. Our implementation, which is open source and available
 at~\url{https://github.com/Cecca/temporal-index}, allows to easily tune the parameters to explore
 different questions.
-All algorithms have been moderately optimized.
 The experiments presented in this section have been run on a machine
-equipped with XXX Gb of memory and a YYY processor.
+equipped with 94 Gb of memory and a Intel\textregistered Xeon\textregistered CPU E5-2667 v3 @ 3.20GHz processor.
 
-Both datasets and querysets used in this study are generated at random
-under different distributions to test different workloads.
-Table~\ref{tbl:distributions} reports the different distributions we used
-to build datasets and query sets: we test on all the combinations of distributions.
-Queries with duration ranges of type $D_1$ and $D_3$ have low selectivity, whereas queries
-of type $D_2$ and $D_4$ have high selectivity.
+As a benchmark we consider the following datasets and workloads\footnote{
+	All the datasets are available in the code repository.}:
+%
+\cetodo{This might not make sense, since the dataset covers just August? Check that it indeed covers just August}
+\paragraph{\dataset{Flight}} A set of 701\,353 flights, identified by their
+takeoff and landing time, at the granularity of minute, covering the month
+of August 2018.
+Queries on this dataset are generated at random, with time ranges with durations
+uniformly distributed between 1 and 90 days,
+and duration ranges with endpoints uniformly distributed between 1 minute and
+a day, at the granularity of minutes.
+%
+\paragraph{\dataset{Webkit}} 1\,547\,419 file edits in the Webkit source code repository.
+Intervals represent the timespan between successive edits to a file.
+Queries on this dataset are generated at random, with time ranges with durations uniformly distributed between
+one minute and one year,
+and duration ranges with a maximum up to three years.
+%
+\paragraph{\dataset{Tourism}} 835\,072 stays in the city of Bolzano, from 2015 to 2020.
+Each stay is represented by the day of arrival and the day of departure.
+Queries, generated at random, have time ranges with durations uniformly distributed in $[1, 90]$ days,
+and duration ranges have endpoints uniformly distributed in $[1, 120]$ days.
+%
+\paragraph{\dataset{Synthetic}} Randomly generated datasets.
+Intervals start times are either uniformly distributed in $[1, n]$, where $n$ is the size of the dataset;
+or are clustered around 10 instants sampled uniformly at random from $[1, n]$, following a $N(\mu_i, 10^7)$
+distribution for $1 \le i \le 10$.
+In both cases, interval durations follow a Zipf distribution with $\beta=1$.
+
 
 In the remainder of the paper, we denote queries constraining both the time range and the
 duration with \qrd (Range-Duration queries), queries constraining only the time range with
@@ -739,9 +761,9 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 \end{table*}
 
 In the first set of experiments, we generate datasets of 10 million intervals each,
-using different start time and duration distributions. Similarly we generate several different
-query workloads.
-Table~\ref{tbl:overview-qps} reports 
+using different start time and duration distributions.
+Similarly we generate several different query workloads.
+Table~\ref{tbl:overview-qps} reports
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
 For index structures that take parameters, we report on the best configuration for each
