@@ -104,7 +104,7 @@ filter_synthetic <- function(data_batch) {
 
 filter_real <- function(data_batch) {
   data_batch %>%
-    filter(dataset_name %in% c("Flights", "Webkit", "Tourism"))
+    filter(dataset_name %in% c("Flight", "Webkit", "Tourism"))
 }
 
 table_best <- function() {
@@ -114,7 +114,40 @@ table_best <- function() {
   bind_rows(synth, real) %>%
     group_by(algorithm_name, queryset_id, dataset_id) %>%
     slice_max(qps) %>%
-    ungroup()
+    ungroup() %>%
+    mutate(dataset_name = case_when(
+      dataset_name == "random-uniform-zipf" ~ "UZ",
+      dataset_name == "random-clustered-zipf" ~ "CZ",
+      T ~ dataset_name
+    )) %>%
+    mutate(time_constraint = case_when(
+      queryset_name == "random-uniform-zipf-uniform" ~ "UZ",
+      queryset_name == "random-uniform-zipf-None" ~ "UZ",
+      queryset_name == "random-clustered-zipf-uniform" ~ "CZ",
+      queryset_name == "random-clustered-zipf-None" ~ "CZ",
+      queryset_name == "random-None-uniform" ~ "-",
+      queryset_name == "random-None-uniform-scaled" ~ "-",
+      queryset_name == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "UU",
+      queryset_name == "random-uniform-uniform-uniform" ~ "UU",
+      queryset_name == "random-uniform-scaled-uniform-scaled-uniform" ~ "UU",
+      queryset_name == "random-uniform-scaled-uniform-scaled-None" ~ "UU",
+      queryset_name == "random-uniform-uniform-None" ~ "UU",
+      TRUE ~ "undefined"
+    )) %>%
+    mutate(duration_constraint = case_when(
+      queryset_name == "random-uniform-zipf-uniform" ~ "U",
+      queryset_name == "random-uniform-zipf-None" ~ "-",
+      queryset_name == "random-clustered-zipf-uniform" ~ "U",
+      queryset_name == "random-clustered-zipf-None" ~ "-",
+      queryset_name == "random-None-uniform" ~ "U",
+      queryset_name == "random-None-uniform-scaled" ~ "U",
+      queryset_name == "random-uniform-scaled-uniform-scaled-uniform-scaled" ~ "U",
+      queryset_name == "random-uniform-uniform-uniform" ~ "U",
+      queryset_name == "random-uniform-scaled-uniform-scaled-uniform" ~ "U",
+      queryset_name == "random-uniform-scaled-uniform-scaled-None" ~ "-",
+      queryset_name == "random-uniform-uniform-None" ~ "-",
+      TRUE ~ "undefined"
+    ))
 }
 
 

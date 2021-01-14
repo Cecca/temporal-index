@@ -2,12 +2,22 @@
 
 latex_best <- function(data_best) {
     palette <- viridisLite::viridis(5, direction = -1)
+    lineseps <- c(
+        "", "", "", "", "\\addlinespace",
+        "", "", "", "", "\\addlinespace",
+        "", "", "\\addlinespace",
+        "", "", "\\addlinespace",
+        "", "", "\\addlinespace"
+    )
 
     # TODO come up with a good naming scheme for workloads
     data_best %>%
         ungroup() %>%
-        select(dataset_id, queryset_id, algorithm_name, qps) %>%
-        group_by(dataset_id, queryset_id) %>%
+        select(
+            dataset_name, time_constraint,
+            duration_constraint, algorithm_name, qps
+        ) %>%
+        group_by(dataset_name, time_constraint, duration_constraint) %>%
         distinct(algorithm_name, qps) %>%
         mutate(
             rank = row_number(desc(qps)),
@@ -39,16 +49,33 @@ latex_best <- function(data_best) {
                 algorithm_name == "interval-tree" ~ "IT",
                 TRUE ~ algorithm_name
             ),
-            algorithm_name = fct_reorder(algorithm_name, desc(qps_num))
+            # algorithm_name = fct_reorder(algorithm_name, rank, .fun = median)
+            algorithm_name = factor(algorithm_name,
+                levels = c("PI++", "GF", "BT", "PI*", "IT"),
+                ordered = TRUE
+            )
         ) %>%
+        # (function(d) {
+        #     print(group_by(d, algorithm_name) %>% summarise(m = median(rank)) %>% arrange(m))
+        #     d
+        # }) %>%
         arrange(algorithm_name) %>%
         select(
-            dataset = dataset_id, queryset = queryset_id,
-            algorithm_name, qps
+            dataset = dataset_name,
+            time = time_constraint,
+            duration = duration_constraint,
+            algorithm_name,
+            qps
         ) %>%
         pivot_wider(
             names_from = "algorithm_name",
             values_from = "qps"
         ) %>%
-        kbl(format = "latex", booktabs = T, escape = F)
+        mutate(dataset = factor(dataset,
+            levels = c("UZ", "CZ", "Flight", "Webkit", "Tourism"),
+            ordered = TRUE
+        )) %>%
+        arrange(dataset) %>%
+        kbl(format = "latex", booktabs = T, escape = F, linesep = lineseps) %>%
+        add_header_above(c(" " = 1, "constraint" = 2, " " = 5))
 }
