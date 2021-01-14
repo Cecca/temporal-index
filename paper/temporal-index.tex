@@ -1,5 +1,6 @@
 \documentclass[sigconf,nonacm]{acmart}
 
+\usepackage{xcolor}
 \usepackage{colortbl}
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{tcolorbox}
@@ -38,6 +39,13 @@
 \newcommand{\TS}{\ensuremath{T_s}}
 \newcommand{\TE}{\ensuremath{T_e}}
 \newcommand{\dataset}[1]{\texttt{#1}}
+\newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
+
+\definecolor{firstcolor}{HTML}{FDE725}
+\definecolor{secondcolor}{HTML}{5DC863}
+\definecolor{thirdcolor}{HTML}{21908C}
+\definecolor{fourthcolor}{HTML}{3B528B}
+\definecolor{fifthcolor}{HTML}{440154}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -645,38 +653,6 @@ In a similar way we can prove the follwing theorem.
 
 \section{Experimental evaluation}
 
-\begin{table}
-	\caption{Distributions used to build synthetic dataset and query sets.
-		In particular, a query set is defined as a pair of time range
-		and duration range distributions, which are possibly
-		omitted for \qro and \qdo queries.
-		$U(l, u)$ denotes the uniform distribution between $l$ and $u$,
-		$N(\mu, \sigma)$ denotes the normal distribution with mean $\mu$
-		and standard deviation $\sigma$.
-		\label{tbl:distributions}}
-
-	\begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
-		\toprule
-		\multicolumn{2}{l}{Time intervals distributions}                                                                \\
-		\midrule
-		$R_1$ & Start times uniformly distributed in $[1, 10^7]$, durations
-		Zipf distributed with $\beta=1$                                                                                 \\
-		$R_2$ & Start times distributed according to $N(\mu_i, 100\,000)$, with $\mu_i\in U(1, 10^7)$ and $i\in[1,10]$. \\
-		\bottomrule
-	\end{tabular}
-
-	\begin{tabular}{p{0.1\columnwidth}p{0.8\columnwidth}}
-		\toprule
-		\multicolumn{2}{l}{Duration ranges distributions}                   \\
-		\midrule
-		$D_1$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 100)$     \\
-		$D_2$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 100)$   \\
-		$D_3$ & $d_{min}\in U(1, 100)$, $d_{max} = d_{min} + U(1, 10000)$   \\
-		$D_4$ & $d_{min}\in U(1, 10000)$, $d_{max} = d_{min} + U(1, 10000)$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
 \begin{figure*}
 	\includegraphics[width=\textwidth]{images/real-distributions.png}
 	\caption{Histograms of the start times (top) and durations (bottom) of the three real-world
@@ -728,46 +704,44 @@ or are clustered around 10 instants sampled uniformly at random from $[1, n]$, f
 distribution for $1 \le i \le 10$.
 In both cases, interval durations follow a Zipf distribution with $\beta=1$.
 
+Figure~\ref{fig:data-distributions} reports the distribution of start times and durations of the
+three real-world datasets we consider in this experimental evaluation.
 
 In the remainder of the paper, we denote queries constraining both the time range and the
 duration with \qrd (Range-Duration queries), queries constraining only the time range with
 \qro (Range-Only queries) and queries constraining just the duration with \qrd (Duration-Only queries).
 
-\begin{tcolorbox}
-	\textbf{A note on my implementation of period-index-$\star$}.\\
-	In~\cite{BehrendDGSVRK_SSTD19_period-index}, there is a note about how to save on
-	empty cells, which are the vast majority in all the experiments we try (from 50\% up to 99\%).
-	In the paper, there is the suggestion to use a linked structure, with non-empty buckets linked to one another.
-	However, as I see it, this would imply that we lose the ability to index into the first non-empty bucket
-	containing potentially overlapping intervals.
-	Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
-
-	Given this, my implementation uses an array to hold all the cells, event the empty ones,
-	thus allowing to directly index into it.
-	Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
-	Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
-\end{tcolorbox}
 
 \subsection{Robustness of index structures across different workloads}
 \label{sec:overview}
 
 \begin{table*}
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
-		The first column reports the distribution used to generate dataset intervals, using the notation
-		introduced in Table~\ref{tbl:distributions}.
-		The second column reports the query workload configuration: a $nil$ indicates that a particular
-		query workload is not constraining either the time range or the duration range.\label{tbl:overview-qps}}
+		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination:
+		\crule[firstcolor]{.5em}{1em} first,
+		\crule[secondcolor]{.5em}{1em} second,
+		\crule[thirdcolor]{.5em}{1em} third,
+		\crule[fourthcolor]{.5em}{1em} fourth,
+		and \crule[fifthcolor]{.5em}{1em} last.
+		With \dataset{UZ} we denote interval sets with Uniform distribution of start times and Zipf
+		distribution of durations, with \dataset{UU} we refer to sets of intervals with Uniform distribution
+		for both the start time and the duration, and with \dataset{CZ} we denote intervals with
+		clustered start times and zipf distributed start times.
+		As for the duration, \dataset{U} denotes that duration ranges have endpoints with a uniform distribution.
+		For both time and duration constraints on the query, a dash (-) marks a workload that is not
+		constraining that dimension.
+		The smaller number in parentheses reports the speedup compared to the slowest index
+		in the ranking.
+		\label{tbl:overview-qps}}
 	\input{qps.tex}
 \end{table*}
 
-In the first set of experiments, we generate datasets of 10 million intervals each,
-using different start time and duration distributions.
-Similarly we generate several different query workloads.
-Table~\ref{tbl:overview-qps} reports
+In the first set of experiments, we consider both real-world and synthetic datasets
+(with 10 million intervals).
+Table~\ref{tbl:overview-qps} reports an overview
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
-For index structures that take parameters, we report on the best configuration for each
-combination of dataset and query workload.
+For index structures that take parameters, we report on the best configuration
 
 Each dot in the figure represents the performance of an index structure on a given
 combination of dataset and query workload. For readability, the scale of the plot
@@ -918,3 +892,19 @@ For all tested sizes, \ours is about one order of magnitude faster than the seco
 \bibliography{references}
 
 \end{document}
+
+
+\begin{tcolorbox}
+	\textbf{A note on my implementation of period-index-$\star$}.\\
+	In~\cite{BehrendDGSVRK_SSTD19_period-index}, there is a note about how to save on
+	empty cells, which are the vast majority in all the experiments we try (from 50\% up to 99\%).
+	In the paper, there is the suggestion to use a linked structure, with non-empty buckets linked to one another.
+	However, as I see it, this would imply that we lose the ability to index into the first non-empty bucket
+	containing potentially overlapping intervals.
+	Therefore, we would have to do a linear scan of these linked lists, which would absolutely kill performance.
+
+	Given this, my implementation uses an array to hold all the cells, event the empty ones,
+	thus allowing to directly index into it.
+	Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
+	Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
+\end{tcolorbox}
