@@ -5,28 +5,25 @@
       samples: 10
 
   datasets:
-    - Random:
-        seed: [123]
-        n: 
-          - 10000000
-        start_times:
-          - Uniform: { low: 1, high: 10000000 }
-        durations:
-          - Zipf: { n: 10000000, beta: 1 }
+    - Flight
+
+    - Reiterated:
+        copies: 4
+        base:
+          Flight
 
   queries:
-    - Systematic:
-        seed: [1234512]
-        n: [1024]
-        base:
-          Random:
-            seed: [123]
-            n: [10000000]
-            start_times:
-              - Uniform: { low: 1, high: 10000000 }
-            durations:
-              - Zipf: { n: 10000000, beta: 1 }
-
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 10000000 },
+              Zipf: { n: 10000000, beta: 1 }
+          ]
+        duration:
+          - Single:
+              Uniform: { low: 1, high: 10000 }
 
   algorithms:
     - PeriodIndexPlusPlus:

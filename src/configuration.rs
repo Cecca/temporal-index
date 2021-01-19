@@ -167,6 +167,10 @@ pub enum DataConfiguration {
         separator: u8,
         has_header: bool,
     },
+    Reiterated {
+        base: Box<DataConfiguration>,
+        copies: usize,
+    },
     Flight,
     Webkit,
     Tourism,
@@ -186,6 +190,17 @@ impl DataConfiguration {
             Self::Tourism => {
                 let d = Rc::new(TourismDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
+            }
+            Self::Reiterated { base, copies } => {
+                let mut iter = base.datasets();
+                let dataset = iter.next().expect("Missing dataset");
+                assert!(
+                    iter.next().is_none(),
+                    "only a single dataset is supported here"
+                );
+                let reiterated =
+                    ReiteratedDataset::new(dataset, *copies).expect("error getting the dataset");
+                Box::new(Some(Rc::new(reiterated) as Rc<dyn Dataset>).into_iter())
             }
             Self::ZipfUniform {
                 seed,
