@@ -197,5 +197,3 @@ plot_selectivity_dependency <- function(data_selectivity) {
         theme_paper() +
         theme(legend.position = "top")
 }
-
-table_query_focus() %>% plot_query_focus()

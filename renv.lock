@@ -471,10 +471,10 @@
     },
     "knitr": {
       "Package": "knitr",
-      "Version": "1.24",
+      "Version": "1.30",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "063bd0cf9388b44f8bcf9fad35b3e527"
+      "Hash": "eed7ee0d02eee88d53881cdc92457c62"
     },
     "labeling": {
       "Package": "labeling",
@@ -924,10 +924,10 @@
     },
     "xfun": {
       "Package": "xfun",
-      "Version": "0.9",
+      "Version": "0.18",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "1729de9578fc7c37b47418d891d91470"
+      "Hash": "d1c0b777b432e4b4c039c8aaecc54e0f"
     },
     "xml2": {
       "Package": "xml2",

@@ -244,6 +244,74 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 }
 
+/// Takes a base dataset, and repeats all its intervals
+/// shifted by multiples of the time span of the
+/// original dataset. Useful for building scalability
+/// benchmarks
+#[derive(Debug)]
+pub struct ReiteratedDataset {
+    copies: usize,
+    base: Vec<Interval>,
+    base_name: String,
+    base_params: String,
+    base_version: u8,
+}
+
+impl ReiteratedDataset {
+    pub fn new(dataset: Rc<dyn Dataset>, copies: usize) -> Result<Self> {
+        let base = dataset.get()?;
+        Ok(Self {
+            copies,
+            base,
+            base_name: dataset.name(),
+            base_params: dataset.parameters(),
+            base_version: dataset.version(),
+        })
+    }
+}
+
+impl Dataset for ReiteratedDataset {
+    fn name(&self) -> String {
+        format!("reiterated-{}", self.base_name)
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "copies={} base={} base_params=[{}] base_version={}",
+            self.copies, self.base_name, self.base_params, self.base_version
+        )
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Result<Vec<Interval>> {
+        let offset = self
+            .base
+            .iter()
+            .map(|interval| interval.end)
+            .max()
+            .expect("maximum on empty vector")
+            - self
+                .base
+                .iter()
+                .map(|interval| interval.start)
+                .min()
+                .expect("minimum on empty vector");
+
+        let res = (0..self.copies)
+            .flat_map(|copy_idx| {
+                self.base.iter().map(move |interval| Interval {
+                    start: interval.start + copy_idx as u64 * offset,
+                    end: interval.end + copy_idx as u64 * offset,
+                })
+            })
+            .collect();
+        Ok(res)
+    }
+}
+
 pub struct QueryStats {
     pub selectivity: f64,
     pub selectivity_time: f64,
