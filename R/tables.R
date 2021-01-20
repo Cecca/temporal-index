@@ -230,3 +230,20 @@ table_query_focus <- function() {
     mutate(query_time = set_units(query_time_ns, "ns")) %>%
     select(-query_time_ns)
 }
+
+table_running_example <- function() {
+  tribble(
+    ~flight, ~departure, ~arrival, ~pos,
+    "f1", hm("8:00"), hm("20:00"), 0,
+    "f2", hm("9:00"), hm("12:00"), 1,
+    "f3", hm("13:00"), hm("14:00"), 1,
+    "f4", hm("18:00"), hm("21:00"), 2,
+    "f5", hm("20:15"), hm("21:15"), 1
+  ) %>%
+    mutate(
+      midnight = ymd_hms("2021-01-01T00:00:00"),
+      departure = midnight + departure,
+      arrival = midnight + arrival,
+      duration = arrival - departure
+    )
+}

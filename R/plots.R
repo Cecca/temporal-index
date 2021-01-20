@@ -199,3 +199,51 @@ plot_selectivity_dependency <- function(data_selectivity) {
         theme_paper() +
         theme(legend.position = "top")
 }
+
+plot_running_example <- function(data_running_example) {
+    limits <- c(-1, 3)
+    ggplot(
+        data_running_example,
+        aes(
+            x = departure, xend = arrival,
+            y = pos, yend = pos
+        )
+    ) +
+        geom_rect(
+            xmin = ymd_hms("2021-01-01T10:00:00"),
+            xmax = ymd_hms("2021-01-01T14:00:00"),
+            ymin = limits[1],
+            ymax = limits[2],
+            inherit.aes = F,
+            fill = "red",
+            alpha = 0.01
+        ) +
+        geom_segment(position = position_dodge(width = 0.1)) +
+        geom_text(
+            aes(label = flight),
+            size = 3,
+            nudge_y = 0.3
+        ) +
+        geom_vline(
+            xintercept = c(
+                ymd_hms("2021-01-01T10:00:00"),
+                ymd_hms("2021-01-01T14:00:00")
+            ),
+            color = "red"
+        ) +
+        scale_x_datetime() +
+        scale_y_continuous(limits = limits) +
+        theme_minimal() +
+        labs(x = "time") +
+        theme(
+            axis.line.x.bottom = element_line(color = "darkgray"),
+            axis.text.y = element_blank(),
+            axis.title.y = element_blank(),
+            axis.title.x = element_blank(),
+            panel.grid.major.y = element_blank(),
+            panel.grid.minor.y = element_blank(),
+            # text = element_text(size = 6)
+        )
+}
+
+table_running_example() %>% plot_running_example()

@@ -16,5 +16,5 @@ suppressPackageStartupMessages({
     library(dtplyr)
     library(data.table)
     library(kableExtra)
-    library(xaringan)
+    library(lubridate)
 })
