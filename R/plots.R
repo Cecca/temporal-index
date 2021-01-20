@@ -218,7 +218,11 @@ plot_running_example <- function(data_running_example) {
             fill = "red",
             alpha = 0.01
         ) +
-        geom_segment(position = position_dodge(width = 0.1)) +
+        geom_segment(
+            aes(color = matches),
+            size = 1.5,
+            show.legend = F
+        ) +
         geom_text(
             aes(label = flight),
             size = 3,
@@ -229,10 +233,24 @@ plot_running_example <- function(data_running_example) {
                 ymd_hms("2021-01-01T10:00:00"),
                 ymd_hms("2021-01-01T14:00:00")
             ),
+            linetype = "dashed",
             color = "red"
+        ) +
+        annotate(
+            geom = "text",
+            label = "$d \\in [2, 4]$ hours",
+            color = "darkred",
+            x = ymd_hms("2021-01-01T12:00:00"),
+            y = 2,
+            size = 3,
+            vjust = 0
         ) +
         scale_x_datetime() +
         scale_y_continuous(limits = limits) +
+        scale_color_manual(values = list(
+            "black",
+            "#0ec487"
+        )) +
         theme_minimal() +
         labs(x = "time") +
         theme(
@@ -242,8 +260,6 @@ plot_running_example <- function(data_running_example) {
             axis.title.x = element_blank(),
             panel.grid.major.y = element_blank(),
             panel.grid.minor.y = element_blank(),
-            # text = element_text(size = 6)
+            plot.margin = margin()
         )
 }
-
-table_running_example() %>% plot_running_example()

@@ -231,7 +231,7 @@ table_query_focus <- function() {
     select(-query_time_ns)
 }
 
-table_running_example <- function() {
+table_running_example <- function(query_range, query_duration) {
   tribble(
     ~flight, ~departure, ~arrival, ~pos,
     "f1", hm("8:00"), hm("20:00"), 0,
@@ -244,6 +244,9 @@ table_running_example <- function() {
       midnight = ymd_hms("2021-01-01T00:00:00"),
       departure = midnight + departure,
       arrival = midnight + arrival,
-      duration = arrival - departure
+      duration = arrival - departure,
+      matches =
+        (query_duration[1] <= duration & duration < query_duration[2]) &
+          int_overlaps(interval(departure, arrival), query_range)
     )
 }
