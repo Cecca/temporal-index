@@ -1,86 +1,86 @@
 ---
 
-# # scalability experiments
-# - mode:
-#     Batch
+# scalability experiments
+- mode:
+    Batch
 
-#   datasets:
-#     - Random:
-#         seed: [123]
-#         n: 
-#           - 1000000
-#           - 10000000
-#           - 100000000
-#           - 1000000000
-#         start_times:
-#           - Uniform: { low: 1, high: 1000000000 }
-#         durations:
-#           - Zipf: { n: 1000000000, beta: 1 }
-#   queries:
-#     - Random:
-#         seed: [23512]
-#         n: [5000, 20000]
-#         range:
-#           - Pair: [
-#               Uniform: { low: 1, high: 1000000000 },
-#               Zipf: { n: 1000000000, beta: 1 }
-#           ]
-#         duration:
-#           - Single:
-#               Uniform: { low: 1, high: 10000 }
+  datasets:
+    - Random:
+        seed: [123]
+        n: 
+          - 1000000
+          - 10000000
+          - 100000000
+          - 1000000000
+        start_times:
+          - Uniform: { low: 1, high: 1000000000 }
+        durations:
+          - Zipf: { n: 1000000000, beta: 1 }
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000, 20000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 1000000000 },
+              Zipf: { n: 1000000000, beta: 1 }
+          ]
+        duration:
+          - Single:
+              Uniform: { low: 1, high: 10000 }
 
-#   algorithms:
-#     - PeriodIndexPlusPlus:
-#         page_size: [100, 500, 1000, 50000, 10000, 100000, 1000000, 10000000]
-#     - BTree
-#     - GridFile:
-#         side_cells: [100, 1000, 10000]
-#     - PeriodIndexStar:
-#         num_buckets: [32, 64]
-#         num_levels: [4, 8]
+  algorithms:
+    - PeriodIndexPlusPlus:
+        page_size: [100, 500, 1000, 50000, 10000, 100000, 1000000, 10000000]
+    - BTree
+    - GridFile:
+        side_cells: [100, 1000, 10000]
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
 
 ########################################################################
 #
 # Flights
 #
-# - mode:
-#     Batch
+- mode:
+    Batch
 
-#   datasets:
-#     - Flight
+  datasets:
+    - Flight
 
-#   queries:
-#     - Random:
-#         seed: [23512]
-#         n: [10000]
-#         # Granularity of days, in minutes
-#         range:
-#           - Pair: 
-#               - Scaled: 
-#                   inner: {Uniform: { low: 1, high: 666 }}
-#                   scale: 1440
-#               # Up to three months
-#               - Scaled:
-#                   inner: {Uniform: { low: 1, high: 2160 }}
-#                   scale: 1440
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        # Granularity of days, in minutes
+        range:
+          - Pair: 
+              - Scaled: 
+                  inner: {Uniform: { low: 1, high: 666 }}
+                  scale: 1440
+              # Up to three months
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 2160 }}
+                  scale: 1440
           
-#         duration:
-#           - Single: 
-#               # Up to one day, with granularity of minutes
-#               Scaled:
-#                 inner: {Uniform: { low: 1, high: 1140 }}
-#                 scale: 1
+        duration:
+          - Single: 
+              # Up to one day, with granularity of minutes
+              Scaled:
+                inner: {Uniform: { low: 1, high: 1140 }}
+                scale: 1
 
-#   algorithms:
-#     - BTree
-#     - GridFile:
-#         side_cells: [10, 100, 1000]
-#     - IntervalTree
-#     - PeriodIndexStar:
-#         num_buckets: [32, 64]
-#         num_levels: [4, 8]
-#     - PeriodIndexPlusPlus:
-#         page_size: [100, 200, 1000]
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
 
 - mode:
     Batch
@@ -451,5 +451,191 @@
     - PeriodIndexPlusPlus:
         page_size: [100, 200, 1000]
 
+######################################################################
+#
+#  Tourism
+#
 
+- mode:
+    Batch
+
+  datasets:
+    - Tourism
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Free
+          - Pair: [
+              Uniform: { low: 1, high: 2055 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Tourism
+        copies: 10
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Free
+          - Pair: [
+              Uniform: { low: 1, high: 20550 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Tourism
+        copies: 100
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Free
+          - Pair: [
+              Uniform: { low: 1, high: 205500 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Tourism
+        copies: 1000
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Free
+          - Pair: [
+              Uniform: { low: 1, high: 2055000 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Tourism
+        copies: 10000
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Free
+          - Pair: [
+              Uniform: { low: 1, high: 20550000 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
 
