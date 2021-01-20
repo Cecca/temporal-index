@@ -246,3 +246,210 @@
     - PeriodIndexPlusPlus:
         page_size: [100, 200, 1000]
 
+######################################################################
+#
+# Webkit
+#
+
+- mode:
+    Batch
+
+  datasets:
+    - Webkit
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Free
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 6980952 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    # - LinearScan
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Webkit
+        copies: 10
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Free
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 69809520 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Webkit
+        copies: 100
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Free
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 698095200 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Webkit
+        copies: 1000
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Free
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 6980952000 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Reiterated:
+        base: Webkit
+        copies: 10000
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Free
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 69809520000 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
+        duration:
+          - Free
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+
+
+
