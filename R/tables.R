@@ -234,11 +234,11 @@ table_query_focus <- function() {
 table_running_example <- function(query_range, query_duration) {
   tribble(
     ~flight, ~departure, ~arrival, ~pos,
-    "f1", hm("8:00"), hm("20:00"), 0,
-    "f2", hm("9:00"), hm("12:00"), 1,
-    "f3", hm("13:00"), hm("14:00"), 1,
-    "f4", hm("18:00"), hm("21:00"), 2,
-    "f5", hm("20:15"), hm("21:15"), 1
+    "F1", hm("8:00"), hm("16:00"), 0,
+    "F2", hm("9:00"), hm("12:00"), 1,
+    "F3", hm("13:00"), hm("14:00"), 1,
+    "F4", hm("16:00"), hm("19:00"), 2,
+    "F5", hm("17:00"), hm("18:00"), 1
   ) %>%
     mutate(
       midnight = ymd_hms("2021-01-01T00:00:00"),
