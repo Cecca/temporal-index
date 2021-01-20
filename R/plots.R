@@ -6,7 +6,7 @@ theme_paper <- function() {
 
 plot_scalability <- function(data_scalability) {
     ggplot(data_scalability, aes(
-        x = dataset_n,
+        x = scale,
         y = drop_units(qps),
         color = algorithm_name
     )) +
@@ -14,13 +14,15 @@ plot_scalability <- function(data_scalability) {
         geom_line() +
         geom_rangeframe(color = "black") +
         scale_x_log10(
-            name = "dataset size",
+            name = "dataset scale",
             labels = scales::number_format()
         ) +
         scale_y_log10(
             name = "queries per second",
             labels = scales::number_format()
         ) +
+        scale_color_tableau() +
+        facet_wrap(vars(dataset_name)) +
         theme_paper()
 }
 
