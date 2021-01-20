@@ -173,7 +173,10 @@ table_scalability <- function() {
         # Filter real datasets
         str_detect(dataset_name, "reiterated") |
         (dataset_name %in% c("Flight", "Webkit", "Tourism") &
-          queryset_name == "random-uniform-scaled-uniform-scaled-uniform-scaled")
+          queryset_name %in% c(
+            "random-uniform-scaled-uniform-scaled-uniform-scaled",
+            "random-uniform-scaled-uniform-scaled-uniform"
+          ))
     ) %>%
     mutate(
       dataset_name = str_remove(dataset_name, "reiterated-")
