@@ -262,7 +262,6 @@
         seed: [23512]
         n: [10000]
         range:
-          - Free
           # Granularity of minutes, in milliseconds
           - Pair:
               - Scaled:
@@ -273,7 +272,6 @@
                   inner: {Uniform: { low: 1, high: 31556925975 }}
                   scale: 60000
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
@@ -304,7 +302,6 @@
         seed: [23512]
         n: [10000]
         range:
-          - Free
           # Granularity of minutes, in milliseconds
           - Pair:
               - Scaled:
@@ -315,7 +312,6 @@
                   inner: {Uniform: { low: 1, high: 31556925975 }}
                   scale: 60000
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
@@ -344,7 +340,6 @@
         seed: [23512]
         n: [10000]
         range:
-          - Free
           # Granularity of minutes, in milliseconds
           - Pair:
               - Scaled:
@@ -355,7 +350,6 @@
                   inner: {Uniform: { low: 1, high: 31556925975 }}
                   scale: 60000
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
@@ -384,7 +378,6 @@
         seed: [23512]
         n: [10000]
         range:
-          - Free
           # Granularity of minutes, in milliseconds
           - Pair:
               - Scaled:
@@ -395,7 +388,6 @@
                   inner: {Uniform: { low: 1, high: 31556925975 }}
                   scale: 60000
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
@@ -424,7 +416,6 @@
         seed: [23512]
         n: [10000]
         range:
-          - Free
           # Granularity of minutes, in milliseconds
           - Pair:
               - Scaled:
@@ -435,7 +426,6 @@
                   inner: {Uniform: { low: 1, high: 31556925975 }}
                   scale: 60000
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to 3 years, in milliseconds
               Uniform: { low: 1, high: 94670777924 }
@@ -467,14 +457,12 @@
         seed: [23512]
         n: [5000]
         range:
-          - Free
           - Pair: [
               Uniform: { low: 1, high: 2055 },
               # Durations up to one three months for the range queries, in days
               Uniform: { low: 1, high: 90 }
           ]
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to four months, in days. Otherwise there are not
               # enough distinct queries.
@@ -504,14 +492,12 @@
         seed: [23512]
         n: [5000]
         range:
-          - Free
           - Pair: [
               Uniform: { low: 1, high: 20550 },
               # Durations up to one three months for the range queries, in days
               Uniform: { low: 1, high: 90 }
           ]
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to four months, in days. Otherwise there are not
               # enough distinct queries.
@@ -541,14 +527,12 @@
         seed: [23512]
         n: [5000]
         range:
-          - Free
           - Pair: [
               Uniform: { low: 1, high: 205500 },
               # Durations up to one three months for the range queries, in days
               Uniform: { low: 1, high: 90 }
           ]
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to four months, in days. Otherwise there are not
               # enough distinct queries.
@@ -578,14 +562,12 @@
         seed: [23512]
         n: [5000]
         range:
-          - Free
           - Pair: [
               Uniform: { low: 1, high: 2055000 },
               # Durations up to one three months for the range queries, in days
               Uniform: { low: 1, high: 90 }
           ]
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to four months, in days. Otherwise there are not
               # enough distinct queries.
@@ -615,14 +597,12 @@
         seed: [23512]
         n: [5000]
         range:
-          - Free
           - Pair: [
               Uniform: { low: 1, high: 20550000 },
               # Durations up to one three months for the range queries, in days
               Uniform: { low: 1, high: 90 }
           ]
         duration:
-          - Free
           - Single: 
               # Duration ranges of up to four months, in days. Otherwise there are not
               # enough distinct queries.
