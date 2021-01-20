@@ -1,6 +1,3 @@
-db_file <- here("temporal-index-results.sqlite")
-conn <- dbConnect(RSQLite::SQLite(), db_file)
-
 install_symbolic_unit("records")
 
 real_sizes <- tribble(
@@ -16,7 +13,7 @@ real_sizes <- tribble(
 # - [x] best configuration latex table
 # - [x] scalability data and plots
 # - [x] parameter dependency plots
-# - [ ] query focus plots
+# - [x] query focus plots
 
 plan <- drake_plan(
   # The best configuration for each algorithm
@@ -102,4 +99,14 @@ plan <- drake_plan(
       width = 10,
       height = 3
     ),
+
+  # Running example to be used in the paper
+  figure_running_example = {
+    tikzDevice::tikz(
+      file = file_out("paper/example.tex"),
+      width = 3.5, height = 1.4
+    )
+    print(plot_running_example(table_running_example()))
+    dev.off()
+  }
 )
