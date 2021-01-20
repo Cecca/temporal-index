@@ -79,3 +79,19 @@ latex_best <- function(data_best) {
         kbl(format = "latex", booktabs = T, escape = F, linesep = lineseps) %>%
         add_header_above(c(" " = 1, "constraint" = 2, " " = 5))
 }
+
+latex_example <- function(data_example) {
+    data_example %>%
+        select(flight, departure, arrival, duration) %>%
+        mutate(
+            departure = format(departure, "%H:%M"),
+            arrival = format(arrival, "%H:%M")
+        ) %>%
+        kbl(
+            format = "latex",
+            booktabs = T,
+            escape = F,
+            linesep = "",
+            align = "lrrr"
+        )
+}

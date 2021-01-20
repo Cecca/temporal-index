@@ -100,13 +100,25 @@ plan <- drake_plan(
       height = 3
     ),
 
+  data_running_example = table_running_example(
+    interval(
+      ymd_hms("2021-01-01T10:00:00"),
+      ymd_hms("2021-01-01T14:00:00")
+    ),
+    c(2, 4)
+  ),
+
   # Running example to be used in the paper
   figure_running_example = {
     tikzDevice::tikz(
       file = file_out("paper/example.tex"),
-      width = 3.5, height = 1.4
+      width = 3.3, height = 1.4
     )
-    print(plot_running_example(table_running_example()))
+    print(plot_running_example(data_running_example))
     dev.off()
-  }
+  },
+
+  latex_running_example = data_running_example %>%
+    latex_example() %>%
+    write_file(file_out("paper/example-table.tex")),
 )

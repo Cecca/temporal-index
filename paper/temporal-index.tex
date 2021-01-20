@@ -265,8 +265,13 @@ The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a f
 
 \begin{figure}
 	\centering
+	\input{example-table.tex}
+	\vspace{.5em}
 	\input{example.tex}
-	\caption{Example of range-duration query on a database of flights.}
+	\caption{Example of range-duration query on a database of flights.
+		The query asks for flights that were airborne between 10:00 and 14:00,
+		with a duration between 2 and 4 hours.
+		Flight $f2$ is the only one satisfying both range and duration constraints.}
 \end{figure}
 
 \section{Preliminaries}
