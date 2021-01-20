@@ -901,20 +901,27 @@ will need to be queried, thus improving performance.
 
 \begin{figure*}
 	\includegraphics[width=\textwidth]{images/scalability.png}
-	\caption{Scalability of the index structures for the increasing dataset sizes, up to one billion intervals.
-		Each point corresponds to the best configuration of the given data structure for a particular dataset size.
+	\caption{Scalability of the index structures for the increasing dataset sizes.
+		Synthetic datasets start from 10 million intervals up to one billion intervals.
+		Each point corresponds to the best configuration of the given data structure for a particular dataset scale.
 		The workload is of range-duration queries.
 		\label{fig:scalability}}
 	\Description{Scalability figure, showing that our proposed approach has superior performance for all tested
 		dataset sizes, and scales gracefully.}
 \end{figure*}
 
-To test the scalability of the data structures, we consider datasets of up to one billion elements, running
-5\,000 \qrd queries.
+To test the scalability of the index structures, we consider datasets of increasing sizes.
+For synthetic datasets we start with 10 million intervals, scaling by factors of 10 to one billion intervals.
+For real-world datasets, we artificially increase their size as follows.
+Given a dataset and a scale parameter $s$, let $\bar{t}$ the span of time covered by all the intervals in the dataset.
+We make $s$ copies of each interval, and shift copy $i$ in time by $i\cdot \bar{t}$, for $i\in[0, s)$.
+The underlying idea is to repeat the temporal patterns of the dataset on a longer time scale.
+
 Figure~\ref{fig:scalability} reports the performance of the best configuration of each algorithm,
 showing that the performance degrades gracefully as the dataset size increases, for all the data structures
 involved in the comparison.
-For all tested sizes, \ours is about one order of magnitude faster than the second-best data structure.
+On synthetic datasets, for all tested sizes, \ours is about one order of magnitude faster than the
+second-best data structure, \algo{grid-file}.
 
 
 % \bibliographystyle{plain}
