@@ -156,17 +156,27 @@ table_scalability <- function() {
   batch_data <- table_batch() %>%
     mutate(
       # For synthetic datasets
-      dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[, 2]),
+      dataset_n = as.integer(str_match(dataset_params, " n=(\\d+)")[, 2]),
       # For real, scaled datasets
-      copies = as.integer(str_match(dataset_params, "copies=(\\d+)")[, 2]),
-      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2])
+      scale = as.integer(str_match(dataset_params, "copies=(\\d+)")[, 2]),
+      queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2]),
+      scale = case_when(
+        !is.na(dataset_n) ~ as.integer(dataset_n / 1000000),
+        dataset_name %in% c("Flight", "Webkit", "Tourism") ~ as.integer(1),
+        TRUE ~ scale
+      )
     ) %>%
     filter(
       # Filter synthetic datasets
       (queryset_n == 5000 &
         str_detect(queryset_params, "start_high=1000000000")) |
         # Filter real datasets
-        (dataset_name %in% c("Flight", "Webkit", "Tourism"))
+        str_detect(dataset_name, "reiterated") |
+        (dataset_name %in% c("Flight", "Webkit", "Tourism") &
+          queryset_name == "random-uniform-scaled-uniform-scaled-uniform-scaled")
+    ) %>%
+    mutate(
+      dataset_name = str_remove(dataset_name, "reiterated-")
     )
 
   batch_data %>%
@@ -217,7 +227,3 @@ table_query_focus <- function() {
     mutate(query_time = set_units(query_time_ns, "ns")) %>%
     select(-query_time_ns)
 }
-
-table_scalability() %>%
-  select(dataset_name, dataset_params, queryset_params) %>%
-  print(n = 100)
