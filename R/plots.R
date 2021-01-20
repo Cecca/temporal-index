@@ -263,3 +263,108 @@ plot_running_example <- function(data_running_example) {
             plot.margin = margin()
         )
 }
+
+plot_running_example_plane <- function(data_running_example, query_range, query_duration, grid = FALSE) {
+    set.seed(1234)
+    span_time <- c(
+        ymd_hms("2021-01-01T05:00:00"),
+        ymd_hms("2021-01-01T18:00:00")
+    )
+    n_random <- 1000
+    random_starts <- runif(n_random, span_time[1], span_time[2]) %>% as_datetime()
+    random_durations <- rexp(n_random, rate = 0.5) + 0.75
+    random_data <- tibble(
+        departure = random_starts,
+        duration = random_durations
+    ) %>%
+        filter(duration < 10)
+
+    algo_grid <- random_data %>%
+        ungroup() %>%
+        group_by(
+            col_id = ntile(duration, 5),
+            cell_id = ntile(departure, 5)
+        ) %>%
+        mutate(
+            time_min = min(departure),
+            time_max = max(departure)
+        ) %>%
+        ungroup() %>%
+        group_by(col_id) %>%
+        mutate(
+            duration_min = min(duration),
+            duration_max = max(duration)
+        ) %>%
+        ungroup() %>%
+        arrange(col_id, cell_id) %>%
+        distinct(col_id, cell_id, time_min, time_max, duration_min, duration_max)
+
+    p <- data_running_example %>%
+        mutate(duration = as.double(duration)) %>%
+        ggplot(aes(
+            x = duration,
+            y = departure
+        )) +
+        geom_point(
+            data = random_data,
+            size = .1,
+            color = "darkgray"
+        ) +
+        geom_point(
+            size = 1
+        )
+    if (grid) {
+        p <- p +
+            geom_vline(
+                aes(xintercept = duration_min),
+                data = algo_grid,
+                alpha = 1,
+                color = "black",
+                size = 0.3
+            ) +
+            geom_segment(
+                aes(
+                    x = duration_min, xend = duration_max,
+                    y = time_min, yend = time_min
+                ),
+                data = algo_grid,
+                size = 0.3,
+                inherit.aes = F
+            )
+    }
+    p <- p + annotate(
+        geom = "polygon",
+        x = c(
+            query_duration[1],
+            query_duration[2],
+            query_duration[2],
+            query_duration[1]
+        ),
+        y = c(
+            int_end(query_range),
+            int_end(query_range),
+            int_start(query_range) - 3600 * query_duration[2],
+            int_start(query_range) - 3600 * query_duration[1]
+        ),
+        fill = "red",
+        color = "red",
+        size = 1,
+        alpha = 0.0
+    ) +
+        geom_label(
+            aes(label = flight),
+            size = 2,
+            vjust = 0,
+            hjust = 1,
+            nudge_x = -0.1,
+            nudge_y = 0.1
+        ) +
+        labs(x = "duration (hours)", y = "departure time") +
+        theme_minimal() +
+        theme(
+            text = element_text(size = 9),
+            axis.line.x.bottom = element_line(color = "black"),
+            axis.line.y.left = element_line(color = "black"),
+            panel.grid = element_blank()
+        )
+}

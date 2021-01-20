@@ -100,15 +100,19 @@ plan <- drake_plan(
       height = 3
     ),
 
-  data_running_example = table_running_example(
+  ######################################################################
+  # Running example to be used in the paper
+  query_range =
     interval(
       ymd_hms("2021-01-01T10:00:00"),
       ymd_hms("2021-01-01T14:00:00")
     ),
-    c(2, 4)
+  query_duration = c(2, 4),
+
+  data_running_example = table_running_example(
+    query_range, query_duration
   ),
 
-  # Running example to be used in the paper
   figure_running_example = {
     tikzDevice::tikz(
       file = file_out("paper/example.tex"),
@@ -121,4 +125,26 @@ plan <- drake_plan(
   latex_running_example = data_running_example %>%
     latex_example() %>%
     write_file(file_out("paper/example-table.tex")),
+
+  figure_running_example_plane = {
+    tikzDevice::tikz(
+      file = file_out("paper/example-plane.tex"),
+      width = 3.3, height = 2.5
+    )
+    print(plot_running_example_plane(
+      data_running_example, query_range, query_duration
+    ))
+    dev.off()
+  },
+  figure_running_example_grid = {
+    tikzDevice::tikz(
+      file = file_out("paper/example-grid.tex"),
+      width = 3.3, height = 2.5
+    )
+    print(plot_running_example_plane(
+      data_running_example, query_range, query_duration,
+      grid = TRUE
+    ))
+    dev.off()
+  },
 )
