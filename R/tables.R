@@ -163,14 +163,10 @@ table_scalability <- function() {
       str_detect(queryset_params, "start_high=1000000000")
     )
 
-  best_param_at_large_size <- batch_data %>%
-    filter(dataset_n == 1000000000) %>%
+  batch_data %>%
     group_by(dataset_id, queryset_id, algorithm_name) %>%
     slice_max(qps) %>%
-    ungroup() %>%
-    select(dataset_name, queryset_name, algorithm_params)
-
-  semi_join(batch_data, best_param_at_large_size)
+    ungroup()
 }
 
 # Table about the dependency between period-index++ performance
