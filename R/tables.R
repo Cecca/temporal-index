@@ -232,21 +232,43 @@ table_query_focus <- function() {
 }
 
 table_running_example <- function(query_range, query_duration) {
-  tribble(
-    ~flight, ~departure, ~arrival, ~pos,
-    "F1", hm("8:00"), hm("16:00"), 0,
-    "F2", hm("9:00"), hm("12:00"), 1,
-    "F3", hm("13:00"), hm("14:00"), 1,
-    "F4", hm("16:00"), hm("19:00"), 2,
-    "F5", hm("17:00"), hm("18:00"), 1
-  ) %>%
+  set.seed(1234)
+
+  raw_flights <- read_csv(".datasets/flights.csv.gz")
+
+  flights <- raw_flights %>%
+    filter(fl_date == "2018-08-01") %>%
+    sample_n(1000) %>%
+    drop_na(dep_time, arr_time) %>%
+    select(fl_date, dep_time, arr_time, tail_num) %>%
     mutate(
-      midnight = ymd_hms("2021-01-01T00:00:00"),
-      departure = midnight + departure,
-      arrival = midnight + arrival,
-      duration = arrival - departure,
-      matches =
-        (query_duration[1] <= duration & duration < query_duration[2]) &
-          int_overlaps(interval(departure, arrival), query_range)
+      dep_time = as.character(dep_time),
+      dep_padding = case_when(
+        str_length(dep_time) == 4 ~ "",
+        str_length(dep_time) == 3 ~ "0",
+        str_length(dep_time) == 2 ~ "00",
+        str_length(dep_time) == 1 ~ "000"
+      ),
+      departure = ymd_hms(str_c(fl_date, "T", dep_padding, dep_time, "00")),
+      arr_time = as.character(arr_time),
+      arr_padding = case_when(
+        str_length(arr_time) == 4 ~ "",
+        str_length(arr_time) == 3 ~ "0",
+        str_length(arr_time) == 2 ~ "00",
+        str_length(arr_time) == 1 ~ "000"
+      ),
+      arrival = ymd_hms(str_c(fl_date, "T", arr_padding, arr_time, "00")),
+      duration = as.numeric(arrival - departure, "hours")
+    ) %>%
+    select(flight = tail_num, departure, arrival, duration) %>%
+    filter(date(departure) == "2018-08-01") %>%
+    mutate(duration = as.double(duration)) %>%
+    filter(duration > 0, duration < 30000) %>%
+    mutate(
+      highlighted = row_number() %in% c(
+        100, 46, 16, 38, 667
+      ),
+      matches = (query_duration[1] <= duration & duration < query_duration[2]) &
+        int_overlaps(interval(departure, arrival), query_range)
     )
 }

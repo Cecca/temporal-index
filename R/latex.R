@@ -82,10 +82,13 @@ latex_best <- function(data_best) {
 
 latex_example <- function(data_example) {
     data_example %>%
+        filter(highlighted) %>%
+        arrange(departure) %>%
         select(flight, departure, arrival, duration) %>%
         mutate(
             departure = format(departure, "%H:%M"),
-            arrival = format(arrival, "%H:%M")
+            arrival = format(arrival, "%H:%M"),
+            duration = scales::number(duration, accuracy = 0.1, suffix = " hours")
         ) %>%
         kbl(
             format = "latex",
