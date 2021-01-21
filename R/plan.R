@@ -104,8 +104,8 @@ plan <- drake_plan(
   # Running example to be used in the paper
   query_range =
     interval(
-      ymd_hms("2021-01-01T10:00:00"),
-      ymd_hms("2021-01-01T14:00:00")
+      ymd_hms("2018-08-01T10:00:00"),
+      ymd_hms("2018-08-01T14:00:00")
     ),
   query_duration = c(2, 4),
 
@@ -118,7 +118,9 @@ plan <- drake_plan(
       file = file_out("paper/example.tex"),
       width = 3.3, height = 1.4
     )
-    print(plot_running_example(data_running_example))
+    print(plot_running_example(
+      data_running_example, query_range, query_duration
+    ))
     dev.off()
   },
 
