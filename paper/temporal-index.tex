@@ -231,6 +231,16 @@ Our contributions can be summarized as follows:
 	\item We provide an extensible open source implementation, which we benchmark against several baselines, showing significantly better performance across several workloads.
 \end{itemize}
 
+\begin{table}
+  \caption{Set of flights for our running example, denoted with $F$.\label{tab:example}}
+	\input{example-table.tex}
+\end{table}
+
+\begin{example}
+  As a running example, we consider a subsets of the flights that we will use in
+  our experimental evaluation. Table~\ref{tab:example} reports five such flights,
+  described by their tail number, their departure and arrival time, and their duration.
+\end{example}
 
 \section{Related work}
 
@@ -263,18 +273,6 @@ The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a f
 
 \ad{TODO: add time travel works~\cite{DBLP:conf/icde/KaufmannMHKT13} to indicate the difference that we focus on range queries rather than point queries.}
 
-\begin{figure}
-	\centering
-	\input{example-table.tex}
-	\vspace{.5em}
-	\input{example.tex}
-	\input{example-plane.tex}
-	\input{example-grid.tex}
-	\caption{Example of range-duration query on a database of flights.
-		The query asks for flights that were airborne between 10:00 and 14:00,
-		with a duration between 2 and 4 hours.
-		Flight N309AS is the only one satisfying both range and duration constraints.}
-\end{figure}
 
 \section{Preliminaries}
 
@@ -326,10 +324,53 @@ Our index efficiently supports the three following types of queries (defined as 
 
 The latter type of query is a combination of the former two.
 
-\section{Data structure}
+\begin{figure}
+	\input{example.tex}
+  \caption{Range-duration query on the example table. The time range is constrained to 
+  be between 10:00 and 14:00, and the duration is constrained to be in $[2h, 4h]$
+  The green interval is the only one matching both the range and duration constraints.\label{fig:example-intervals}}
+\end{figure}
 
-\cetodo{Use a balanced search tree, with guaranteed log query time, to store the boundaries and the buckets themselves,
-	if we want to allow updates. Otherwise we can get away with simpler sorted arrays and binary searches.}
+\begin{example}\label{example:queries}
+  Consider the following range-duration query on our example database of flights:
+  $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.
+  Figure~\ref{fig:example-intervals} reports a graphical representation of the
+  intevals in the table, along with the query.
+  The only flight matching the query is \texttt{N309AS}.
+  A range only query with the same time range would return as answers
+  flights \texttt{N309AS} and \texttt{N431AS}.
+  A duration only query with duration interval $[2h, 4h]$ would
+  return as answers 
+  \texttt{N207SY}, \texttt{N309AS}, and \texttt{N432YX}.
+\end{example}
+
+\section{Data structure}
+\begin{figure}
+	\input{example-plane.tex}
+  \caption{Flights of Table~\ref{tab:example} in the duration/start time plane.
+  The smaller gray dots are flights from the same day.
+  The red polygon is the range-duration query of example~\ref{example:queries}.\label{fig:example-plane}}
+\end{figure}
+
+An interval can be completely described by its duration and starting time, therefore
+we can represent a set of temporal intervals as a set of points in a two dimensional 
+space, with one coordinate being the duration and the other the start time.
+A range-duration query with time interval $[\TS, \TE)$ and duration interval
+$[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
+which is defined by all points $(d, t)$ such that
+\begin{equation*}
+\begin{aligned}
+  t < \TE \quad\wedge&\quad t < \TS - d \quad\wedge \\
+          \quad\wedge&\quad d_{min} \le d \le d_{max}
+\end{aligned}
+\end{equation*}
+
+\begin{example}
+  Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
+  in the aforementioned space, along with the intervals associated to other flights
+  on the same day.
+  Note how the points (hence the intervals) are not uniformly distributed.
+\end{example}
 
 Our index is a grid, partitioning the tuples into disjoint buckets according
 to the durations and the start times of their intervals.
@@ -337,7 +378,7 @@ The boundaries between cells are defined by using the empirical cumulative
 distribution function of the duration and the starting times, so that
 each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
-Therefore the structure is adaptive to the distribution of the input.
+This allows the data structure to adapt to the distribution of the input.
 
 In the following we will focus on the interval attribute $T$ of relation $R$:
 in the discussion we assume that each interval being inserted in the index
@@ -373,6 +414,7 @@ is associated with a reference to the tuple in $R$ it belongs to.
 	}
 	\Return $B$\;
 \end{algorithm}
+
 
 Let $s$ be the \emph{page size} parameter.
 The goal of the following construction is to ensure
@@ -418,6 +460,24 @@ the columns, as well as the boundaries between the cells in each
 column, in sorted arrays.
 This will allow, at query time, the efficient retrieval of the range
 of cells containing intervals that match a given query.
+
+\begin{figure}
+	\input{example-grid.tex}
+  \caption{Adaptive grid dividing the example set of flights into five columns,
+  and further dividing each column in five cells.\label{fig:example-grid}}
+\end{figure}
+
+\begin{example}
+  Figure~\ref{fig:example-grid} shows the grid constructed according to the above
+  algorithm on our example dataset. Note that the columns span different ranges of
+  durations, adapting to the density of the points.
+  The start times are more uniformly distributed within each column, with
+  the exception of a flew flights early in the night: the cell containing them spans 
+  a wider range of times.
+  
+  In contrast, a uniform grid would suffer from a high imbalance in the number of
+  intervals in each cell.
+\end{example}
 
 \subsection{Querying the index}
 
