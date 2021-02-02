@@ -19,7 +19,7 @@
 
   queries:
     - Systematic:
-        seed: [23512]
+        seed: [23512, 12345, 1298579, 49589, 1294587, 1435786]
         n: [1024]
         base:
           Random:
