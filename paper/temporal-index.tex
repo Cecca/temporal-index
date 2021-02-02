@@ -262,12 +262,42 @@ efficiently find the optimal splits by minimizing the number of intervals of
 the largest bucket, whereas our goal is the computation of queries involving
 position and duration of intervals in parallel.
 
-\cetodo{Add reference to~\cite{BehrendDGSVRK_SSTD19_period-index}}
+Very recently, Behrend et al.~\cite{BehrendDGSVRK_SSTD19_period-index}
+proposed an index expliticly supporting range-duration queries. Such index,
+named \algo{Period-Index*}, partitions the time domain into \emph{buckets},
+assigning an interval to all the buckets it intersects. Within each bucket,
+intervals are further partitioned in \emph{levels} according to their
+duration, with the minimum duration indexed within each level decreasing
+geometrically. To support efficient indexing of times, each level is further
+partitioned in the time domain. This data structure is adaptive to the
+distribution of start times, while it assumes a Zipf-like distribution for
+the durations of the intervals. As we shall see, our index structure removes
+this assuption, supporting databases with arbitrary distributions of
+durations.
 
 \cetodo{Add reference to learned indices, and say that our index structure provides provable guarantees for the running time of the queries.. Also say that our index structure supports updating.}
 Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
 Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
 The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. 
+
+A recent approach to multidimensional indexing is that of \emph{learned
+indexes}~\cite{DBLP:conf/sigmod/KraskaBCDP18}: the proposition is that index
+structures are \emph{models} mapping keys to records. Therefore machine
+learning models can be used to provide this mapping, in lieu of the classic
+data structures. In particular, Flood and
+Tsunami~\cite{DBLP:conf/sigmod/NathanDAK20,
+DBLP:journals/corr/abs-2006-13282} use Recursive Model
+Index~\cite{DBLP:conf/sigmod/KraskaBCDP18} and a variant of decision trees to
+model the position of records of the database, adapting to the distribution
+of the data and of the query workload.
+%
+\cetodo{This is a dangerous statement. What do you think?} While our approach
+shares some ideas with this line of work, namely adapting to the data
+distribution by means of the conditional cumulative distribution function,
+our index supports both insertions and deletions, whereas both Flood and
+Tsunami are tailored at read-only workloads.
+Furthermore, we prove bounds on the worst case running times for all the operations, while~\cite{DBLP:conf/sigmod/NathanDAK20,
+DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
 
 \ad{TODO: extend the next paragraph and say that join data structures cannot be applied to this problem, with a few exceptions, e.g., OIP.}
 
