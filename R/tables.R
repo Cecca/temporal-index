@@ -28,7 +28,7 @@ table_batch_db <- function(connection, path) {
 
 # Loads data from the batch table, cleans it, and returns it as a tibble
 table_batch <- function() {
-  db_file <- here("temporal-index-results.sqlite")
+  db_file <- here::here("temporal-index-results.sqlite")
   conn <- dbConnect(RSQLite::SQLite(), db_file)
 
   res <- dplyr::tbl(conn, "batch") %>%
@@ -220,7 +220,7 @@ table_durations <- function() {
 }
 
 table_query_focus <- function() {
-  db_file <- here("temporal-index-results.sqlite")
+  db_file <- here::here("temporal-index-results.sqlite")
   conn <- dbConnect(RSQLite::SQLite(), db_file)
 
   as_tibble(dbGetQuery(
