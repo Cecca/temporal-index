@@ -163,7 +163,6 @@ and we call it \emph{duration query}. In contrast, query $Q2$ retrieves
 tuples based on the position of the events on the timeline; we call it
 \emph{range query}. Finally, query $Q3$ constrains both types of information;
 we call it \emph{range-duration query}.
-\cetodo{What should we do about the citations below?}
 Similar queries have been reported in
 other application scenarios, e.g., air traffic
 analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
@@ -181,7 +180,21 @@ In this case, however, queries constraining only the range of the intervals will
 
 The two aforementioned indexes could be used at the same time, however combining different indexes is typically inefficient, since a query can have different selectivities in the two dimensions.
 
-\cetodo{Describe the main idea about our data structure}
+Therefore, to efficiently support queries constraining both the duration and the range of intervals we need to develop a data structure that can index both dimensions at the same time. A first step in this direction is \algo{Period-Index*}~\cite{BehrendDGSVRK_SSTD19_period-index}.
+
+We improve on this previous work by proposing \ours{}, a two dimensional data structure that indexes both duration and position on the timeline at the same time.
+In particular, our data structure partitions the intervals in a grid according to their start times and durations. Rather than being fixed, the boundaries between the cells of the grid are positioned by taking into account the data distribution, so to ensure that each cell contains the same number of intervals (with the exception of some edge cases, as we shall see in the following).
+This allows obtain very predictable query times, which are proportional to the selectivity of the query.
+The data structure also lends itself to a rather simple implementation, which we use to experimentally validate our approach using such implementation, finding that the overhead introduced by the data structure is indeed negligible, and that the running time in practice is largely proportional to the selectivity of the query.
+This is in contrast to the other data structures we compare to.
+
+Our contributions can then be summarized as follows:
+\begin{itemize}
+	\item We describe \ours{}, an index data structure that supports queries involving both the duration and range components of intervals;
+	\item We prove bounds on its performance, which can be tuned with a single parameter;
+	\item We provide an extensible open source implementation, which we benchmark against several baselines, showing significantly better performance across several workloads.
+\end{itemize}
+
 % To tackle this problem, in this paper we propose a new index structure that
 % considers both the position of the periods on the timeline and their
 % duration. A first attempt could be to dissolve the start time and the
@@ -221,12 +234,6 @@ The two aforementioned indexes could be used at the same time, however combining
 % look-up based on the duration of intervals and their location on the
 % timeline.
 
-Our contributions can be summarized as follows:
-\begin{itemize}
-	\item We describe a index data structure that supports queries involving both the duration and range components;
-	\item Our data structure provides strong theoretical guarantees on its performance, which can be tuned with a single parameter;
-	\item We provide an extensible open source implementation, which we benchmark against several baselines, showing significantly better performance across several workloads.
-\end{itemize}
 
 \begin{table}
   \caption{Set of flights for our running example, denoted with $F$.\label{tab:example}}
@@ -240,6 +247,8 @@ Our contributions can be summarized as follows:
 \end{example}
 
 \section{Related work}
+
+\todo{Discuss the grid file~\cite{DBLP:journals/tods/NievergeltHS84}}
 
 \ad{This is copy/paste from Period index paper}
 
@@ -729,6 +738,8 @@ In a similar way we can prove the follwing theorem.
 	\caption{Histograms of the start times (top) and durations (bottom) of the three real-world
 		datasets considered in this paper.\label{fig:data-distributions}}
 \end{figure*}
+
+\cetodo{Discuss the different distributions of data, connecting them to the experimental results that we get.}
 
 In this section we compare experimentally our proposed index with alternative approaches.
 In particular, we aim to answer the following questions:
