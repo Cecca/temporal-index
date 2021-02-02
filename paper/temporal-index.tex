@@ -101,8 +101,12 @@
 
 
 \begin{abstract}
-	We present a learned index for temporal intervals, supporting range-duration
-	queries .
+	Temporal information plays a crucial role in many database applications, however support for queries on such data is limited.
+	We present an index structure to support queries of temporal intervals constraining both the range, i.e. the position along the timeline, and the duration of the interval.
+	Our data structure features provable bounds on the running time of all the operations, and allows for a simple implementation, sports very predictable query performance.
+	We benchmark our implementation on a variety of datasets and query workloads, investigating both the query rate and the behaviour of the individual queries.
+	Our experimental evaluation shows that, compared to other data structures, our index indeed better supports range-duration queries.
+	While other data structures are faster on specialized workloads constraining only the duration or the range, overall our data structure expresses the best compromise across all tested workloads.
 \end{abstract}
 
 \maketitle
@@ -275,7 +279,6 @@ the durations of the intervals. As we shall see, our index structure removes
 this assuption, supporting databases with arbitrary distributions of
 durations.
 
-\cetodo{Add reference to learned indices, and say that our index structure provides provable guarantees for the running time of the queries.. Also say that our index structure supports updating.}
 Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
 Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
 The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. 
