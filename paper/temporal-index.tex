@@ -248,8 +248,6 @@ Our contributions can then be summarized as follows:
 
 \section{Related work}
 
-\todo{Discuss the grid file~\cite{DBLP:journals/tods/NievergeltHS84}}
-
 \ad{This is copy/paste from Period index paper}
 
 Related work can be split into two categories. First, index structures suitable for intervals, and second, index structures for two dimensional data. Due to the fact that time is constantly progressing, not all 2D indexes are suitable for temporal data. Finally, we also review structures similar to our approach that are used for temporal joins.
@@ -284,6 +282,8 @@ durations.
 Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
 Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
 The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. 
+
+Another multidimensional index is the grid file\cite{DBLP:journals/tods/NievergeltHS84}. In the context of time intervals, the idea is to partition the span of durations and of starting times into cells of equal width, thus allowing efficient access to both dimensions. The main drawback of this data structure is that in case of skewed distributions of data the load of the cells is unequal.
 
 A recent approach to multidimensional indexing is that of \emph{learned
 indexes}~\cite{DBLP:conf/sigmod/KraskaBCDP18}: the proposition is that index
