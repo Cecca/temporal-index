@@ -692,6 +692,8 @@ In a similar way we can prove the follwing theorem.
 	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
 \end{theorem}
 
+\cetodo{Discuss the tradeoffs of the data structure, and then relate them to the experimental results.}
+
 \section{Experimental evaluation}
 
 \begin{figure*}
@@ -710,7 +712,7 @@ In particular, we aim to answer the following questions:
 \end{enumerate}
 
 To this end, we implemented our index, as well as some baseline competitors,
-using Rust 1.44.0. Our implementation, which is open source and available
+using Rust 1.44.1. Our implementation, which is open source and available
 at~\url{https://github.com/Cecca/temporal-index}, allows to easily tune the parameters to explore
 different questions.
 The experiments presented in this section have been run on a machine
