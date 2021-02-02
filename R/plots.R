@@ -22,8 +22,16 @@ plot_scalability <- function(data_scalability) {
             labels = scales::number_format()
         ) +
         scale_color_tableau() +
-        facet_wrap(vars(dataset_name)) +
-        theme_paper()
+        facet_wrap(vars(dataset_name), ncol = 4) +
+        theme_paper() +
+        theme(
+            legend.position = "top",
+            panel.grid.major.y = element_line(
+                size = 0.5,
+                color = "lightgray",
+                linetype = "dotted"
+            )
+        )
 }
 
 plot_parameter_dependency <- function(data_parameter_dependency) {
