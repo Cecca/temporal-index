@@ -40,7 +40,7 @@ plan <- drake_plan(
   figure_scalability = data_scalability %>%
     plot_scalability() %>%
     save_png(file_out("paper/images/scalability.png"),
-      width = 10, height = 4
+      width = 10, height = 3
     ),
 
   # Data for the parameter dependency plot

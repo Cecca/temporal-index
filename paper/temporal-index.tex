@@ -139,35 +139,24 @@
 
 \section{Introduction}
 
-\ad{This is copy/paste from Period index paper}
+Temporal information plays a crucial role in many database applications: many database management systems provide indeed automated version control of the data and \emph{time travel} facilities, allowing to access past history efficiently.
+In particular, past research concentrated on the important operators of temporal aggregation~\cite{DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/ssd/PiatovH17}, temporal joins~\cite{DBLP:conf/icde/PiatovHD16}, and time travel~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13}.
 
-Temporal data are crucial in many database applications, but the support for
-the management of such data is still limited in most of today's database
-systems. Database management systems usually provide an automated version
-control of the data and mechanisms for fast history access, known as time
-travel. However, index structures to support efficient query processing are
-largely
-missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17}.
+All these approaches focus on handling temporal intervals, but concentrate on the \emph{position} of intervals along the timeline, ignoring another important attribute of intervals: their duration.
 
-Past research has concentrated on operation-specific indexes to support the
-three most important types of temporal operations, namely time travel,
-temporal aggregations, and temporal
-joins~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/icde/PiatovHD16,DBLP:conf/ssd/PiatovH17}.
-Such approaches focus on optimizing operational details and neglect the fact
-that time intervals contain two important pieces of information: they are
-anchored on the timeline and have a duration.
+As a result, index structures to support more general selection queries with constraints on both the duration and the position in time of intervals have been missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17} until recently~\cite{BehrendDGSVRK_SSTD19_period-index}.	
 
-In this paper, we argue that in many applications both pieces of temporal
-information are relevant for querying databases and hence should be supported
-by database management systems. For instance, applications that offer
-situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
-both to the duration and the position of events.
-As motivating examples, consider the following queries from different application scenarios
+This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formuluate queries.
+For instance, consider the following queries from different application scenarios:
 \begin{itemize}
 	\item[$Q1$:] \emph{"In a source code repository, find all the files that have not been modifyied for more than 2 years."}
 	\item[$Q2$:] \emph{"Given a flight, find all the aircrafts that were flying at the same time."}
-	\item[$Q3$:] \emph{"Find all the tourists who stayed between 2 and 4 weeks in August last year."}
+	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
+
+% For instance, applications that offer
+% situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
+% both to the duration and the position of events.
 
 The first query $Q1$ imposes constraints on the duration of matching events,
 and we call it \emph{duration query}. In contrast, query $Q2$ retrieves
@@ -179,14 +168,18 @@ Similar queries have been reported in
 other application scenarios, e.g., air traffic
 analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
 
-As shown in the above examples, time periods comprise information about their
-position on the timeline and the length of the period. However, index
+As shown in the above examples, time periods can comprise information about
+their position on the timeline and the length of the period. However, index
 structures over time intervals typically use only one of the two aspects. For
 instance, the well-known relational interval
 tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for efficiently
 determining temporal relationships between intervals but not interval
 lengths. In the worst case, the entire index tree must be traversed if a
-query solely contains restrictions on the interval length.
+query solely contains restrictions on the interval length. 
+Alternatively, the duration of the intervals can be indexed straighforwardly using a classic data structure such as a B-tree.
+In this case, however, queries constraining only the range of the intervals will need to traverse the entire tree.
+
+The two aforementioned indexes could be used at the same time, however combining different indexes is typically inefficient, since a query can have different selectivities in the two dimensions.
 
 \cetodo{Describe the main idea about our data structure}
 % To tackle this problem, in this paper we propose a new index structure that
