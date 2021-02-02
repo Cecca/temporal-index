@@ -264,7 +264,7 @@ position and duration of intervals in parallel.
 
 \cetodo{Add reference to~\cite{BehrendDGSVRK_SSTD19_period-index}}
 
-\cetodo{Add reference to learned indices, and say that our index structure provides provable guarantees for the running time of the queries.}
+\cetodo{Add reference to learned indices, and say that our index structure provides provable guarantees for the running time of the queries.. Also say that our index structure supports updating.}
 Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
 Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
 The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. 
@@ -422,6 +422,7 @@ is associated with a reference to the tuple in $R$ it belongs to.
 Let $s$ be the \emph{page size} parameter.
 The goal of the following construction is to ensure
 that each cell of the grid contains at most $s$ intervals.
+\cetodo{Make it parametric in the order of things being indexed. "For eash of exposition, in the following we assume that we index first the duration dimension, and then the start time."}
 We divide the intervals into \emph{columns} based on their duration with two goals:
 all the intervals with the same duration should be in the same column, and each column
 should have at most $s^2$ intervals, unless there are more than $s^2$ intervals with the same duration.
@@ -453,6 +454,7 @@ Then, we look ahead at the interval $s^2$ positions from it, and we can have one
 Then, each column is further partitioned according to the start time, invoking on it
 Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
 the start time of the intervals.
+\cetodo{heavy cells and columns are still undefined at this point}
 The algorithm proceeds as above, with the possibility of introducing \emph{heavy cells} if there are
 more than $s$ intervals sharing the same start time.
 
@@ -557,6 +559,8 @@ in a similar fashion.
 
 \subsection{Analysis}
 
+We now provde guarantees on the time required by all the operations supported by our index structure.
+
 \begin{theorem}
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
 \end{theorem}
@@ -578,41 +582,6 @@ in a similar fashion.
 	and the theorem follows.
 \end{proof}
 
-\begin{figure}
-	\begin{tikzpicture}[scale=0.15, xscale=0.75]
-		\footnotesize
-		% Axes
-		\draw [<->] (0,40) node (yaxis) [above] {$start$}
-		|- (60,0) node (xaxis) [right] {$duration$};
-		% %ticks
-		% \foreach \x in {0,10,...,50} \draw (\x,10pt) -- (\x,-30pt) node[anchor=north] {\x};
-		% \foreach \y in {0,10,...,50} \draw (10pt,\y) -- (-30pt,\y) node[anchor=east] {\y};
-
-		% Query polygon: e_s=10 e_end=30
-
-		\draw[dashed, red] (60, 30) -- (10, 30) -- (40, 0);
-		\draw[dashed, red] (13, 0) -- (13,40);
-		\draw[dashed, red] (30, 0) -- (30,40);
-		\draw[red, thick, fill=red!10] (13,30) -- (30, 30) -- (30, 10) -- (13, 27) -- (13,30);
-
-		% Vertical ticks
-		\foreach \duration in {5, 15, 22, 27, 50} \draw (\duration, 0) -- (\duration, 35);
-
-
-		% Start groups
-		\foreach \start in {10, 20, 35} \draw (0, \start) -- (5,\start);
-		\foreach \start in {5, 25, 35} \draw (5, \start) -- (15,\start);
-		\foreach \start in {8, 16, 35} \draw (15, \start) -- (22,\start);
-		\foreach \start in {20, 28, 35} \draw (22, \start) -- (27,\start);
-		\foreach \start in {10, 15, 35} \draw (27, \start) -- (50,\start);
-		% \foreach \start in {20, 30, 35} \draw (50, \start) -- (80,\start);
-
-
-	\end{tikzpicture}
-	\Description{}
-	\caption{Query polygon and grid on the dimension-start time plane.}
-	\label{fig:example-polygon}
-\end{figure}
 
 \begin{theorem}
 	Given an index over a set of $n$ intervals, with page size $s$, the time for
@@ -622,16 +591,11 @@ in a similar fashion.
 	\]
 	where $k$ is the number of intervals matching the query predicate.
 \end{theorem}
-\begin{proof}[Proof draft]
-	First, let us establish some notation.
+\begin{proof}
 	Let $\T = (\TS, \TE)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
-	% We deem a column \emph{heavy} if it contains more than $s^2$ intervals, and \emph{light} otherwise.
-	% Similarly, a cell is \emph{heavy} if it contains more than $s$ intervals, and \emph{light} otherwise.
-	Recall that the algorithm may create a heavy column or cell when it cannot break down a group of intervals
+	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same duration or start time.
-	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space.
-	% Consider a cell $C$ of the grid: we denote its duration range with $[d_{min}^C, d_{max}^C)$
-	% and its start time range by $[t^C_{min}, t^C_{max})$.
+	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space, as depicted in Figure~\ref{fig:example-grid}.
 	For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
 
 	Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
