@@ -418,11 +418,13 @@ is associated with a reference to the tuple in $R$ it belongs to.
 	\Return $B$\;
 \end{algorithm}
 
+Our grid structure partitions the dataset first along either the duration or start time dimension, and then along the other. The choice of which dimension to index first may of course impact the performance, depending on the query workload.
+To make the exposition more concrete, in the following we will assume that the duration dimension is indexed first.
+All the descriptions, considerations, and proofs also hold with the dimensions swapped.
 
 Let $s$ be the \emph{page size} parameter.
 The goal of the following construction is to ensure
 that each cell of the grid contains at most $s$ intervals.
-\cetodo{Make it parametric in the order of things being indexed. "For eash of exposition, in the following we assume that we index first the duration dimension, and then the start time."}
 We divide the intervals into \emph{columns} based on their duration with two goals:
 all the intervals with the same duration should be in the same column, and each column
 should have at most $s^2$ intervals, unless there are more than $s^2$ intervals with the same duration.
