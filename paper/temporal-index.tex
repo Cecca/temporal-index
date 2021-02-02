@@ -248,7 +248,7 @@ Our contributions can be summarized as follows:
 
 Related work can be split into two categories. First, index structures suitable for intervals, and second, index structures for two dimensional data. Due to the fact that time is constantly progressing, not all 2D indexes are suitable for temporal data. Finally, we also review structures similar to our approach that are used for temporal joins.
 
-In the past, several data structures that support interval data have been proposed. One of the most popular structures is Edelsbrunner's Interval Tree~\cite{edelsbrunner80}, which is asymptotically optimal for temporal intervals and can be mapped into a relational database using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00}. While the interval tree is efficient for range queries, it doesn't take into account the length of intervals, and it is difficult to parallelize.
+In the past, several data structures that support interval data have been proposed. One of the most popular structures is Edelsbrunner's Interval Tree~\cite{edelsbrunner80}, which is asymptotically optimal for temporal intervals and can be mapped into a relational database using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00}. While the interval tree is efficient for range queries, it doesn't take into account the length of intervals.
 Another index structure for intervals is the segment tree~\cite{deBerg00}, which builds disjoint segments (intervals) at the
 leaf level using all start and end points in a relation. Internal
 nodes merge all segments of their child nodes. A tuple is associated
@@ -262,9 +262,12 @@ efficiently find the optimal splits by minimizing the number of intervals of
 the largest bucket, whereas our goal is the computation of queries involving
 position and duration of intervals in parallel.
 
+\cetodo{Add reference to~\cite{BehrendDGSVRK_SSTD19_period-index}}
+
+\cetodo{Add reference to learned indices, and say that our index structure provides provable guarantees for the running time of the queries.}
 Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
 Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
-The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. Moreover, similar to 1D tree index structure they are difficult to parallelize.
+The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. 
 
 \ad{TODO: extend the next paragraph and say that join data structures cannot be applied to this problem, with a few exceptions, e.g., OIP.}
 
@@ -277,7 +280,7 @@ The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a f
 \section{Preliminaries}
 
 We assume a linearly ordered, discrete time domain, $\domT$.  A
-time interval is a contiguous set of time points, and $[\TS,\TE)$
+time interval is a set of contiguous time points, and $[\TS,\TE)$
 denotes the closed-open interval of points from $\TS$ to $\TE$.  A
 tuple in a temporal relation is timestamped with an interval that, for instance,
 represents the tuple's valid time.  The schema of a temporal relation
