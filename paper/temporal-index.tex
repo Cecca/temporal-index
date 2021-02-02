@@ -596,7 +596,7 @@ We now provde guarantees on the time required by all the operations supported by
 	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same duration or start time.
 	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space, as depicted in Figure~\ref{fig:example-grid}.
-	For a given query and a cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
+	For a given cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
 
 	Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
 	\begin{itemize}
@@ -608,7 +608,8 @@ We now provde guarantees on the time required by all the operations supported by
 		\item \emph{A heavy column does not contain heavy cells}. By the two
 		      points above a heavy cell in a heavy column will contain intervals
 		      with the same starting time and duration, i.e. copies of
-		      the same intervals. Since we are under set semantics this cannot happen.
+			  the same intervals. 
+			  However we store duplicate intervals only once (with a list of pointers to the related tuples, which are all either part of the output or not).
 	\end{itemize}
 
 	The query time is comprised of two parts: first we have to index into the grid to find the correct
@@ -618,8 +619,8 @@ We now provde guarantees on the time required by all the operations supported by
 	As for finding the range of cells, we first have to find the first and last column by duration, which can be
 	done by binary search over the $n/s^2$ boundaries between columns in $\BO{\log (n/s^2)}$ time.
 	There can be $\BO{n / s^2}$ matching columns.
-	In each such column, to find the range of cells satisfying the predicate we have to to a binary search
-	over the $\BO{n/s}$ intervals in the column (we can have $\BO{n}$ intervals in a heavy column).
+	In each such column, to find the range of cells satisfying the predicate we have to do a binary search
+	over the $\BO{n/s}$ intervals in the column (since in the worst case we are inspecting a heavy column, which can have $\BO{n}$ intervals).
 	Therefore, the overall time to find the correct cells is
 	\[
 		\BO{\log\frac{n}{s^2} + \frac{n}{s^2} \log\frac{n}{s}} =
@@ -637,8 +638,8 @@ We now provde guarantees on the time required by all the operations supported by
 		      If the duration colum containing the cell is heavy, then the cell cannot be heavy and the algorithm has to evaluate
 		      $\BO{s}$ intervals.
 		      Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
-		      query constraint (otherwise we will not be looking at the cell at all).
-		      Therefore, the scan of the intervals by decreasing end time visits just the $k_C$ output elements.
+			  query constraint (otherwise we will not be looking at the cell at all).
+			  Therefore all the intervals in the cell match the query, and the time to enumerate them is $\BO{k_C}$.
 		\item The cell's start times all satisfy the query constraints, but not all its durations do.
 		      In this case we cannot be in a heavy column (which contains a single duration) and thus
 		      the column containing the cell contains at most $s^2$ intervals.
