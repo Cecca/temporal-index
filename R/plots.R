@@ -87,7 +87,11 @@ plot_query_focus_precision <- function(data_focus) {
     assertthat::are_equal(length(datasets), 1)
     stops <- seq(0, 1.0, by = 1 / 32)
     plotdata <- data_focus %>%
-        filter(matches > 0, dataset_name == "random-uniform-zipf") %>%
+        filter(
+            matches > 0, 
+            dataset_name == "random-uniform-zipf",
+            str_detect(dataset_params, "n=10000000 ")
+        ) %>%
         mutate(
             selectivity_time_group = cut(
                 selectivity_time,
@@ -103,8 +107,7 @@ plot_query_focus_precision <- function(data_focus) {
                 right = T,
                 ordered_result = T
             ),
-            n = matches / selectivity,
-            precision = examined / n
+            precision = examined / 10000000
         ) %>%
         group_by(
             algorithm_name,
