@@ -82,6 +82,93 @@ plot_real_distribution <- function(data_start, data_duration) {
     plot_grid(p1, p2, ncol = 1)
 }
 
+plot_query_focus_precision <- function(data_focus) {
+    datasets <- data_focus %>% pull(dataset_name)
+    assertthat::are_equal(length(datasets), 1)
+    stops <- seq(0, 1.0, by = 1 / 32)
+    plotdata <- data_focus %>%
+        filter(matches > 0, dataset_name == "random-uniform-zipf") %>%
+        mutate(
+            selectivity_time_group = cut(
+                selectivity_time,
+                breaks = stops,
+                labels = stops[-1],
+                right = T,
+                ordered_result = T
+            ),
+            selectivity_duration_group = cut(
+                selectivity_duration,
+                breaks = stops,
+                labels = stops[-1],
+                right = T,
+                ordered_result = T
+            ),
+            n = matches / selectivity,
+            precision = examined / n
+        ) %>%
+        group_by(
+            algorithm_name,
+            selectivity_time_group,
+            selectivity_duration_group
+        ) %>%
+        summarise(precision = mean(precision)) %>%
+        ungroup() %>%
+        mutate(
+            precision_tile =
+                precision %>% ntile(20)
+        )
+    labels_data <- plotdata %>%
+        group_by(as.integer((precision_tile - 1) / 4)) %>%
+        summarise(
+            precision_tile = min(precision_tile),
+            max_tile = max(precision_tile),
+            min_precision = min(precision),
+            max_precision = max(precision)
+        ) %>%
+        mutate(
+            label = scales::number(min_precision, accuracy = 0.1)
+        )
+    breaks <- c(
+        pull(labels_data, precision_tile),
+        summarise(labels_data, max(max_tile) + 3) %>% pull()
+    )
+    labels <- c(
+        pull(labels_data, label),
+        summarise(labels_data, max(max_precision) %>%
+            scales::number(accuracy = 0.1)) %>% pull()
+    )
+    print(labels)
+
+    ggplot(plotdata, aes(
+        x = selectivity_time_group,
+        y = selectivity_duration_group,
+        color = precision_tile,
+        fill = precision_tile,
+        tooltip = precision
+    )) +
+        geom_tile() +
+        scale_fill_viridis_c(
+            breaks = breaks,
+            labels = labels,
+            option = "inferno",
+            aesthetics = c("fill", "color")
+        ) +
+        scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
+        scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
+        facet_wrap(vars(algorithm_name), ncol = 5) +
+        labs(
+            x = "time selectivity",
+            y = "duration selectivity"
+        ) +
+        theme_paper() +
+        theme(
+            legend.title = element_blank(),
+            legend.position = "bottom",
+            legend.key.width = unit(30, "mm")
+        )
+}
+
+
 plot_query_focus <- function(data_focus) {
     datasets <- data_focus %>% pull(dataset_name)
     assertthat::are_equal(length(datasets), 1)
