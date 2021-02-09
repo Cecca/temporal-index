@@ -887,11 +887,15 @@ their start time distribution show similar performance.
 
 \begin{figure*}
 	\includegraphics[width=\textwidth]{images/query-focus.png}
+	\includegraphics[width=\textwidth]{images/query-focus-precision.png}
 	\caption{
-		Heatmaps of query times against selectivity in the time and duration dimensions,
-		for different index structures.
-		Note that for readability we bin running in 8 groups, assigning a color to each group.
-		As can be seen from the color scale, such groups are not evenly distributed.
+		Heatmaps of the performance of index structures against selectivity
+		in the time and duration dimensions.
+		The top row reports the time, in milliseconds, required to answer a query with a given time and duration selectivity (darker is better).
+		The bottom row reports the fraction of intervals (over the total $n=10^7$) examined by each querie. A fraction larger than 1 means that
+		a query examined the same interval more than once.
+		Note that for readability the color scales are binned every
+		5 percentiles, therefore the scales are non linear.
 		\label{fig:selectivity-grid}}
 	\Description{Time versus selectivity in two dimensions}
 \end{figure*}
