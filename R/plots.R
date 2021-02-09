@@ -137,7 +137,6 @@ plot_query_focus_precision <- function(data_focus) {
         summarise(labels_data, max(max_precision) %>%
             scales::number(accuracy = 0.1)) %>% pull()
     )
-    print(labels)
 
     ggplot(plotdata, aes(
         x = selectivity_time_group,
@@ -202,24 +201,34 @@ plot_query_focus <- function(data_focus) {
             query_time =
                 set_units(query_time, "milliseconds"),
             query_time_tile =
-                query_time %>% drop_units() %>% ntile(8)
+                query_time %>% drop_units() %>% ntile(20)
         )
     labels_data <- plotdata %>%
         mutate(query_time = drop_units(query_time)) %>%
-        group_by(query_time_tile) %>%
+        group_by(as.integer((query_time_tile - 1) / 4)) %>%
         summarise(
+            query_time_tile = min(query_time_tile),
+            max_tile = max(query_time_tile),
             max_time = max(query_time),
             min_time = min(query_time)
         ) %>%
         mutate(
             label = str_c(
-                scales::number(max_time, accuracy = 0.1),
+                scales::number(min_time, accuracy = 0.1),
                 " ms"
             )
-        ) # %>%
-    # filter(query_time_tile %in% c(2, 4, 6, 8, 10))
-    breaks <- pull(labels_data, query_time_tile)
-    labels <- pull(labels_data, label)
+        )
+    # breaks <- pull(labels_data, query_time_tile)
+    # labels <- pull(labels_data, label)
+    breaks <- c(
+        pull(labels_data, query_time_tile),
+        summarise(labels_data, max(max_tile) + 3) %>% pull()
+    )
+    labels <- c(
+        pull(labels_data, label),
+        summarise(labels_data, max(max_time) %>%
+            scales::number(accuracy = 0.1, suffix = " ms")) %>% pull()
+    )
 
     ggplot(plotdata, aes(
         x = selectivity_time_group,
