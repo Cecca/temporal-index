@@ -5,12 +5,12 @@
       samples: 10
 
   datasets:
-    - Flight
+    - Tourism
 
     - Reiterated:
         copies: 4
         base:
-          Flight
+          Tourism
 
   queries:
     - Random:
