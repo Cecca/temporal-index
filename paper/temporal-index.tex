@@ -939,9 +939,16 @@ their start time distribution show similar performance.
 \begin{figure*}
 	\includegraphics[width=\textwidth]{images/selectivity-dep.png}
 	\caption{
-		Query time against selectivity for different index structures.
+		% Note that for the period-index* duration only queries are the worst, because they need
+		% to visit all the buckets. On top of that, most of the queries have to examine
+		% each interval more than once.
+		Number of examined intervals against selectivity of the query.
 		Each point represents a query:
 		red dots are \qro queries, blue dots are \qdo queries.
+		The black line represents the ideal behaviour, in which only matching
+		intervals are examined.
+		Note that all the plots except for the one related to the 
+		\algo{PeriodIndex*} share the $y$ axis.
 		\label{fig:time-vs-selectivity}}
 	\Description{Time versus selectivity}
 \end{figure*}

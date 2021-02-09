@@ -17,4 +17,5 @@ suppressPackageStartupMessages({
     library(data.table)
     library(kableExtra)
     library(lubridate)
+    library(patchwork)
 })
