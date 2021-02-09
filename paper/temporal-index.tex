@@ -67,6 +67,7 @@
 \newcommand\vldbpagestyle{plain} 
 
 \newcommand{\ad}[1]{\textcolor{blue}{(*** AD: #1 ***)}}
+\newcommand{\jg}[1]{\textcolor{brown}{(*** JG: #1 ***)}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -141,19 +142,27 @@
 \section{Introduction}
 
 Temporal information plays a crucial role in many database applications: many database management systems provide indeed automated version control of the data and \emph{time travel} facilities, allowing to access past history efficiently.
-In particular, past research concentrated on the important operators of temporal aggregation~\cite{DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/ssd/PiatovH17}, temporal joins~\cite{DBLP:conf/icde/PiatovHD16}, and time travel~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13}.
+Past research concentrated on the important operators of temporal aggregation~\cite{DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/ssd/PiatovH17}, temporal joins~\cite{DBLP:conf/icde/PiatovHD16}, and time travel~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13}.
 
 All these approaches focus on handling temporal intervals, but concentrate on the \emph{position} of intervals along the timeline, ignoring another important attribute of intervals: their duration.
-
+%
 As a result, index structures to support more general selection queries with constraints on both the duration and the position in time of intervals have been missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17} until recently~\cite{BehrendDGSVRK_SSTD19_period-index}.	
 
 This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formuluate queries.
 For instance, consider the following queries from different application scenarios:
 \begin{itemize}
-	\item[$Q1$:] \emph{"In a source code repository, find all the files that have not been modifyied for more than 2 years."}
+\item[$Q1$:] \emph{"In a source code repository, find all the files
+    that have not been modified for more than two years."}
 	\item[$Q2$:] \emph{"Given a flight, find all the aircrafts that were flying at the same time."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
+
+\jg{Should we change the order of the 3 queries: first range, then
+  duration, then range-duration? Range queries seem to be the most
+  frequenty type of queries and studied in the past. For Q2: Is
+  ``... flying at the same time'' a good example of a range query?
+  Somehow the range is implicit. Should we make it more explicit by
+  specifying a range? I have no strong opinion.}
 
 % For instance, applications that offer
 % situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
@@ -180,14 +189,25 @@ Alternatively, the duration of the intervals can be indexed straighforwardly usi
 In this case, however, queries constraining only the range of the intervals will need to traverse the entire tree.
 
 The two aforementioned indexes could be used at the same time, however combining different indexes is typically inefficient, since a query can have different selectivities in the two dimensions.
-
+%
 Therefore, to efficiently support queries constraining both the duration and the range of intervals we need to develop a data structure that can index both dimensions at the same time. A first step in this direction is \algo{Period-Index*}~\cite{BehrendDGSVRK_SSTD19_period-index}.
 
-We improve on this previous work by proposing \ours{}, a two dimensional data structure that indexes both duration and position on the timeline at the same time.
-In particular, our data structure partitions the intervals in a grid according to their start times and durations. Rather than being fixed, the boundaries between the cells of the grid are positioned by taking into account the data distribution, so to ensure that each cell contains the same number of intervals (with the exception of some edge cases, as we shall see in the following).
-This allows obtain very predictable query times, which are proportional to the selectivity of the query.
-The data structure also lends itself to a rather simple implementation, which we use to experimentally validate our approach using such implementation, finding that the overhead introduced by the data structure is indeed negligible, and that the running time in practice is largely proportional to the selectivity of the query.
-This is in contrast to the other data structures we compare to.
+\jg{My feeling is that in this paragraph we need to provide a few more details, e.g., about our guarantees} We improve on this previous work by proposing \ours{}, a two
+dimensional data structure that indexes both duration and position on
+the timeline at the same time.  In particular, our data structure
+partitions the intervals in a grid according to their start times and
+durations. Rather than being fixed, the boundaries between the cells
+of the grid are positioned by taking into account the data
+distribution, so to ensure that each cell contains the same number of
+intervals (with the exception of some edge cases, as we shall see in
+the following).  This allows obtain very predictable query times,
+which are proportional to the selectivity of the query.  The data
+structure also lends itself to a rather simple implementation, which
+we use to experimentally validate our approach using such
+implementation, finding that the overhead introduced by the data
+structure is indeed negligible, and that the running time in practice
+is largely proportional to the selectivity of the query.  This is in
+contrast to the other data structures we compare to.
 
 Our contributions can then be summarized as follows:
 \begin{itemize}
@@ -264,14 +284,14 @@ with all sub-tree roots whose segment is completely covered by the
 tuple's interval. Also this approach does not support queries that constrain the length of intervals.
 }
 
-{\color{red}
-Le et al.~\cite{DBLP:conf/sigmod/LeLTC13} propose a splitter for temporal and
-multi-version databases with the aim to support load balancing for
-distributed computing. For a user-defined number of buckets the goal is to
-efficiently find the optimal splits by minimizing the number of intervals of
-the largest bucket, whereas our goal is the computation of queries involving
-position and duration of intervals in parallel.
-}
+{\color{red} Le et al.~\cite{DBLP:conf/sigmod/LeLTC13} propose a
+  splitter for temporal and multi-version databases with the aim to
+  support load balancing for distributed computing. For a user-defined
+  number of buckets the goal is to efficiently find the optimal splits
+  by minimizing the number of intervals of the largest bucket, whereas
+  our goal is the computation of queries involving position and
+  duration of intervals in parallel. \jg{Here the difference to our
+    approach is not yet clear to me.}  }
 
 Very recently, Behrend et al.~\cite{BehrendDGSVRK_SSTD19_period-index}
 proposed an index expliticly supporting range-duration queries. Such index,
@@ -305,13 +325,18 @@ Index~\cite{DBLP:conf/sigmod/KraskaBCDP18} and a variant of decision trees to
 model the position of records of the database, adapting to the distribution
 of the data and of the query workload.
 %
-\cetodo{This is a dangerous statement. What do you think?} While our approach
-shares some ideas with this line of work, namely adapting to the data
-distribution by means of the conditional cumulative distribution function,
-our index supports both insertions and deletions, whereas both Flood and
-Tsunami are tailored at read-only workloads.
-Furthermore, we prove bounds on the worst case running times for all the operations, while~\cite{DBLP:conf/sigmod/NathanDAK20,
-DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
+\cetodo{This is a dangerous statement. What do you think?}  \jg{To
+  some extend yes, but on the other hand we have some features which
+  distinguish our work (as you explain below); so it should be ok, but
+  we have of course to clearly work out such differences} While our
+approach shares some ideas with this line of work, namely adapting to
+the data distribution by means of the conditional cumulative
+distribution function, our index supports both insertions and
+deletions, whereas both Flood and Tsunami are tailored at read-only
+workloads.  Furthermore, we prove bounds on the worst case running
+times for all the operations,
+while~\cite{DBLP:conf/sigmod/NathanDAK20,
+  DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
 
 \ad{TODO: extend the next paragraph and say that join data structures cannot be applied to this problem, with a few exceptions, e.g., OIP.}
 
@@ -347,12 +372,16 @@ not empty, is itself an interval.
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
 \begin{definition}[Range query]
-	Given a temporal interval $T = [\TS, \TE)$ and a temporal relation $R$,
-	a \emph{range query} $Q(R, T)$ is defined as
-	\[
-		Q(R, T) = \left\{r \in R : r.T \cap T \ne \emptyset \right\}
-	\]
+  Given a temporal interval $T = [\TS, \TE)$ and a temporal relation
+  $\rr$, a \emph{range query} $Q(\rr, T)$ is defined as
+  \[
+    Q(\rr, T) = \left\{r \in \rr : r.T \cap T \ne \emptyset
+    \right\}
+  \]
 \end{definition}
+
+\jg{I changed relation from $R$ to $\rr$. Should be correct, isn't it?}
+      
 
 \begin{definition}[Duration query]
 	Given a duration interval $d = [d_{min}, d_{max}]$ and a temporal relation $R$,
@@ -361,6 +390,11 @@ Our index efficiently supports the three following types of queries (defined as 
 		Q(R, d) = \left\{r \in R : |r.T| \in [d_{min}, d_{max}] \right\}
 	\]
 \end{definition}
+
+\jg{We use lowercase $d=[d_{min},d_{max}]$ for duration interval and
+  uppercase $T=[\TS,\TE]$ for the temporal interval. I have the
+  feeling that this is somehow a bit inconsistent? Thinking about a
+  unification.}
 
 \begin{definition}[Range-duration query]
 	Given a temporal interval $T = [\TS, \TE)$, a duration interval $d = [d_{min}, d_{max}]$,
@@ -374,10 +408,12 @@ Our index efficiently supports the three following types of queries (defined as 
 The latter type of query is a combination of the former two.
 
 \begin{figure}
-	\input{example.tex}
-  \caption{Range-duration query on the example table. The time range is constrained to 
-  be between 10:00 and 14:00, and the duration is constrained to be in $[2h, 4h]$
-  The green interval is the only one matching both the range and duration constraints.\label{fig:example-intervals}}
+  \input{example.tex}
+  \caption{Range-duration query on the example table. The time range
+    is constrained to be between 10:00 and 14:00, and the duration is
+    constrained to be in $[2h, 4h]$.  The green interval is the only
+    one matching both the range and duration
+    constraints.\label{fig:example-intervals} \jg{At first glance, I had the impression that the red area is the duration range, since this is written there and the horizontal axis is the time range.}}
 \end{figure}
 
 \begin{example}\label{example:queries}
@@ -1057,3 +1093,8 @@ second-best data structure, \algo{grid-file}.
 	Each cell, then holds a pointer to the next non-empty cell, allowing, at query time, to skip the empty cells.
 	Still, we have problems of memory allocation, because we waste a great deal of space in empty cells.
 \end{tcolorbox}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
