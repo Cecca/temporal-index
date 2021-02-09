@@ -80,7 +80,11 @@ plan <- drake_plan(
   # Data for the query focus plot
   data_query_focus = {
     file_in("temporal-index-results.sqlite")
-    table_query_focus()
+    table_query_focus() %>%
+      filter(
+          dataset_name == "random-uniform-zipf",
+          str_detect(dataset_params, "n=10000000 ")
+      )
   },
 
   # Figure for the query focus plot

@@ -88,7 +88,7 @@ plot_query_focus_precision <- function(data_focus) {
     stops <- seq(0, 1.0, by = 1 / 32)
     plotdata <- data_focus %>%
         filter(
-            matches > 0, 
+            matches > 0,
             dataset_name == "random-uniform-zipf",
             str_detect(dataset_params, "n=10000000 ")
         ) %>%
@@ -270,41 +270,66 @@ plot_selectivity_dependency <- function(data_selectivity) {
         mutate(
             query_time =
                 set_units(query_time, "milliseconds") %>% drop_units(),
+            precision = examined / 10000000,
             category = case_when(
                 selectivity_time >= 0.99 ~ "duration-only",
                 selectivity_duration >= 0.99 ~ "time-only",
                 TRUE ~ "both"
             )
         )
-
-    ggplot(plotdata, aes(
-        x = selectivity,
-        y = query_time,
-        color = category,
-        tooltip = str_c(
-            "sel duration: ",
-            selectivity_duration,
-            "\n",
-            "sel time: ",
-            selectivity_time
-        )
-    )) +
-        geom_point_interactive(size = 0.5) +
-        geom_rangeframe(show.legend = FALSE) +
-        facet_wrap(vars(algorithm_name), ncol = 5) +
-        scale_color_manual(values = c(
-            "both" = "#414141",
-            "duration-only" = "#00ccff",
-            "time-only" = "#ff5e00"
+    inner <- function(data) {
+        ggplot(data, aes(
+            x = selectivity,
+            y = precision,
+            color = category,
+            alpha = category,
+            tooltip = str_c(
+                "sel duration: ",
+                selectivity_duration,
+                "\n",
+                "sel time: ",
+                selectivity_time
+            )
         )) +
-        scale_x_continuous(breaks = c(.25, .5, .75, 1)) +
-        labs(
-            x = "selectivity",
-            y = "query time (ms)"
-        ) +
-        guides(colour = guide_legend(override.aes = list(size = 2))) +
-        theme_paper() +
-        theme(legend.position = "top")
+            geom_abline(slope = 1, yintercept = 0, inherit.aes = F) +
+            geom_point_interactive(size = 0.5) +
+            geom_rangeframe(show.legend = FALSE) +
+            facet_wrap(vars(algorithm_name), ncol = 5, scales = "free_y") +
+            scale_color_manual(values = c(
+                "both" = "#414141",
+                "duration-only" = "steelblue",
+                # "duration-only" = "#00ccff",
+                "time-only" = "#ff5e00"
+            )) +
+            scale_alpha_manual(values = c(
+                "both" = 0.1,
+                "duration-only" = 1,
+                "time-only" = 1
+            )) +
+            scale_x_continuous(breaks = c(.25, .5, .75, 1)) +
+            scale_y_continuous(limits = c(0, NA)) +
+            labs(
+                x = "selectivity",
+                y = "fraction of intervals examined",
+                color = "category of query"
+            ) +
+            guides(
+                colour = guide_legend(override.aes = list(size = 2)),
+                alpha = FALSE
+            ) +
+            theme_paper() +
+            theme(legend.position = "top")
+    }
+
+
+    inner(plotdata)
+    # p1 <- plotdata %>%
+    #     filter(algorithm_name != "period-index-*") %>%
+    #     inner()
+    # p2 <- plotdata %>%
+    #     filter(algorithm_name == "period-index-*") %>%
+    #     inner()
+    # p1 | p2
 }
 
 plot_running_example <- function(data_running_example, query_time, query_duration) {
