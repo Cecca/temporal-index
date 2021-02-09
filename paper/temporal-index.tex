@@ -724,8 +724,11 @@ at the same time increasing the number of columns that need to be queried.
 	time $\BO{\log\frac{n}{s}}$ to find the cell within the column (as in the worst case all the intervals
 	in the index have the same duration).
 
-	\cetodo{Define that splitting does not happen for \emph{heavy} columns or cells.}
-	In such case, splitting a column with $2s^2 + 1$ intervals requires to find the median and
+  Note that a heavy column or cell does not need to be split, since by definition
+  they can contain more than $s^2$ (resp. $s$) intervals, as long as they all have
+  the same duration (resp. start time).
+  Therefore we consider only the case of splitting a non-heavy column or non-heavy cell.
+	Splitting a column with $2s^2 + 1$ intervals requires to find the median and
 	to apply Algorithm~\ref{alg:define-boundaries} on the
 	two newly defined columns, both operations that require time $\BO{s^2\log s^2}$.
 	Furthermore, inserting the new column boundaries in order in the sorted array of boundaries requires
@@ -749,8 +752,6 @@ In a similar way we can prove the follwing theorem.
 	\caption{Histograms of the start times (top) and durations (bottom) of the three real-world
 		datasets considered in this paper.\label{fig:data-distributions}}
 \end{figure*}
-
-\cetodo{Discuss the different distributions of data, connecting them to the experimental results that we get.}
 
 In this section we compare experimentally our proposed index with alternative approaches.
 In particular, we aim to answer the following questions:
@@ -814,8 +815,8 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 In particular, we run the following type of query:
 \begin{lstlisting}[basicstyle=\ttfamily, mathescape=true]
 SELECT COUNT(*) FROM relation
-WHERE $\TS < \bar{t}_{end}$ AND $\bar{t}_{start} < \TE$
-  AND $d_{min} \le |T|$ AND $|T| \le d_max$;
+ WHERE $\TS < \bar{t}_{end}$ AND $\bar{t}_{start} < \TE$
+   AND $d_{min} \le |T|$ AND $|T| \le d_max$;
 \end{lstlisting}
 where $[\bar{t}_{start}, \bar{t}_{end})$ is the range constraint and
 $[d_{min}, d_{max}]$ is the duration constraint.
