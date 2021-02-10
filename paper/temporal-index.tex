@@ -430,11 +430,16 @@ The latter type of query is a combination of the former two.
 \end{example}
 
 \section{Data structure}
+
+\section{Overview}
+
 \begin{figure}
 	\input{example-plane.tex}
   \caption{Flights of Table~\ref{tab:example} in the duration/start time plane.
   The smaller gray dots are flights from the same day.
-  The red polygon is the range-duration query of example~\ref{example:queries}.\label{fig:example-plane}}
+  The red polygon is the range-duration query of example~\ref{example:queries}.
+  \jg{The same comment as below about the order. Wouldn't it be more intuitive to have the departure time on the x-axis, as it would better match with Fig. 1. Moreover, I suggest to plot more ticks on both axes, e.g., 0, 2, 4, 6, 8, 10 (and similar for departure time); then it is easier to position the red polygon.}
+  \label{fig:example-plane}}
 \end{figure}
 
 An interval can be completely described by its duration and starting time, therefore
@@ -443,12 +448,21 @@ space, with one coordinate being the duration and the other the start time.
 A range-duration query with time interval $[\TS, \TE)$ and duration interval
 $[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
 which is defined by all points $(d, t)$ such that
+\jg{I am wondering whether we should fix an order between the two dimensions and always use this order, that is $(d, t)$ or $(t, d)$? My viewpoint was always that we started with range queries ($t$) and extended to duration ($d$). But of course we can also swap if there are good reasons.}
 \begin{equation*}
 \begin{aligned}
   t < \TE \quad\wedge&\quad t < \TS - d \quad\wedge \\
           \quad\wedge&\quad d_{min} \le d \le d_{max}
 \end{aligned}
 \end{equation*}
+
+\jg{Shouldn't this constraint be as follows:
+\begin{align*}
+  t < \TE \quad\wedge&\quad t > \TS - d_{min} \quad\wedge \\
+  \quad\wedge&\quad d_{min} \le d \le d_{max}
+\end{align}
+}
+
 
 \begin{example}
   Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
@@ -465,9 +479,10 @@ each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
 This allows the data structure to adapt to the distribution of the input.
 
-In the following we will focus on the interval attribute $T$ of relation $R$:
-in the discussion we assume that each interval being inserted in the index
-is associated with a reference to the tuple in $R$ it belongs to.
+In the following we will focus on the timestamp attribute $T$ of
+relation $\rr$: in the discussion we assume that each interval being
+inserted in the index is associated with a reference to the tuple in
+$R$ it belongs to.
 
 \subsection{Index construction}
 \label{sec:index-construction}
@@ -500,9 +515,16 @@ is associated with a reference to the tuple in $R$ it belongs to.
 	\Return $B$\;
 \end{algorithm}
 
-Our grid structure partitions the dataset first along either the duration or start time dimension, and then along the other. The choice of which dimension to index first may of course impact the performance, depending on the query workload.
-To make the exposition more concrete, in the following we will assume that the duration dimension is indexed first.
-All the descriptions, considerations, and proofs also hold with the dimensions swapped.
+\jg{Here I have a similar comment as before: I find it slightly more
+  intuitive if we have the departure time on the x-axis and duration
+  on the y-axis. But you have probably good reasons to make it this
+  way?!? } Our grid structure partitions the dataset first along
+either the duration or start time dimension, and then along the
+other. The choice of which dimension to index first may of course
+impact the performance, depending on the query workload.  To make the
+exposition more concrete, in the following we will assume that the
+duration dimension is indexed first.  All the descriptions,
+considerations, and proofs also hold with the dimensions swapped.
 
 Let $s$ be the \emph{page size} parameter.
 The goal of the following construction is to ensure
