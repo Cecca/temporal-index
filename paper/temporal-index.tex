@@ -4,8 +4,7 @@
 \usepackage{colortbl}
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{tcolorbox}
-\usepackage{todonotes}
-\newcommand{\cetodo}[1]{\todo[inline,color=teal!30]{#1}}
+%\usepackage{todonotes}
 
 \usepackage{listings}
 \usepackage{tikz}
@@ -68,6 +67,7 @@
 
 \newcommand{\ad}[1]{\textcolor{blue}{(*** AD: #1 ***)}}
 \newcommand{\jg}[1]{\textcolor{brown}{(*** JG: #1 ***)}}
+\newcommand{\mc}[1]{\textcolor{teal}{(*** MC: #1 ***)}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -151,18 +151,12 @@ As a result, index structures to support more general selection queries with con
 This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formuluate queries.
 For instance, consider the following queries from different application scenarios:
 \begin{itemize}
-\item[$Q1$:] \emph{"In a source code repository, find all the files
+	\item[$Q2$:] \emph{"In a database of flights, find all the aircrafts that were flying between 10:00 and 14:00."}
+  \item[$Q1$:] \emph{"In a source code repository, find all the files
     that have not been modified for more than two years."}
-	\item[$Q2$:] \emph{"Given a flight, find all the aircrafts that were flying at the same time."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
 
-\jg{Should we change the order of the 3 queries: first range, then
-  duration, then range-duration? Range queries seem to be the most
-  frequenty type of queries and studied in the past. For Q2: Is
-  ``... flying at the same time'' a good example of a range query?
-  Somehow the range is implicit. Should we make it more explicit by
-  specifying a range? I have no strong opinion.}
 
 % For instance, applications that offer
 % situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
@@ -325,7 +319,7 @@ Index~\cite{DBLP:conf/sigmod/KraskaBCDP18} and a variant of decision trees to
 model the position of records of the database, adapting to the distribution
 of the data and of the query workload.
 %
-\cetodo{This is a dangerous statement. What do you think?}  \jg{To
+\mc{This is a dangerous statement. What do you think?}  \jg{To
   some extend yes, but on the other hand we have some features which
   distinguish our work (as you explain below); so it should be ok, but
   we have of course to clearly work out such differences} While our
@@ -581,7 +575,7 @@ can have one of three cases:
 Then, each column is further partitioned according to the start time, invoking on it
 Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
 the start time of the intervals.
-\cetodo{heavy cells and columns are still undefined at this point}
+\mc{heavy cells and columns are still undefined at this point}
 The algorithm proceeds as above, with the possibility of introducing \emph{heavy cells} if there are
 more than $s$ intervals sharing the same start time.
 
@@ -843,7 +837,7 @@ In a similar way we can prove the follwing theorem.
 	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
 \end{theorem}
 
-\cetodo{Discuss the tradeoffs of the data structure, and then relate them to the experimental results.}
+\mc{Discuss the tradeoffs of the data structure, and then relate them to the experimental results.}
 
 \section{Experimental evaluation}
 
@@ -872,7 +866,7 @@ equipped with 94 Gb of memory and a Intel\textregistered Xeon\textregistered CPU
 As a benchmark we consider the following datasets and workloads\footnote{
 	All the datasets are available in the code repository.}:
 %
-\cetodo{This might not make sense, since the dataset covers just August? Check that it indeed covers just August}
+\mc{This might not make sense, since the dataset covers just August? Check that it indeed covers just August}
 \paragraph{\dataset{Flight}} A set of 701\,353 flights, identified by their
 takeoff and landing time, at the granularity of minute, covering the month
 of August 2018.
@@ -1072,7 +1066,7 @@ are answered with the worst performance, as we expect given that they are answer
 by simple enumeration.
 Other queries are answered with varying degrees of efficiency, with queries constraining
 just the dimension on which the index specializes exhibiting a close-to-ideal behaviour.
-\cetodo{Actually this is not strictly true for the \algo{b-tree}, why?}
+\mc{Actually this is not strictly true for the \algo{b-tree}, why?}
 
 Finally, \algo{period-index$\star$} answers queries with mixed performance, possibly as an effect of intervals
 being replicated across several cells.
