@@ -429,12 +429,21 @@ The latter type of query is a combination of the former two.
   \texttt{N207SY}, \texttt{N309AS}, and \texttt{N432YX}.
 \end{example}
 
-\section{Data structure}
+\section{Data Structure}
+
+\jg{We should probably give a name to our index. What about RD-index
+  (for range-duration index) or RDG-index (for range-duration-grid
+  index)? Any other proposal?}
+
+\section{Overview}
+
 \begin{figure}
 	\input{example-plane.tex}
   \caption{Flights of Table~\ref{tab:example} in the duration/start time plane.
   The smaller gray dots are flights from the same day.
-  The red polygon is the range-duration query of example~\ref{example:queries}.\label{fig:example-plane}}
+  The red polygon is the range-duration query of example~\ref{example:queries}.
+  \jg{The same comment as below about the order. Wouldn't it be more intuitive to have the departure time on the x-axis, as it would better match with Fig. 1. Moreover, I suggest to plot more ticks on both axes, e.g., 0, 2, 4, 6, 8, 10 (and similar for departure time); then it is easier to position the red polygon.}
+  \label{fig:example-plane}}
 \end{figure}
 
 An interval can be completely described by its duration and starting time, therefore
@@ -443,12 +452,21 @@ space, with one coordinate being the duration and the other the start time.
 A range-duration query with time interval $[\TS, \TE)$ and duration interval
 $[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
 which is defined by all points $(d, t)$ such that
+\jg{I am wondering whether we should fix an order between the two dimensions and always use this order, that is $(d, t)$ or $(t, d)$? My viewpoint was always that we started with range queries ($t$) and extended to duration ($d$). But of course we can also swap if there are good reasons.}
 \begin{equation*}
 \begin{aligned}
   t < \TE \quad\wedge&\quad t < \TS - d \quad\wedge \\
           \quad\wedge&\quad d_{min} \le d \le d_{max}
 \end{aligned}
 \end{equation*}
+
+\jg{Shouldn't this constraint be as follows:
+\begin{align*}
+  t < \TE \quad\wedge&\quad t > \TS - d_{min} \quad\wedge \\
+  \quad\wedge&\quad d_{min} \le d \le d_{max}
+\end{align*}
+}
+
 
 \begin{example}
   Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
@@ -465,75 +483,100 @@ each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
 This allows the data structure to adapt to the distribution of the input.
 
-In the following we will focus on the interval attribute $T$ of relation $R$:
-in the discussion we assume that each interval being inserted in the index
-is associated with a reference to the tuple in $R$ it belongs to.
+In the following we will focus on the timestamp attribute $T$ of
+relation $\rr$: in the discussion we assume that each interval being
+inserted in the index is associated with a reference to the tuple in
+$R$ it belongs to.
 
-\subsection{Index construction}
+\subsection{Index Construction}
 \label{sec:index-construction}
 
-\begin{algorithm}[t]
-	\caption{\textsc{DefineBoundaries}$(I, b, k)$\label{alg:define-boundaries}}
-	\KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
-	\KwOut{An array of boundaries partitioning $I$ into up to $I/b$ buckets}
+\begin{algorithm}%[t]
+  \caption{\textsc{DefineBoundaries}$(I, b, k)$\label{alg:define-boundaries}}
+  \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
+  \KwOut{An array of boundaries partitioning $I$ into up to $|I|/b$ buckets}
 
-	Sort $I$ according to $k$, so that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
-	\Let{$B$}{$[]$}\;
-	\Let{$i$}{$0$}\;
-	\While{$i < |I|$}{
-		\nllabel{line:iterate}
-		\Let{$j$}{$i+b$}\;
-		\If{$k(I_i) = k(I_{j})$} {
-			\nllabel{line:heavy-bucket}
-			\lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
-				\Let{$j$}{$j+1$}
-			}
-		} \ElseIf{$k(I_j) = k(I_{j+1})$} {
-			\nllabel{line:split-bucket}
-			\lWhile{$j > i \wedge k(I_j) = k(I_{i+b})$} {
-				\Let{$j$}{$j-1$}
-			}
-		}
-		Append $I_j$ to $B$\;
-		\Let{$i$}{$j+1$}\;
-	}
-	\Return $B$\;
+  Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
+  \Let{$B$}{$[]$}\;
+  \Let{$i$}{$0$}\;
+  \While{$i < |I|$}{
+    \nllabel{line:iterate}
+    \Let{$j$}{$i+b$}\;
+    \uIf{$k(I_i) = k(I_{j})$} {
+      \nllabel{line:heavy-bucket}
+      \lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
+        \Let{$j$}{$j+1$}
+      }
+    } \ElseIf{$k(I_j) = k(I_{j+1})$} {
+      \nllabel{line:split-bucket}
+      \lWhile{$j > i \wedge k(I_j) = k(I_{i+b})$} {
+        \jg{Would $k(I_j) = k(I_{j+1})$ be more intuitive in the condition?}
+        \Let{$j$}{$j-1$}
+      }
+    }
+    Append $I_j$ to $B$\;
+    \jg{Shouldn't this be: Append $k(I_j)$ to $B$}\;
+    \Let{$i$}{$j+1$}\;
+  }
+  \Return $B$\;
 \end{algorithm}
 
-Our grid structure partitions the dataset first along either the duration or start time dimension, and then along the other. The choice of which dimension to index first may of course impact the performance, depending on the query workload.
-To make the exposition more concrete, in the following we will assume that the duration dimension is indexed first.
-All the descriptions, considerations, and proofs also hold with the dimensions swapped.
+\jg{Here I have a similar comment as before: I find it slightly more
+  intuitive if we have the departure time on the x-axis and duration
+  on the y-axis. But you have probably good reasons to make it this
+  way?!? } Our grid structure partitions the dataset first along
+either the duration or start time dimension, and then along the
+other. The choice of which dimension to index first may of course
+impact the performance, depending on the query workload.  To make the
+exposition more concrete, in the following we will assume that the
+duration dimension is indexed first.  All the descriptions,
+considerations, and proofs also hold with the dimensions swapped.
 
-Let $s$ be the \emph{page size} parameter.
-The goal of the following construction is to ensure
-that each cell of the grid contains at most $s$ intervals.
-We divide the intervals into \emph{columns} based on their duration with two goals:
-all the intervals with the same duration should be in the same column, and each column
-should have at most $s^2$ intervals, unless there are more than $s^2$ intervals with the same duration.
-In the latter case, all the intervals in the column shall have the same duration.
-To this end, we invoke Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
-setting the bucket size to $s^2$ and the key function $k$ to the duration.
-In this invocation, we first sort all the intervals by increasing duration.
-Runs of duplicate intervals are replaced by a single instance, equipped
-with a list of references to the tuples timestamped with that interval.
-Then, we iterativaly define bucket boundaries as follows.
-We set the start of the first bucket to the duration of the first interval.
-Then, we look ahead at the interval $s^2$ positions from it, and we can have one of three cases:
+Let $s$ be the \emph{page size} parameter \jg{Why do we introduce the
+  page size parameter? Is this because the index (i.e. the cells) is
+  stored on disk? And why do we set the bucket size to $s^2$? We need
+  a justification for $s^2$, I think.}.  The goal of the following
+construction is to ensure that each cell of the grid contains at most
+$s$ intervals.  We divide the intervals into \emph{columns} \jg{We use
+  columns and buckets interchangably, isn't it? Should we only use the
+  term bucket or only columns?} based on their duration with two
+goals: all the intervals with the same duration should be in the same
+column, and each column should have at most $s^2$ intervals, unless
+there are more than $s^2$ intervals with the same duration.  In the
+latter case, all the intervals in the column shall have the same
+duration.  To this end, we invoke
+Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
+setting the bucket size to $s^2$ and the key function $k$ to the
+duration.  In this invocation, we first sort all the intervals by
+increasing duration.  Runs of duplicate intervals are replaced by a
+single instance, equipped with a list of references to the tuples
+timestamped with that interval \jg{This sentence is not clear to
+  me. In Alg. 1 it seems to me that the set $I$ is used as a flat
+  array, where duplicates are together. Perhaps not synchronized.}.
+Then, we iterativaly define bucket boundaries as follows.  We set the
+start of the first bucket to the duration of the first interval.
+Then, we look ahead at the interval $s^2$ positions from it, and we
+can have one of three cases:
 \begin{enumerate}
-	\item the look ahead interval has the same duration as the one starting the column,
-	      meaning that we are considering a run of more than $s^2$
-	      intervals all with the same duration (line~\ref{line:heavy-bucket} of Algorithm~\ref{alg:define-boundaries}).
-	      Then, the boundary of the bucket is set
-	      to the current duration, and the start of the next column is set to the first interval
-	      with duration strictly larger than the current one.
-	\item the look ahead interval and the one immediately following it have the same duration,
-	      which is however different from the one of the interval starting the column (line~\ref{line:split-bucket}
-	      of Algorithm~\ref{alg:define-boundaries}).
-	      In order not to break a run of same-duration intervals between different columns while
-	      keeping the column itself smaller than $s^2$, we look for the first interval preceding the
-	      look ahead with a strictly smaller duration, and make it the end of the column
-	\item otherwise, the look ahead interval marks the end of the column.
+\item the look ahead interval has the same duration as the one
+  starting the column, meaning that we are considering a run of more
+  than $s^2$ intervals all with the same duration
+  (line~\ref{line:heavy-bucket} of
+  Algorithm~\ref{alg:define-boundaries}).  Then, the boundary of the
+  bucket is set to the current duration, and the start of the next
+  column is set to the first interval with duration strictly larger
+  than the current one.
+\item the look ahead interval and the one immediately following it
+  have the same duration, which is however different from the one of
+  the interval starting the column (line~\ref{line:split-bucket} of
+  Algorithm~\ref{alg:define-boundaries}).  In order not to break a run
+  of same-duration intervals between different columns while keeping
+  the column itself smaller than $s^2$, we look for the first interval
+  preceding the look ahead with a strictly smaller duration, and make
+  it the end of the column
+\item otherwise, the look ahead interval marks the end of the column.
 \end{enumerate}
+\jg{It would be nice to have an example/illustration of the array $B$ with concrete values, where to show the above cases. If we use a running example with 6-8 concrete intervals, it should be sufficient.}        
 
 Then, each column is further partitioned according to the start time, invoking on it
 Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
@@ -568,7 +611,7 @@ of cells containing intervals that match a given query.
   intervals in each cell.
 \end{example}
 
-\subsection{Querying the index}
+\subsection{Querying the Index}
 
 Given a range-duration query $Q(R, \T, d)$ with $\T=[\TS, \TE)$ and $d=[d_min, d_max]$,
 recall that a tuple $r \in R$ satisfies the query if the three following conditions
@@ -595,28 +638,32 @@ is strictly less than the end time of the query
 
 For each matching cell, we are in one of two cases:
 \begin{enumerate}
-	\item the cell's duration range is contained in the query's duration range.
-	      In this case we iterate through just the intervals such that $\TS < r.\TE$,
-	      leveraging the fact that intervals are sorted by end time, and we report them
-	      as matches.
-	\item otherwise all the intervals in the cell are evaluated against the query.
+\item The cell's duration range is contained in the query's duration
+  range.  In this case we iterate through just the intervals such that
+  $\TS < r.\TE$, leveraging the fact that intervals are sorted by end
+  time, and we report them as matches.
+\item Otherwise, all the intervals in the cell are evaluated against
+  the query.
 \end{enumerate}
+
+\jg{Would be nice to have an algorithm for the querying.}
 
 \subsection{Updating the index}
 \label{sec:updating-index}
 
 Our index data structure can be extended to support both insertion and
-removals of tuples. For a tuple $r$, with $r.t=(\TS, \TE)$,
-by querying the index for the duration $|r.t|$ and the
-start time $\TS$, we can identify the cell that should contain the tuple $r$.
-If the interval $r.t$ is already indexed in the returned cell, then we simply append $r$ to its reference list.
-Otherwise, inserting new intervals directly into cells might make them grow too large to be
-able to make performance guarantees on the query time.
-Therefore, we set a threshold $2s^2$ for \emph{light} columns and $2s$ for \emph{light} cells
-(as we shall see in the next sections, we can bound the performance of \emph{heavy} cells and
-columns even though they exceed the page size).
-If a light column exceeds size $2s^2$ then we split the column,
-if a light cell exceeds size $2s$ then we split the cell.
+removals of tuples. For a tuple $r$, with $r.T=(\TS, \TE)$, by
+querying the index for the duration $|r.T|$ and the start time $\TS$,
+we can identify the cell that should contain the tuple $r$.  If the
+interval $r.T$ is already indexed in the returned cell, then we simply
+append $r$ to its reference list.  Otherwise, inserting new intervals
+directly into cells might make them grow too large to be able to make
+performance guarantees on the query time.  Therefore, we set a
+threshold $2s^2$ for \emph{light} columns and $2s$ for \emph{light}
+cells (as we shall see in the next sections, we can bound the
+performance of \emph{heavy} cells and columns even though they exceed
+the page size).  If a light column exceeds size $2s^2$ then we split
+the column, if a light cell exceeds size $2s$ then we split the cell.
 
 Splitting a column entails finding the median duration $\bar{d}$ among its intervals, and then replacing it
 with two new columns with boundaries $[\bar{d}_{min}, \bar{d})$ and $[\bar{d},\bar{d}_{max})$, respectively.
@@ -641,28 +688,41 @@ This has the effect of making the neighboring cell \emph{cover} the span of time
 Finally, if the removal of the cell results in an empty column, we remove the column, updating the boundaries array
 in a similar fashion.
 
-\subsection{Analysis}
+\section{Analysis}
 
-We now provde guarantees on the time required by all the operations supported by our index structure.
+\jg{I suggest to make the analysis a separate section.}  \jg{Another
+  point: In the index construction we said that we can start either with the duration or with the start time. I think this will have an impact on the efficiency of the index, depending on the distribution in the two dimensions. For the flight data, I guess we have only a few different values in the duration dimension (i.e. small domain), while there is a large domain in the start time dimension. This might have an impact on the haevy cells/buckets. Therefore, I think we need an analysis or at least discussion, where we give some indication which dimension should be used first. Similar, in the experiments we could then use both versions for the same dataset and see/confirm whether there is a difference.}
+
+We now provde guarantees on the time required by all the operations
+supported by our index structure.
 
 \begin{theorem}
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
 \end{theorem}
 \begin{proof}
-	Computing the the bucket boundaries for the duration using Algorithm~\ref{alg:define-boundaries}
-	requires time $\BO{n\log n}$ for sorting (line~\ref{line:sorting}) and time $\BO{n}$ for iterating through
-	the sorted intervals to find the boundaries (line~\ref{line:iterate}): in fact, each of the $n$ intervals
-	is visited at most once.
+  Computing the bucket boundaries for the duration using
+  Algorithm~\ref{alg:define-boundaries} requires time $\BO{n\log n}$
+  for sorting (line~\ref{line:sorting}) and time $\BO{n}$ for
+  iterating through the sorted intervals to find the boundaries
+  (line~\ref{line:iterate}): in fact, each of the $n$ intervals is
+  visited at most once.
 
 	Let $n_i$ be the number of intervals in the $i$-th column.
 	Then, the invocation of Algorithm~\ref{alg:define-boundaries} to find cell boundaries
 	requires time $\BO{n_i \log n_i}$, following the same argument as above.
 	Therefore, the time for building the second level of the index is
 	\[
-		\BO{\sum_i n_i \log n_i}
-		= \BO{\log n \cdot \sum_i n_i}
-		= \BO{n \log n}
-	\]
+          \BO{\sum_i n_i \log n_i}
+          = \BO{\log n \cdot \sum_i n_i}
+          = \BO{n \log n}
+        \]
+        \jg{Should this be:
+          \[
+            \BO{\sum_i n_i \log n_i}
+            \leq \BO{\log n \cdot \sum_i n_i}
+            = \BO{n \log n}
+          \]
+          }
 	and the theorem follows.
 \end{proof}
 
@@ -676,13 +736,17 @@ We now provde guarantees on the time required by all the operations supported by
 	where $k$ is the number of intervals matching the query predicate.
 \end{theorem}
 \begin{proof}
-	Let $\T = (\TS, \TE)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
+	Let $\T = [\TS, \TE)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
 	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same duration or start time.
 	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space, as depicted in Figure~\ref{fig:example-grid}.
 	For a given cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
 
-	Before proceeding with the proof, we establish some fundamental facts about heavy columns and cells.
+	Before proceeding with the proof, we establish some
+        fundamental facts about heavy columns and cells. \jg{We might
+          think about extracting the following items from the proof
+          and making lemmas/propositions. The proof would then become
+          a bit shorter.}
 	\begin{itemize}
 		\item \emph{All intervals in a heavy column have the same duration}.
 		      If they didn't then we could split the column in two different columns
