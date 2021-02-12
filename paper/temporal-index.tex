@@ -31,13 +31,13 @@
 \newcommand{\domT}{\ensuremath{\Omega^T}}
 \newcommand{\args}[2]{#1_1,\dots,#1_{#2}}
 \newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
-\newcommand{\rr}{\rel{r}}
 \newcommand{\rs}{\rel{s}}
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\R}{\ensuremath{\mathbf{R}}}
 \newcommand{\A}{\dbattset{A}}
-\newcommand{\T}{\ensuremath{T}}
-\newcommand{\TS}{\ensuremath{T_s}}
-\newcommand{\TE}{\ensuremath{T_e}}
+\newcommand{\T}{\ensuremath{t}}
+\newcommand{\TS}{\ensuremath{t_s}}
+\newcommand{\TE}{\ensuremath{t_e}}
 \newcommand{\dataset}[1]{\texttt{#1}}
 \newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
 \newcommand{\argmax}{\operatorname{argmax}}
@@ -353,13 +353,13 @@ represents the tuple's valid time.  The schema of a temporal relation
 is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
 nontemporal attributes with domains $\Omega_i$ and $\T$ is the
 timestamp attribute with domain $\domT \times \domT$. A temporal
-relation $\rr$ with schema $R$ is a finite set of tuples, where each
+relation $\R$ with schema $R$ is a finite set of tuples, where each
 tuple has a value in the appropriate domain for each attribute in the
 schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
 $r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
 $r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE - \TS$.
-Furthermore, given two intervals $T$ and $T'$, we denote with
-$T \cap T'$ the set of time points shared by the two intervals, which, if
+Furthermore, given two intervals $t$ and $t'$, we denote with
+$t \cap t'$ the set of time points shared by the two intervals, which, if
 not empty, is itself an interval.
 
 \subsection{Temporal queries}
@@ -367,36 +367,29 @@ not empty, is itself an interval.
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
 \begin{definition}[Range query]
-  Given a temporal interval $T = [\TS, \TE)$ and a temporal relation
-  $\rr$, a \emph{range query} $Q(\rr, T)$ is defined as
+  Given a temporal interval $t = [\TS, \TE)$ and a temporal relation
+  $\R$, a \emph{range query} $Q(\R, t)$ is defined as
   \[
-    Q(\rr, T) = \left\{r \in \rr : r.T \cap T \ne \emptyset
+    Q(\R, t) = \left\{r \in \R : r.t \cap t \ne \emptyset
     \right\}
   \]
 \end{definition}
 
-\jg{I changed relation from $R$ to $\rr$. Should be correct, isn't it?}
-      
 
 \begin{definition}[Duration query]
-	Given a duration interval $d = [d_{min}, d_{max}]$ and a temporal relation $R$,
-	a \emph{duration query} $Q(R, d)$ is defined as
+	Given a duration interval $d = [d_{min}, d_{max}]$ and a temporal relation $\R$,
+	a \emph{duration query} $Q(\R, d)$ is defined as
 	\[
-		Q(R, d) = \left\{r \in R : |r.T| \in [d_{min}, d_{max}] \right\}
+		Q(\R, d) = \left\{r \in \R : |r.t| \in [d_{min}, d_{max}] \right\}
 	\]
 \end{definition}
 
-\jg{We use lowercase $d=[d_{min},d_{max}]$ for duration interval and
-  uppercase $T=[\TS,\TE]$ for the temporal interval. I have the
-  feeling that this is somehow a bit inconsistent? Thinking about a
-  unification.}
-
 \begin{definition}[Range-duration query]
-	Given a temporal interval $T = [\TS, \TE)$, a duration interval $d = [d_{min}, d_{max}]$,
-	and a temporal relation $R$,
-	a \emph{range-duration query} $Q(R, T, d)$ is defined as
+	Given a temporal interval $t = [\TS, \TE)$, a duration interval $d = [d_{min}, d_{max}]$,
+	and a temporal relation $\R$,
+	a \emph{range-duration query} $Q(\R, t, d)$ is defined as
 	\[
-		Q(R, T, d) = \left\{r \in R : r.T \cap T \ne \emptyset \wedge |r.T| \in [d_{min}, d_{max}] \right\}
+		Q(\R, t, d) = \left\{r \in \R : r.t \cap t \ne \emptyset \wedge |r.t| \in [d_{min}, d_{max}] \right\}
 	\]
 \end{definition}
 
@@ -478,7 +471,7 @@ each cell contains the same number of intervals, which corresponds to the
 This allows the data structure to adapt to the distribution of the input.
 
 In the following we will focus on the timestamp attribute $T$ of
-relation $\rr$: in the discussion we assume that each interval being
+relation $\R$: in the discussion we assume that each interval being
 inserted in the index is associated with a reference to the tuple in
 $R$ it belongs to.
 
@@ -489,7 +482,7 @@ $R$ it belongs to.
   \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
   \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
   \KwOut{
-    An array of pairs, where the first item is a bucket boundary, 
+    An array of pairs, where the first item is a bucket boundary,
 	and the second item contains the intervals in the bucket.
 	\mc{The bucket boundary is inclusive, so that a bucket contains
 	keys that are $\le$ to the boundary}
