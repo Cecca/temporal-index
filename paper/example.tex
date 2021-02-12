@@ -1,4 +1,4 @@
-% Created by tikzDevice version 0.12.3.1 on 2021-01-21 15:31:54
+% Created by tikzDevice version 0.12.3.1 on 2021-02-12 12:31:37
 % !TEX encoding = UTF-8 Unicode
 \begin{tikzpicture}[x=1pt,y=1pt]
 \definecolor{fillColor}{RGB}{255,255,255}
@@ -364,9 +364,23 @@
 \definecolor{drawColor}{RGB}{0,0,0}
 
 \node[text=drawColor,anchor=base,inner sep=0pt, outer sep=0pt, scale=  0.85] at (128.01, 46.02) {N431AS};
-\definecolor{drawColor}{RGB}{139,0,0}
+\definecolor{drawColor}{RGB}{255,255,255}
+\definecolor{fillColor}{RGB}{255,255,255}
 
-\node[text=drawColor,anchor=base,inner sep=0pt, outer sep=0pt, scale=  0.85] at (107.79, 77.05) {$d \in [2, 4]$ hours};
+\path[draw=drawColor,line width= 1.1pt,line cap=rect,fill=fillColor] ( 14.50, 77.05) rectangle ( 92.24, 97.16);
+\definecolor{drawColor}{RGB}{190,190,190}
+\definecolor{fillColor}{RGB}{190,190,190}
+
+\path[draw=drawColor,line width= 0.4pt,line join=round,line cap=round,fill=fillColor] ( 14.50, 87.11) circle (  1.43);
+
+\path[draw=drawColor,line width= 1.1pt,line join=round] ( 14.50, 87.11) -- ( 76.70, 87.11);
+\definecolor{drawColor}{RGB}{255,0,0}
+
+\path[draw=drawColor,line width= 3.4pt,line join=round] ( 45.60, 87.11) -- ( 76.70, 87.11);
+
+\node[text=drawColor,anchor=base,inner sep=0pt, outer sep=0pt, scale=  0.85] at ( 45.60, 91.13) {2h};
+
+\node[text=drawColor,anchor=base,inner sep=0pt, outer sep=0pt, scale=  0.85] at ( 76.70, 91.13) {4h};
 \end{scope}
 \begin{scope}
 \path[clip] (  0.00,  0.00) rectangle (238.49,101.18);
