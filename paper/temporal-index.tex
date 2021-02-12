@@ -426,7 +426,6 @@ The latter type of query is a combination of the former two.
   \caption{Flights of Table~\ref{tab:example} in the duration/start time plane.
   The smaller gray dots are flights from the same day.
   The red polygon is the range-duration query of example~\ref{example:queries}.
-  \jg{The same comment as below about the order. Wouldn't it be more intuitive to have the departure time on the x-axis, as it would better match with Fig. 1. Moreover, I suggest to plot more ticks on both axes, e.g., 0, 2, 4, 6, 8, 10 (and similar for departure time); then it is easier to position the red polygon.}
   \label{fig:example-plane}}
 \end{figure}
 
@@ -625,7 +624,7 @@ of cells containing intervals that match a given query.
 
 \subsection{Querying the Index}
 
-Given a range-duration query $Q(R, \T, d)$ with $\T=[\TS, \TE)$ and $d=[d_min, d_max]$,
+Given a range-duration query $Q(R, \T, d)$ with $\T=[\TS, \TE)$ and $d=[d_{min}, d_{max}]$,
 recall that a tuple $r \in R$ satisfies the query if the three following conditions
 are met:
 \begin{align}
