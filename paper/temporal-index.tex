@@ -40,6 +40,7 @@
 \newcommand{\TE}{\ensuremath{T_e}}
 \newcommand{\dataset}[1]{\texttt{#1}}
 \newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
+\newcommand{\argmax}{\operatorname{argmax}}
 
 \definecolor{firstcolor}{HTML}{FDE725}
 \definecolor{secondcolor}{HTML}{5DC863}
@@ -482,9 +483,14 @@ $R$ it belongs to.
 \label{sec:index-construction}
 
 \begin{algorithm}%[t]
-  \caption{\textsc{DefineBoundaries}$(I, b, k)$\label{alg:define-boundaries}}
+  \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
   \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
-  \KwOut{An array of boundaries partitioning $I$ into up to $|I|/b$ buckets}
+  \KwOut{
+    An array of pairs, where the first item is a bucket boundary, 
+	and the second item contains the intervals in the bucket.
+	\mc{The bucket boundary is inclusive, so that a bucket contains
+	keys that are $\le$ to the boundary}
+  }
 
   Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
   \Let{$B$}{$[]$}\;
@@ -497,15 +503,14 @@ $R$ it belongs to.
       \lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
         \Let{$j$}{$j+1$}
       }
-    } \ElseIf{$k(I_j) = k(I_{j+1})$} {
+    } \Else {
       \nllabel{line:split-bucket}
       \lWhile{$j > i \wedge k(I_j) = k(I_{j+1})$} {
-        \jg{Would $k(I_j) = k(I_{j+1})$ be more intuitive in the condition?}
-		\mc{Yes it is!!}\;
         \Let{$j$}{$j-1$}
       }
     }
-    Append $k(I_j)$ to $B$\;
+	\Let{$I^{\subseteq}$}{$\{I_h ~|~ i \le h \le j\}$}\;
+    Append $(k(I_j), I^\subseteq)$ to $B$\;
     \Let{$i$}{$j+1$}\;
   }
   \Return $B$\;
@@ -517,10 +522,9 @@ $R$ it belongs to.
 	\KwOut{A grid partitioning intervals first by time, then by duration}
 	
 	\Let{$G$}{$\emptyset$}\;
-	\For{$(i, \TS^i, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
+	\For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
 		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
-		\For{$(j, d_{min}^j, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
-			\Let{$d_{max}^j$}{$\max_{t \in I_{ij}} |t|$}\;
+		\For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
 			Sort $I_{ij}$ by decreasing end time\;
 			\Let{$G_{ij}$}{$I_{ij}$}\;
 		}
@@ -658,16 +662,23 @@ For each matching cell, we are in one of two cases:
 
 \begin{algorithm}%[t]
   \caption{\textsc{Query}$(Q([\TS, \TE), [d_{min}, d_{max}]))$\label{alg:query}}
-  \KwIn{A range duration query, a \ours{}}
+  \KwIn{A range duration query; An index grid $G$}
 
-  \Let{$C$}{columns of the \ours{}}\;
-  \Let{$i$}{last column containing time $\TE$, by binary search}\;
-  \While{$i \ge 0$} {
-	\lIf{$\min\{\TE^i, \TS^i + d_{max}\} \le \TS$}{
-		\Return
+  \BlankLine
+  \Let{$i$}{$\argmax_{i}\TS^i < \TE$}\;
+  \While{$i \ge 0 \wedge \min\{\TE^i, \TS^i + d_{max}\} \le \TS$} {
+	\Let{$j$}{$\argmax_{j}d_{min}^{ij} \le d_{max}$}\;
+	\While{$d_{max}^{ij} \ge d_{min}$}{
+		\For{$t \in G_{ij}$}{
+			\If{$t.\TE \le \TS$}{
+				\textbf{break}\;
+			}
+			\If{$|t| \in [d_{min}, d_{max}] \wedge t.\TS < \TE$}{
+				\textbf{report} $t$\;
+			}
+		}
+		\Let{$j$}{$j-1$}\;
 	}
-	\Let{$C_i$}{$i$-th column of the index}\;
-	\Let{$j$}{last cell containing duration $d_{max}$, by binary search}\;
 	\Let{$i$}{$i-1$}\;
   }
 
