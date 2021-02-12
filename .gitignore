@@ -7,3 +7,5 @@ imgs/*.png
 .drake
 report.html
 temporal-index-*.gz
+/.datasets
+/check

@@ -499,22 +499,40 @@ $R$ it belongs to.
       }
     } \ElseIf{$k(I_j) = k(I_{j+1})$} {
       \nllabel{line:split-bucket}
-      \lWhile{$j > i \wedge k(I_j) = k(I_{i+b})$} {
+      \lWhile{$j > i \wedge k(I_j) = k(I_{j+1})$} {
         \jg{Would $k(I_j) = k(I_{j+1})$ be more intuitive in the condition?}
+		\mc{Yes it is!!}\;
         \Let{$j$}{$j-1$}
       }
     }
-    Append $I_j$ to $B$\;
-    \jg{Shouldn't this be: Append $k(I_j)$ to $B$}\;
+    Append $k(I_j)$ to $B$\;
     \Let{$i$}{$j+1$}\;
   }
   \Return $B$\;
 \end{algorithm}
 
+\begin{algorithm}
+	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
+	\KwIn{A collection of intervals $I$; the page size parameter $s$}
+	\KwOut{A grid partitioning intervals first by time, then by duration}
+	
+	\Let{$G$}{$\emptyset$}\;
+	\For{$(i, \TS^i, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
+		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
+		\For{$(j, d_{min}^j, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
+			\Let{$d_{max}^j$}{$\max_{t \in I_{ij}} |t|$}\;
+			Sort $I_{ij}$ by decreasing end time\;
+			\Let{$G_{ij}$}{$I_{ij}$}\;
+		}
+	}
+	\Return $G$\;
+\end{algorithm}
+
 \jg{Here I have a similar comment as before: I find it slightly more
   intuitive if we have the departure time on the x-axis and duration
   on the y-axis. But you have probably good reasons to make it this
-  way?!? } Our grid structure partitions the dataset first along
+  way?!? }
+Our grid structure partitions the dataset first along
 either the duration or start time dimension, and then along the
 other. The choice of which dimension to index first may of course
 impact the performance, depending on the query workload.  To make the
@@ -637,6 +655,24 @@ For each matching cell, we are in one of two cases:
 \end{enumerate}
 
 \jg{Would be nice to have an algorithm for the querying.}
+
+\begin{algorithm}%[t]
+  \caption{\textsc{Query}$(Q([\TS, \TE), [d_{min}, d_{max}]))$\label{alg:query}}
+  \KwIn{A range duration query, a \ours{}}
+
+  \Let{$C$}{columns of the \ours{}}\;
+  \Let{$i$}{last column containing time $\TE$, by binary search}\;
+  \While{$i \ge 0$} {
+	\lIf{$\min\{\TE^i, \TS^i + d_{max}\} \le \TS$}{
+		\Return
+	}
+	\Let{$C_i$}{$i$-th column of the index}\;
+	\Let{$j$}{last cell containing duration $d_{max}$, by binary search}\;
+	\Let{$i$}{$i-1$}\;
+  }
+
+\end{algorithm}
+
 
 \subsection{Updating the index}
 \label{sec:updating-index}
