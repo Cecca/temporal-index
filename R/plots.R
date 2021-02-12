@@ -409,28 +409,13 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
 }
 
 plot_running_example_plane <- function(data_running_example, query_range, query_duration, grid = FALSE) {
-    # set.seed(1234)
-    # span_time <- c(
-    #     ymd_hms("2021-01-01T05:00:00"),
-    #     ymd_hms("2021-01-01T18:00:00")
-    # )
-    # n_random <- 1000
-    # random_starts <- runif(n_random, span_time[1], span_time[2]) %>% as_datetime()
-    # random_durations <- rexp(n_random, rate = 0.5) + 0.75
-    # random_data <- tibble(
-    #     departure = random_starts,
-    #     duration = random_durations
-    # ) %>%
-    #     filter(duration < 10)
-
-
     p <- data_running_example %>%
         mutate(
             duration = as.double(duration)
         ) %>%
         ggplot(aes(
-            x = duration,
-            y = departure
+            y = duration,
+            x = departure
         )) +
         geom_point(
             aes(color = highlighted, size = highlighted),
@@ -447,15 +432,14 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
         algo_grid <- data_running_example %>%
             ungroup() %>%
             group_by(
-                col_id = ntile(duration, 5),
-                cell_id = ntile(departure, 5)
+                col_id = ntile(departure, 5)
             ) %>%
             mutate(
                 time_min = min(departure),
-                time_max = max(departure)
+                time_max = max(departure),
+                cell_id = ntile(duration, 5)
             ) %>%
-            ungroup() %>%
-            group_by(col_id) %>%
+            group_by(col_id, cell_id) %>%
             mutate(
                 duration_min = min(duration),
                 duration_max = max(duration)
@@ -465,31 +449,32 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
             distinct(col_id, cell_id, time_min, time_max, duration_min, duration_max)
         p <- p +
             geom_vline(
-                aes(xintercept = duration_min),
+                aes(xintercept = time_min),
                 data = algo_grid,
                 alpha = 1,
-                color = "black",
-                size = 0.3
+                color = "steelblue",
+                size = 0.8
             ) +
             geom_segment(
                 aes(
-                    x = duration_min, xend = duration_max,
-                    y = time_min, yend = time_min
+                    y = duration_min, yend = duration_min,
+                    x = time_min, xend = time_max
                 ),
+                color = "steelblue",
                 data = algo_grid,
-                size = 0.3,
+                size = 0.8,
                 inherit.aes = F
             )
     }
     p <- p + annotate(
         geom = "polygon",
-        x = c(
+        y = c(
             query_duration[1],
             query_duration[2],
             query_duration[2],
             query_duration[1]
         ),
-        y = c(
+        x = c(
             int_end(query_range),
             int_end(query_range),
             int_start(query_range) - 3600 * query_duration[2],
@@ -500,22 +485,21 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
         size = 1,
         alpha = 0.0
     ) +
-        # geom_label(
-        #     aes(label = flight),
-        #     data = data_running_example %>% filter(highlighted),
-        #     size = 2,
-        #     vjust = 0,
-        #     hjust = 1,
-        #     nudge_x = -0.1,
-        #     nudge_y = 0.1
-        # ) +
         scale_color_manual(values = c("darkgray", "black")) +
         scale_size_manual(values = c(0.5, 2)) +
-        scale_y_datetime(date_labels = "%H:%M") +
-        labs(x = "duration (hours)", y = "departure time") +
+        scale_x_datetime(
+            date_labels = "%H:%M",
+            date_breaks = "3 hours"
+        ) +
+        scale_y_continuous(
+            breaks = c(0, 2, 4, 6, 8, 10),
+            labels = scales::number_format()
+        ) +
+        labs(y = "duration (hours)", x = "departure time") +
         theme_minimal() +
         theme(
             text = element_text(size = 9),
+            axis.ticks = element_line(color = "black"),
             axis.line.x.bottom = element_line(color = "black"),
             axis.line.y.left = element_line(color = "black"),
             panel.grid = element_blank()
