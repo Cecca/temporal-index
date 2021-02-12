@@ -744,6 +744,22 @@ Nonetheless, the results in this section hold for both dimension orderings.
 	and the theorem follows.
 \end{proof}
 
+Before stating our main result, we establish the follwing fundamental facts
+about heavy columns and cells.
+
+\begin{lemma}\label{lem:heavy}
+	A heavy column does not contain heavy cells
+\end{lemma}
+\begin{proof}
+	By construction, a heavy column contains only intervals with the same start time.
+	Similarly, a heavy cell contains only intervals with the same duration.
+	Therefore, a heavy cell in a heavy column would contain intervals with the same
+	start time and duration, i.e. copies of the same interval.
+	\mc{
+		FIXME:
+	However we store duplicate intervals only once (with a list of pointers to the related tuples, which are all either part of the output or not).
+	}
+\end{proof}
 
 \begin{theorem}
 	Given an index over a set of $n$ intervals, with page size $s$, the time for
@@ -756,37 +772,20 @@ Nonetheless, the results in this section hold for both dimension orderings.
 \begin{proof}
 	Let $\T = [\TS, \TE)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
 	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
-	because they all share the same duration or start time.
-	A range-duration query defines a \emph{query polygon} in the duration $\times$ start time space, as depicted in Figure~\ref{fig:example-grid}.
-	For a given cell $C$, we denote by $k_C$ the number of intervals in $C$ matching the query.
-
-	Before proceeding with the proof, we establish some
-        fundamental facts about heavy columns and cells. \jg{We might
-          think about extracting the following items from the proof
-          and making lemmas/propositions. The proof would then become
-          a bit shorter.}
-	\begin{itemize}
-		\item \emph{All intervals in a heavy column have the same duration}.
-		      If they didn't then we could split the column in two different columns
-		      with fewer values.
-		\item \emph{All intervals in a heavy cell have the same start time}.
-		      If they didn't then we could split the cell in smaller cells.
-		\item \emph{A heavy column does not contain heavy cells}. By the two
-		      points above a heavy cell in a heavy column will contain intervals
-		      with the same starting time and duration, i.e. copies of
-			  the same intervals. 
-			  However we store duplicate intervals only once (with a list of pointers to the related tuples, which are all either part of the output or not).
-	\end{itemize}
+	because they all share the same start time or duration.
+	A range-duration query defines a \emph{query polygon} in the start time $\times$ duration space, as depicted in Figure~\ref{fig:example-grid}.
+	For a given cell $G_{ij}$, we denote by $k_{ij}$ the number of intervals in $G_{ij}$ matching the query.
 
 	The query time is comprised of two parts: first we have to index into the grid to find the correct
 	range of cells to query; second we have to filter the intervals in each cell to retrieve
 	the ones that are part of the answer.
 
-	As for finding the range of cells, we first have to find the first and last column by duration, which can be
+	As for finding the range of cells, we first have to find potential matches the last column by start time, which can be
 	done by binary search over the $n/s^2$ boundaries between columns in $\BO{\log (n/s^2)}$ time.
-	There can be $\BO{n / s^2}$ matching columns.
-	In each such column, to find the range of cells satisfying the predicate we have to do a binary search
-	over the $\BO{n/s}$ intervals in the column (since in the worst case we are inspecting a heavy column, which can have $\BO{n}$ intervals).
+	Iterating backwards through the columns visits at most $\BO{n / s^2}$ columns.
+	In each such column, to find the last cell with intervals satisfying the duration constraint
+	we do a binary search over the $\BO{n/s}$ cells in the column
+	(since in the worst case we are inspecting a heavy column, which can have $\BO{n}$ intervals).
 	Therefore, the overall time to find the correct cells is
 	\[
 		\BO{\log\frac{n}{s^2} + \frac{n}{s^2} \log\frac{n}{s}} =
@@ -797,15 +796,16 @@ Nonetheless, the results in this section hold for both dimension orderings.
 	\begin{enumerate}
 		\item Both the cell's durations range and start times range fall within the query polygon.
 		      In such cell, the query constraints on the duration and the start time are satisfied by construction.
-		      The algorithm considers just the intervals of $C$ which are part of the output (since it iterates over
+		      The algorithm considers just the intervals of $G_{ij}$ which are part of the output (since it iterates over
 		      the cell's intervals by decreasing end time).
-		      Therefore, the time spent enumerating intervals from the cell is $\BO{k_C}$.
+		      Therefore, the time spent enumerating intervals from the cell is $\BO{k_{ij}}$.
 		\item The cell's duration range satisfies the query constraint, but the starting time range doesn't.
-		      If the duration colum containing the cell is heavy, then the cell cannot be heavy and the algorithm has to evaluate
+		      If the duration colum containing the cell is heavy, then the cell cannot be heavy (by Lemma~\ref{lem:heavy}) 
+			  and the algorithm has to evaluate
 		      $\BO{s}$ intervals.
 		      Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
 			  query constraint (otherwise we will not be looking at the cell at all).
-			  Therefore all the intervals in the cell match the query, and the time to enumerate them is $\BO{k_C}$.
+			  Therefore all the intervals in the cell match the query, and the time to enumerate them is $\BO{k_{ij}}$.
 		\item The cell's start times all satisfy the query constraints, but not all its durations do.
 		      In this case we cannot be in a heavy column (which contains a single duration) and thus
 		      the column containing the cell contains at most $s^2$ intervals.
@@ -815,7 +815,7 @@ Nonetheless, the results in this section hold for both dimension orderings.
 	All the cells of type (1) account for at most $\BO{k}$ in terms of running time.
 	As for cells of type (2) there are at most $n/s^2$ of them. Overall they account for $\BO{\frac{n}{s}}$ interval evaluations.
 	Cells of type (3) contain at most $s^2$ intervals. Therefore, overall they account for $\BO{s^2}$ interval evaluations.
-	Finally is then a constant number of cells of type (4) (which are at the corners of the query polygon).
+	Finally there is a constant number of cells of type (4) (which are at the corners of the query polygon).
 	These cells therefore account for at most $\BO{s}$ interval evaluations in total.
 	Overall, the time to evaluate the intervals in the cells is
 	\[
@@ -844,7 +844,7 @@ at the same time increasing the number of columns that need to be queried.
 
   Note that a heavy column or cell does not need to be split, since by definition
   they can contain more than $s^2$ (resp. $s$) intervals, as long as they all have
-  the same duration (resp. start time).
+  the same start time (resp. duration).
   Therefore we consider only the case of splitting a non-heavy column or non-heavy cell.
 	Splitting a column with $2s^2 + 1$ intervals requires to find the median and
 	to apply Algorithm~\ref{alg:define-boundaries} on the
