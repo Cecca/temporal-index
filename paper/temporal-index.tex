@@ -713,11 +713,13 @@ in a similar fashion.
 
 \section{Analysis}
 
-\jg{I suggest to make the analysis a separate section.}  \jg{Another
-  point: In the index construction we said that we can start either with the duration or with the start time. I think this will have an impact on the efficiency of the index, depending on the distribution in the two dimensions. For the flight data, I guess we have only a few different values in the duration dimension (i.e. small domain), while there is a large domain in the start time dimension. This might have an impact on the haevy cells/buckets. Therefore, I think we need an analysis or at least discussion, where we give some indication which dimension should be used first. Similar, in the experiments we could then use both versions for the same dataset and see/confirm whether there is a difference.}
-
 We now provde guarantees on the time required by all the operations
 supported by our index structure.
+In this analysis we assume that the index is built by partitioning first in the time dimension,
+and then in the duration dimension.
+The choice of the order of this partitioning affects the practical performance, as we will discuss
+in Section~\ref{sec:experiments}.
+Nonetheless, the results in this section hold for both dimension orderings.
 
 \begin{theorem}
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
@@ -862,6 +864,7 @@ In a similar way we can prove the follwing theorem.
 \mc{Discuss the tradeoffs of the data structure, and then relate them to the experimental results.}
 
 \section{Experimental evaluation}
+\label{sec:experiments}
 
 \begin{figure*}
 	\includegraphics[width=\textwidth]{images/real-distributions.png}
