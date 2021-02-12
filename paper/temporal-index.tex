@@ -446,7 +446,7 @@ which is defined by all points $(d, t)$ such that
 \jg{I am wondering whether we should fix an order between the two dimensions and always use this order, that is $(d, t)$ or $(t, d)$? My viewpoint was always that we started with range queries ($t$) and extended to duration ($d$). But of course we can also swap if there are good reasons.}
 \begin{equation*}
 \begin{aligned}
-  t < \TE \quad\wedge&\quad t < \TS - d \quad\wedge \\
+  t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
           \quad\wedge&\quad d_{min} \le d \le d_{max}
 \end{aligned}
 \end{equation*}
@@ -457,6 +457,9 @@ which is defined by all points $(d, t)$ such that
   \quad\wedge&\quad d_{min} \le d \le d_{max}
 \end{align*}
 }
+\mc{I got the direction of the inequality wrong in the second constraint,
+but it's still $d$ and not $d_{min}$, where $d$ is the duration of the
+interval: the sum $t + d$ is the end time of the interval.}
 
 
 \begin{example}
@@ -544,12 +547,16 @@ exposition more concrete, in the following we will assume that the
 duration dimension is indexed first.  All the descriptions,
 considerations, and proofs also hold with the dimensions swapped.
 
-Let $s$ be the \emph{page size} parameter \jg{Why do we introduce the
+Let $s$ be the \emph{page size} parameter 
+\jg{Why do we introduce the
   page size parameter? Is this because the index (i.e. the cells) is
   stored on disk? And why do we set the bucket size to $s^2$? We need
-  a justification for $s^2$, I think.}.  The goal of the following
+  a justification for $s^2$, I think.}.  
+  The goal of the following
 construction is to ensure that each cell of the grid contains at most
-$s$ intervals.  We divide the intervals into \emph{columns} \jg{We use
+$s$ intervals.  
+\mc{In an external memory setting, $s$ can be set to the block size $B$.}
+We divide the intervals into \emph{columns} \jg{We use
   columns and buckets interchangably, isn't it? Should we only use the
   term bucket or only columns?} based on their duration with two
 goals: all the intervals with the same duration should be in the same
@@ -658,8 +665,6 @@ For each matching cell, we are in one of two cases:
   the query.
 \end{enumerate}
 
-\jg{Would be nice to have an algorithm for the querying.}
-
 \begin{algorithm}%[t]
   \caption{\textsc{Query}$(Q([\TS, \TE), [d_{min}, d_{max}]))$\label{alg:query}}
   \KwIn{A range duration query; An index grid $G$}
@@ -750,16 +755,9 @@ supported by our index structure.
 	Therefore, the time for building the second level of the index is
 	\[
           \BO{\sum_i n_i \log n_i}
-          = \BO{\log n \cdot \sum_i n_i}
+          \le \BO{\log n \cdot \sum_i n_i}
           = \BO{n \log n}
         \]
-        \jg{Should this be:
-          \[
-            \BO{\sum_i n_i \log n_i}
-            \leq \BO{\log n \cdot \sum_i n_i}
-            = \BO{n \log n}
-          \]
-          }
 	and the theorem follows.
 \end{proof}
 
