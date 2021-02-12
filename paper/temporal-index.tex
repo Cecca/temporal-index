@@ -435,25 +435,13 @@ we can represent a set of temporal intervals as a set of points in a two dimensi
 space, with one coordinate being the duration and the other the start time.
 A range-duration query with time interval $[\TS, \TE)$ and duration interval
 $[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
-which is defined by all points $(d, t)$ such that
-\jg{I am wondering whether we should fix an order between the two dimensions and always use this order, that is $(d, t)$ or $(t, d)$? My viewpoint was always that we started with range queries ($t$) and extended to duration ($d$). But of course we can also swap if there are good reasons.}
+which is defined by all points $(t, d)$ (corresponding to the time interval $[t, t + d)$) such that
 \begin{equation*}
 \begin{aligned}
   t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
           \quad\wedge&\quad d_{min} \le d \le d_{max}
 \end{aligned}
 \end{equation*}
-
-\jg{Shouldn't this constraint be as follows:
-\begin{align*}
-  t < \TE \quad\wedge&\quad t > \TS - d_{min} \quad\wedge \\
-  \quad\wedge&\quad d_{min} \le d \le d_{max}
-\end{align*}
-}
-\mc{I got the direction of the inequality wrong in the second constraint,
-but it's still $d$ and not $d_{min}$, where $d$ is the duration of the
-interval: the sum $t + d$ is the end time of the interval.}
-
 
 \begin{example}
   Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
@@ -470,7 +458,7 @@ each cell contains the same number of intervals, which corresponds to the
 \emph{page size} of our index.
 This allows the data structure to adapt to the distribution of the input.
 
-In the following we will focus on the timestamp attribute $T$ of
+In the following we will focus on the timestamp attribute $\T$ of
 relation $\R$: in the discussion we assume that each interval being
 inserted in the index is associated with a reference to the tuple in
 $R$ it belongs to.
@@ -528,80 +516,89 @@ $R$ it belongs to.
 	\Return $G$\;
 \end{algorithm}
 
-\jg{Here I have a similar comment as before: I find it slightly more
-  intuitive if we have the departure time on the x-axis and duration
-  on the y-axis. But you have probably good reasons to make it this
-  way?!? }
 Our grid structure partitions the dataset first along
-either the duration or start time dimension, and then along the
+either the start time or duration dimension, and then along the
 other. The choice of which dimension to index first may of course
 impact the performance, depending on the query workload.  To make the
 exposition more concrete, in the following we will assume that the
-duration dimension is indexed first.  All the descriptions,
+start time dimension is partitioned first.  All the descriptions,
 considerations, and proofs also hold with the dimensions swapped.
 
 Let $s$ be the \emph{page size} parameter 
-\jg{Why do we introduce the
-  page size parameter? Is this because the index (i.e. the cells) is
-  stored on disk? And why do we set the bucket size to $s^2$? We need
-  a justification for $s^2$, I think.}.  
-  The goal of the following
+The goal of the following
 construction is to ensure that each cell of the grid contains at most
-$s$ intervals.  
-\mc{In an external memory setting, $s$ can be set to the block size $B$.}
+$s$ intervals.
+The purpose of this parameter is to allow the optimization of the data structure
+to different scenario. In an external memory setting, the parameter $s$ might be
+set to the disk block size. In a main memory scenario, it could be set
+to that a cell fits in a cache line.
 We divide the intervals into \emph{columns} \jg{We use
   columns and buckets interchangably, isn't it? Should we only use the
   term bucket or only columns?} based on their duration with two
-goals: all the intervals with the same duration should be in the same
+goals: all the intervals with the same start time should be in the same
 column, and each column should have at most $s^2$ intervals, unless
-there are more than $s^2$ intervals with the same duration.  In the
+there are more than $s^2$ intervals with the same start time.  In the
 latter case, all the intervals in the column shall have the same
-duration.  To this end, we invoke
+start time. 
+Partitioning start times in this way allows, intuitively, to then further partition
+each column in $s$ cells of $s$ elements each\footnote{We could use two separate 
+parameters to control the number of partitions in the two dimensions, but using $s$ and $s^2$ makes
+for a simpler exposition, analysis and implementation.}.
+To this end, we invoke
 Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
 setting the bucket size to $s^2$ and the key function $k$ to the
-duration.  In this invocation, we first sort all the intervals by
-increasing duration.  Runs of duplicate intervals are replaced by a
+duration.
+In this invocation, we first sort all the intervals by
+increasing start time.  Runs of duplicate intervals are replaced by a
 single instance, equipped with a list of references to the tuples
 timestamped with that interval \jg{This sentence is not clear to
   me. In Alg. 1 it seems to me that the set $I$ is used as a flat
   array, where duplicates are together. Perhaps not synchronized.}.
+  \mc{This should be removed and handled in a simpler way: see 
+  \href{https://gitlab.inf.unibz.it/Matteo.Ceccarello/temporal-index/-/issues/19}{issue 19}}
 Then, we iterativaly define bucket boundaries as follows.  We set the
-start of the first bucket to the duration of the first interval.
+start of the first bucket to the start time of the first interval.
 Then, we look ahead at the interval $s^2$ positions from it, and we
 can have one of three cases:
 \begin{enumerate}
-\item the look ahead interval has the same duration as the one
+\item the look ahead interval has the same start time as the one
   starting the column, meaning that we are considering a run of more
-  than $s^2$ intervals all with the same duration
+  than $s^2$ intervals all with the same start time
   (line~\ref{line:heavy-bucket} of
   Algorithm~\ref{alg:define-boundaries}).  Then, the boundary of the
-  bucket is set to the current duration, and the start of the next
-  column is set to the first interval with duration strictly larger
-  than the current one.
+  bucket is set to the current start time, and the start of the next
+  column is set to the first interval with start time strictly larger
+  than the current one;j
 \item the look ahead interval and the one immediately following it
-  have the same duration, which is however different from the one of
+  have the same start time, which is however different from the one of
   the interval starting the column (line~\ref{line:split-bucket} of
   Algorithm~\ref{alg:define-boundaries}).  In order not to break a run
-  of same-duration intervals between different columns while keeping
+  of intervals with the same start time between different columns while keeping
   the column itself smaller than $s^2$, we look for the first interval
-  preceding the look ahead with a strictly smaller duration, and make
-  it the end of the column
+  preceding the look ahead with a strictly smaller start time, and make
+  it the end of the column;
 \item otherwise, the look ahead interval marks the end of the column.
-\end{enumerate}
-\jg{It would be nice to have an example/illustration of the array $B$ with concrete values, where to show the above cases. If we use a running example with 6-8 concrete intervals, it should be sufficient.}        
+\end{enumerate} 
+\jg{It would be nice to have an example/illustration of the
+array $B$ with concrete values, where to show the above cases. If we use a
+running example with 6-8 concrete intervals, it should be sufficient.}
 
-Then, each column is further partitioned according to the start time, invoking on it
+Then, each column is further partitioned according to the duration, invoking on it
 Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
-the start time of the intervals.
+the duration of the intervals.
 \mc{heavy cells and columns are still undefined at this point}
 The algorithm proceeds as above, with the possibility of introducing \emph{heavy cells} if there are
-more than $s$ intervals sharing the same start time.
+more than $s$ intervals sharing the same duration.
 
 In each cell, the intervals are sorted by end time.
 
 Along with the intervals in the grid, we store the boundaries between
 the columns, as well as the boundaries between the cells in each
 column, in sorted arrays.
+In particular, we denote with $t_s^i$ and $t_e^i$ the minimum start time 
+and maximum end time in column $i$, and
+with $d_{min}^{ij}$ and $d_{max}^{ij}$ the minimum and maximum durations
+of intervals in cell $i,j$.
 This will allow, at query time, the efficient retrieval of the range
 of cells containing intervals that match a given query.
 
@@ -614,10 +611,8 @@ of cells containing intervals that match a given query.
 \begin{example}
   Figure~\ref{fig:example-grid} shows the grid constructed according to the above
   algorithm on our example dataset. Note that the columns span different ranges of
-  durations, adapting to the density of the points.
-  The start times are more uniformly distributed within each column, with
-  the exception of a flew flights early in the night: the cell containing them spans 
-  a wider range of times.
+  start times, adapting to the density of the points.
+  Within each column, the points are partitioned according the the distribution of durations.
   
   In contrast, a uniform grid would suffer from a high imbalance in the number of
   intervals in each cell.
@@ -634,31 +629,24 @@ are met:
 	 & r.\TS < \TE                  \label{eq:end-condition}
 \end{align}
 
-First, find the two indices which identify the range of cells in the duration
-dimension each containing at least one interval satisfying
-condition~\eqref{eq:duration-condition} by means of binary search on the
-boundaries of the columns. Let these two indices be $i_{start}$ and $i_{end}$.
-Then, for each $i \in [i_{start}, i_{end}]$, let $[d_{min}^i, d_{max}^i]$
-be the range of durations spanned by the $i$-th column.
-By means of binary search, we look in the $i$-th column for the first cell
-that contains the time $r.\TS - d_{max}^i$ and for the last cell
-containing the time $r.\TE$.
-In other words,
-the start is the first cell such that the upper boundary on the start
-time plus the maximum duration in the duration range of the column
-is strictly less than the end time of the query
+The query algorithm is reported in Algorithm~\ref{alg:query}.
+First find the index of the last column in the start time dimension containing
+at least one interval satisfying condition~\ref{eq:end-condition}, by means 
+of binary search on the boundaries of the columns \mc{which are the earliest 
+start times of each column. Is this a bug?}.
+Let this index be $i$.
+Then we inspect column $G_i$ and all the preceding columns, until we get to a column
+that cannot possibly contain intervals matching the query, because its latest end time does
+not satisfy condition~\ref{eq:start-condition}.
+When inspecting a column, we look for the cell within the column with the largest 
+minimum duration, again by binary search.
+Then we scan the cells backward, util we get to a cell whose maximum duration is smaller than the
+$d_{min}$ required by the query.
+For each interval contained in the visited cells, we scan the intervals by decreasing end time,
+until the end time no longer satisfies~\ref{eq:start-condition}, reporting
+all the intervals satisfying the query.
 
-For each matching cell, we are in one of two cases:
-\begin{enumerate}
-\item The cell's duration range is contained in the query's duration
-  range.  In this case we iterate through just the intervals such that
-  $\TS < r.\TE$, leveraging the fact that intervals are sorted by end
-  time, and we report them as matches.
-\item Otherwise, all the intervals in the cell are evaluated against
-  the query.
-\end{enumerate}
-
-\begin{algorithm}%[t]
+\begin{algorithm}[t]
   \caption{\textsc{Query}$(Q([\TS, \TE), [d_{min}, d_{max}]))$\label{alg:query}}
   \KwIn{A range duration query; An index grid $G$}
 
