@@ -12,6 +12,7 @@
 \usepackage{array}
 
 \newcommand{\BO}[1]{O\left(#1\right)}
+\newcommand{\BT}[1]{\Theta\left(#1\right)}
 \renewcommand{\epsilon}{\varepsilon}
 
 \usepackage{xspace}
@@ -474,10 +475,9 @@ $R$ it belongs to.
   \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
   \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
   \KwOut{
-    An array of pairs, where the first item is a bucket boundary,
+    An array of pairs, where the first item is an upper bound to the keys
+	in the bucket,
 	and the second item contains the intervals in the bucket.
-	\mc{The bucket boundary is inclusive, so that a bucket contains
-	keys that are $\le$ to the boundary}
   }
 
   Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
@@ -509,6 +509,7 @@ $R$ it belongs to.
 	\KwIn{A collection of intervals $I$; the page size parameter $s$}
 	\KwOut{A grid partitioning intervals first by time, then by duration}
 	
+	\mc{Fix notation}\;
 	\Let{$G$}{$\emptyset$}\;
 	\For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
 		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
@@ -553,13 +554,7 @@ Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
 setting the bucket size to $s^2$ and the key function $k$ to the
 duration.
 In this invocation, we first sort all the intervals by
-increasing start time.  Runs of duplicate intervals are replaced by a
-single instance, equipped with a list of references to the tuples
-timestamped with that interval \jg{This sentence is not clear to
-  me. In Alg. 1 it seems to me that the set $I$ is used as a flat
-  array, where duplicates are together. Perhaps not synchronized.}.
-  \mc{This should be removed and handled in a simpler way: see 
-  \href{https://gitlab.inf.unibz.it/Matteo.Ceccarello/temporal-index/-/issues/19}{issue 19}}
+increasing start time.  
 Then, we iterativaly define bucket boundaries as follows.  We set the
 start of the first bucket to the start time of the first interval.
 Then, we look ahead at the interval $s^2$ positions from it, and we
@@ -752,17 +747,15 @@ Before stating our main result, we establish the follwing fundamental facts
 about heavy columns and cells.
 
 \begin{lemma}\label{lem:heavy}
-	A heavy column does not contain heavy cells
+	A heavy cell in a heavy conlumn contains only copies of the same interval.
 \end{lemma}
 \begin{proof}
+	\mc{This is trivial, so we can omit it.}
 	By construction, a heavy column contains only intervals with the same start time.
 	Similarly, a heavy cell contains only intervals with the same duration.
-	Therefore, a heavy cell in a heavy column would contain intervals with the same
+	Therefore, a heavy cell in a heavy column 
+	contains intervals with the same
 	start time and duration, i.e. copies of the same interval.
-	\mc{
-		FIXME:
-	However we store duplicate intervals only once (with a list of pointers to the related tuples, which are all either part of the output or not).
-	}
 \end{proof}
 
 \begin{theorem}
@@ -798,23 +791,37 @@ about heavy columns and cells.
 
 	Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
 	\begin{enumerate}
-		\item Both the cell's durations range and start times range fall within the query polygon.
-		      In such cell, the query constraints on the duration and the start time are satisfied by construction.
-		      The algorithm considers just the intervals of $G_{ij}$ which are part of the output (since it iterates over
-		      the cell's intervals by decreasing end time).
-		      Therefore, the time spent enumerating intervals from the cell is $\BO{k_{ij}}$.
-		\item The cell's duration range satisfies the query constraint, but the starting time range doesn't.
-		      If the duration colum containing the cell is heavy, then the cell cannot be heavy (by Lemma~\ref{lem:heavy}) 
-			  and the algorithm has to evaluate
-		      $\BO{s}$ intervals.
-		      Otherwise the cell might be heavy. In such case, all the start times are equal and satisfy the
-			  query constraint (otherwise we will not be looking at the cell at all).
-			  Therefore all the intervals in the cell match the query, and the time to enumerate them is $\BO{k_{ij}}$.
-		\item The cell's start times all satisfy the query constraints, but not all its durations do.
-		      In this case we cannot be in a heavy column (which contains a single duration) and thus
-		      the column containing the cell contains at most $s^2$ intervals.
-		\item The cell doesn't completely satisfy neither constraint. In this case neither the column nor the cell can be heavy,
-		      therefore the algorithm must only evaluate $\BO{s}$ intervals.
+		\item Both the cell's durations range and start times range fall
+		within the query polygon. In such cell, the query constraints on the
+		duration and the start time are satisfied by construction. The
+		algorithm considers just the intervals of $G_{ij}$ which are part of
+		the output (since it iterates over the cell's intervals by decreasing
+		end time). Therefore, the time spent enumerating intervals from the
+		cell is $\BO{k_{ij}}$.
+		Also, note that this is the only case in which a heavy cell in a 
+		heavy column is visited by the query algorithm. Such cell can potentially
+		have $\BO{n}$ copies of the same interval. If the algorithm visits the cell, then
+		it means that such copies are all part of the output, hence we pay 
+		$\BT{k_{ij}}$ in the complexity.
+
+		\item The cell's duration range satisfies the query constraint, but
+		the starting time range doesn't. If the duration colum containing the
+		cell is heavy, then the cell cannot be heavy (by
+		Lemma~\ref{lem:heavy}) and the algorithm has to evaluate $\BO{s}$
+		intervals. Otherwise the cell might be heavy. In such case, all the
+		start times are equal and satisfy the query constraint (otherwise we
+		will not be looking at the cell at all). Therefore all the intervals
+		in the cell match the query, and the time to enumerate them is
+		$\BO{k_{ij}}$.
+
+		\item The cell's start times all satisfy the query constraints, but
+		not all its durations do. In this case we cannot be in a heavy column
+		(which contains a single duration) and thus the column containing the
+		cell contains at most $s^2$ intervals.
+
+		\item The cell doesn't completely satisfy neither constraint. In this
+		case neither the column nor the cell can be heavy, therefore the
+		algorithm must only evaluate $\BO{s}$ intervals.
 	\end{enumerate}
 	All the cells of type (1) account for at most $\BO{k}$ in terms of running time.
 	As for cells of type (2) there are at most $n/s^2$ of them. Overall they account for $\BO{\frac{n}{s}}$ interval evaluations.
