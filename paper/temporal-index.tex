@@ -399,7 +399,13 @@ The latter type of query is a combination of the former two.
   \input{example.tex}
   \caption{Range-duration query on the example table. The time range
     is constrained to be between 10:00 and 14:00, and the duration is
-    constrained to be in $[2h, 4h]$.  The green interval is the only
+    constrained to be in $[2h, 4h]$. 
+	The red area denotes the constraint on the start time.
+	The gray/green segments on top of each interval denote the duration constraint, with the start
+	of the green part marking the minimum duration, and the end denoting the maximum duration. 
+	An interval satisfies the duration constraint only if its end point is within
+	the green part of the constraint segment.
+	The blue interval is the only
     one matching both the range and duration
     constraints.\label{fig:example-intervals} 
 	}
