@@ -333,10 +333,10 @@ plot_selectivity_dependency <- function(data_selectivity) {
 }
 
 plot_running_example <- function(data_running_example, query_time, query_duration) {
-    limits <- c(-1, 3)
+    limits <- c(-0.5, 0.5 + nrow(filter(data_running_example, highlighted)))
     data_running_example <- data_running_example %>%
         filter(highlighted) %>%
-        mutate(pos = row_number() / n())
+        mutate(pos = row_number(desc(departure)))
 
     ggplot(
         data_running_example,
@@ -376,66 +376,38 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
             label.padding = unit(0.1, "lines"),
             label.size = 0
         ) +
-        annotate(
-            geom = "rect",
-            xmin = ymd_hms("2018-08-01T06:00:00"),
-            xmax = ymd_hms("2018-08-01T11:00:00"),
-            ymin = 2, ymax = 3,
-            color = "white",
-            fill = "white",
-            size = 1
-        ) +
-        annotate(
-            geom = "point",
-            x = ymd_hms("2018-08-01T06:00:00"),
-            y = 2.5,
+        geom_point(
+            aes(x = departure, y = pos + 0.2),
             color = "gray",
+            alpha = 0.7,
             size = 1
         ) +
-        annotate(
-            geom = "segment",
-            x = ymd_hms("2018-08-01T06:00:00"),
-            xend = ymd_hms("2018-08-01T10:00:00"),
-            y = 2.5, yend = 2.5,
-            color = "gray",
-            size = 1
+        geom_segment(
+            aes(
+                x = departure,
+                xend = departure + hours(2),
+                y = pos + 0.2, yend = pos + 0.2
+            ),
+            alpha = 0.7,
+            size = 1,
+            color = "gray"
         ) +
-        annotate(
-            geom = "segment",
-            x = ymd_hms("2018-08-01T08:00:00"),
-            xend = ymd_hms("2018-08-01T10:00:00"),
-            y = 2.5, yend = 2.5,
-            color = "red",
-            size = 3
+        geom_segment(
+            aes(
+                x = departure + hours(2),
+                xend = departure + hours(4),
+                y = pos + 0.2, yend = pos + 0.2
+            ),
+            alpha = 0.7,
+            size = 1.5,
+            color = "forestgreen"
         ) +
-        annotate(
-            geom = "text",
-            label = c("2h", "4h"),
-            x = c(ymd_hms("2018-08-01T08:00:00"),
-                  ymd_hms("2018-08-01T10:00:00")),
-            y = 2.7,
-            vjust = 0,
-            color = "red",
-            size = 3
-        ) +
-        # annotate(
-        #     geom = "text",
-        #     label = str_c(
-        #         "$d \\in [",
-        #         query_duration[1], ", ", query_duration[2],
-        #         "]$ hours"
-        #     ),
-        #     color = "darkred",
-        #     x = int_end(query_time / 2),
-        #     y = 2,
-        #     size = 3,
-        #     vjust = 0
-        # ) +
         scale_x_datetime() +
         scale_y_continuous(limits = limits) +
         scale_color_manual(values = list(
             "black",
-            "#0ec487"
+            # "#0ec487"
+            "blue"
         )) +
         theme_minimal() +
         labs(x = "time") +
