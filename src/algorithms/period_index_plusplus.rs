@@ -331,7 +331,6 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
     }
 
     fn for_each<F: FnMut((Time, Time), &V)>(&self, mut action: F) {
-        // self.values.iter().for_each(action);
         for i in 0..self.boundaries.len() {
             let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
             let upper_bound = self.boundaries[i];
@@ -346,7 +345,6 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
             self.values.len() - 1,
         );
         debug_assert!(end < self.values.len());
-        // self.values[start..=end].iter().for_each(action);
         for i in start..=end {
             let lower_bound = if i > 0 { self.boundaries[i - 1] } else { 0 };
             let upper_bound = self.boundaries[i];
