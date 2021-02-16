@@ -26,6 +26,7 @@
 
 %% Algorithms notation
 \newcommand{\Let}[2]{#1 $\leftarrow$ #2}
+\newcommand{\algocomment}[1]{{\hfill$\triangleleft~~${\footnotesize #1}}}
 
 %% Notations for temporal relations
 
@@ -42,6 +43,7 @@
 \newcommand{\dataset}[1]{\texttt{#1}}
 \newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
 \newcommand{\argmax}{\operatorname{argmax}}
+\newcommand{\argmin}{\operatorname{argmin}}
 
 \definecolor{firstcolor}{HTML}{FDE725}
 \definecolor{secondcolor}{HTML}{5DC863}
@@ -474,53 +476,89 @@ $R$ it belongs to.
 \begin{algorithm}[t]
 	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
 	\KwIn{A collection of intervals $I$; the page size parameter $s$}
-	\KwOut{A grid partitioning intervals first by time, then by duration}
-	
-	\mc{Fix notation}\;
-	\Let{$G$}{$\emptyset$}\;
-	\For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
-		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
-		\For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
-			Sort $I_{ij}$ by decreasing end time\;
-			\Let{$G_{ij}$}{$I_{ij}$}\;
+	\KwOut{A grid $G$ partitioning intervals first by time, then by duration;
+	a sorted collection of column boundaries $t_s^i$; a sorted collection of cell
+	boundaries $d_{max}^{ij}$ for each column $i$}
+
+	\BlankLine
+
+	Sort $I$ by start start time\;
+	\Let{$h$}{$0$}\;
+	\Let{$i$}{$0$}\;
+	\While{$h < |I|$}{
+		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, r \rightarrow r.t_s)$}\;
+		\Let{$t_e^{i}$}{$\displaystyle\argmin_{t \in I[h..h']} t.t_e$} \algocomment{minimum end time in column}\;
+		\Let{$t_s^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
+		Sort $I[h..h']$ by duration\;
+
+		\Let{$k$}{$0$}\;
+		\Let{$j$}{$0$}\;
+		\While{$j < |I[h..h']|$}{
+			\Let{$k'$}{\algo{NextBreakpoint}$(I[h..h'], k, s, r \rightarrow |r.t|)$}\;
+			\Let{$d_{max}^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in cell}\;
+			\Let{$G_{ij}$}{$I[k..k']$, sorted by end time}\;
+			\Let{$j$}{$j'+1$}\;
 		}
+		\Let{$h$}{$h' + 1$}\;
 	}
+
 	\Return $G$\;
 \end{algorithm}
 
-
 \begin{algorithm}[t]
-  \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
-  \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
-  \KwOut{
-    An array of pairs, where the first item is an upper bound to the keys
-	in the bucket,
-	and the second item contains the intervals in the bucket.
-  }
+	\caption{\textsc{NextBreakpoint}$(I, h, b, k)$}
+	\KwIn{A collection of intervals $I$, sorted according to the key function $k$; the current index $h$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
+	\KwOut{The next split index in the collection $I$}
 
-  Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
-  \Let{$B$}{$[]$}\;
-  \Let{$i$}{$0$}\;
-  \While{$i < |I|$}{
-    \nllabel{line:iterate}
-    \Let{$j$}{$i+b$}\;
-    \uIf{$k(I_i) = k(I_{j})$} {
-      \nllabel{line:heavy-bucket}
-      \lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
-        \Let{$j$}{$j+1$}
-      }
-    } \Else {
-      \nllabel{line:split-bucket}
-      \lWhile{$j > i \wedge k(I_j) = k(I_{j+1})$} {
-        \Let{$j$}{$j-1$}
-      }
-    }
-	\Let{$I^{\subseteq}$}{$\{I_h ~|~ i \le h \le j\}$}\;
-    Append $(k(I_j), I^\subseteq)$ to $B$\;
-    \Let{$i$}{$j+1$}\;
-  }
-  \Return $B$\;
+	\Let{$h'$}{$\min\{h + b, |I| - 1\}$}\;
+	\uIf{$k(I_h) = k(I_{h'})$} {
+		\nllabel{line:heavy-bucket}
+		{\footnotesize look for the last interval with the same key:}\;
+		\lWhile{$h' < |I| \wedge k(I_h) = k(I_{h'+1})$} {
+			\Let{$h'$}{$h'+1$}
+		}
+	} \Else {
+		\nllabel{line:split-bucket}
+		{\footnotesize look backwards for the first interval with a different key:}\;
+		\lWhile{$h' > h \wedge k(I_{h'}) = k(I_{h'+1})$} {
+			\Let{$h'$}{$h'-1$}
+		}
+	}
+	\Return $h'$\;
 \end{algorithm}
+
+% \begin{algorithm}[t]
+%   \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
+%   \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
+%   \KwOut{
+%     An array of pairs, where the first item is an upper bound to the keys
+% 	in the bucket,
+% 	and the second item contains the intervals in the bucket.
+%   }
+
+%   Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
+%   \Let{$B$}{$[]$}\;
+%   \Let{$i$}{$0$}\;
+%   \While{$i < |I|$}{
+%     \nllabel{line:iterate}
+%     \Let{$j$}{$i+b$}\;
+%     \uIf{$k(I_i) = k(I_{j})$} {
+%       \nllabel{line:heavy-bucket}
+%       \lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
+%         \Let{$j$}{$j+1$}
+%       }
+%     } \Else {
+%       \nllabel{line:split-bucket}
+%       \lWhile{$j > i \wedge k(I_j) = k(I_{j+1})$} {
+%         \Let{$j$}{$j-1$}
+%       }
+%     }
+% 	\Let{$I^{\subseteq}$}{$\{I_h ~|~ i \le h \le j\}$}\;
+%     Append $(k(I_j), I^\subseteq)$ to $B$\;
+%     \Let{$i$}{$j+1$}\;
+%   }
+%   \Return $B$\;
+% \end{algorithm}
 
 Our grid structure partitions the dataset first along
 either the start time or duration dimension, and then along the
