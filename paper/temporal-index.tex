@@ -471,7 +471,25 @@ $R$ it belongs to.
 \subsection{Index Construction}
 \label{sec:index-construction}
 
-\begin{algorithm}%[t]
+\begin{algorithm}[t]
+	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
+	\KwIn{A collection of intervals $I$; the page size parameter $s$}
+	\KwOut{A grid partitioning intervals first by time, then by duration}
+	
+	\mc{Fix notation}\;
+	\Let{$G$}{$\emptyset$}\;
+	\For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
+		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
+		\For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
+			Sort $I_{ij}$ by decreasing end time\;
+			\Let{$G_{ij}$}{$I_{ij}$}\;
+		}
+	}
+	\Return $G$\;
+\end{algorithm}
+
+
+\begin{algorithm}[t]
   \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
   \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
   \KwOut{
@@ -502,23 +520,6 @@ $R$ it belongs to.
     \Let{$i$}{$j+1$}\;
   }
   \Return $B$\;
-\end{algorithm}
-
-\begin{algorithm}
-	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
-	\KwIn{A collection of intervals $I$; the page size parameter $s$}
-	\KwOut{A grid partitioning intervals first by time, then by duration}
-	
-	\mc{Fix notation}\;
-	\Let{$G$}{$\emptyset$}\;
-	\For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
-		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
-		\For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
-			Sort $I_{ij}$ by decreasing end time\;
-			\Let{$G_{ij}$}{$I_{ij}$}\;
-		}
-	}
-	\Return $G$\;
 \end{algorithm}
 
 Our grid structure partitions the dataset first along
