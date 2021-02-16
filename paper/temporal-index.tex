@@ -486,6 +486,7 @@ $R$ it belongs to.
 	\Let{$h$}{$0$}\;
 	\Let{$i$}{$0$}\;
 	\While{$h < |I|$}{
+		\nllabel{line:column-break}
 		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, r \rightarrow r.t_s)$}\;
 		\Let{$t_e^{i}$}{$\displaystyle\argmin_{t \in I[h..h']} t.t_e$} \algocomment{minimum end time in column}\;
 		\Let{$t_s^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
@@ -494,6 +495,7 @@ $R$ it belongs to.
 		\Let{$k$}{$0$}\;
 		\Let{$j$}{$0$}\;
 		\While{$j < |I[h..h']|$}{
+			\nllabel{line:cell-break}
 			\Let{$k'$}{\algo{NextBreakpoint}$(I[h..h'], k, s, r \rightarrow |r.t|)$}\;
 			\Let{$d_{max}^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in cell}\;
 			\Let{$G_{ij}$}{$I[k..k']$, sorted by end time}\;
@@ -506,7 +508,7 @@ $R$ it belongs to.
 \end{algorithm}
 
 \begin{algorithm}[t]
-	\caption{\textsc{NextBreakpoint}$(I, h, b, k)$}
+	\caption{\textsc{NextBreakpoint}$(I, h, b, k)$\label{alg:next-breakpoint}}
 	\KwIn{A collection of intervals $I$, sorted according to the key function $k$; the current index $h$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
 	\KwOut{The next split index in the collection $I$}
 
@@ -527,39 +529,6 @@ $R$ it belongs to.
 	\Return $h'$\;
 \end{algorithm}
 
-% \begin{algorithm}[t]
-%   \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
-%   \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
-%   \KwOut{
-%     An array of pairs, where the first item is an upper bound to the keys
-% 	in the bucket,
-% 	and the second item contains the intervals in the bucket.
-%   }
-
-%   Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
-%   \Let{$B$}{$[]$}\;
-%   \Let{$i$}{$0$}\;
-%   \While{$i < |I|$}{
-%     \nllabel{line:iterate}
-%     \Let{$j$}{$i+b$}\;
-%     \uIf{$k(I_i) = k(I_{j})$} {
-%       \nllabel{line:heavy-bucket}
-%       \lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
-%         \Let{$j$}{$j+1$}
-%       }
-%     } \Else {
-%       \nllabel{line:split-bucket}
-%       \lWhile{$j > i \wedge k(I_j) = k(I_{j+1})$} {
-%         \Let{$j$}{$j-1$}
-%       }
-%     }
-% 	\Let{$I^{\subseteq}$}{$\{I_h ~|~ i \le h \le j\}$}\;
-%     Append $(k(I_j), I^\subseteq)$ to $B$\;
-%     \Let{$i$}{$j+1$}\;
-%   }
-%   \Return $B$\;
-% \end{algorithm}
-
 Our grid structure partitions the dataset first along
 either the start time or duration dimension, and then along the
 other. The choice of which dimension to index first may of course
@@ -576,9 +545,7 @@ The purpose of this parameter is to allow the optimization of the data structure
 to different scenario. In an external memory setting, the parameter $s$ might be
 set to the disk block size. In a main memory scenario, it could be set
 to that a cell fits in a cache line.
-We divide the intervals into \emph{columns} \jg{We use
-  columns and buckets interchangably, isn't it? Should we only use the
-  term bucket or only columns?} based on their duration with two
+We divide the intervals into \emph{columns} based on their duration with two
 goals: all the intervals with the same start time should be in the same
 column, and each column should have at most $s^2$ intervals, unless
 there are more than $s^2$ intervals with the same start time.  In the
@@ -588,57 +555,39 @@ Partitioning start times in this way allows, intuitively, to then further partit
 each column in $s$ cells of $s$ elements each\footnote{We could use two separate 
 parameters to control the number of partitions in the two dimensions, but using $s$ and $s^2$ makes
 for a simpler exposition, analysis and implementation.}.
-To this end, we invoke
-Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
-setting the bucket size to $s^2$ and the key function $k$ to the
-duration.
-In this invocation, we first sort all the intervals by
-increasing start time.  
-Then, we iterativaly define bucket boundaries as follows.  We set the
-start of the first bucket to the start time of the first interval.
-Then, we look ahead at the interval $s^2$ positions from it, and we
-can have one of three cases:
-\begin{enumerate}
-\item the look ahead interval has the same start time as the one
-  starting the column, meaning that we are considering a run of more
-  than $s^2$ intervals all with the same start time
-  (line~\ref{line:heavy-bucket} of
-  Algorithm~\ref{alg:define-boundaries}).  Then, the boundary of the
-  bucket is set to the current start time, and the start of the next
-  column is set to the first interval with start time strictly larger
-  than the current one;j
-\item the look ahead interval and the one immediately following it
-  have the same start time, which is however different from the one of
-  the interval starting the column (line~\ref{line:split-bucket} of
-  Algorithm~\ref{alg:define-boundaries}).  In order not to break a run
-  of intervals with the same start time between different columns while keeping
-  the column itself smaller than $s^2$, we look for the first interval
-  preceding the look ahead with a strictly smaller start time, and make
-  it the end of the column;
-\item otherwise, the look ahead interval marks the end of the column.
-\end{enumerate} 
-\jg{It would be nice to have an example/illustration of the
-array $B$ with concrete values, where to show the above cases. If we use a
-running example with 6-8 concrete intervals, it should be sufficient.}
 
-Then, each column is further partitioned according to the duration, invoking on it
-Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
-the duration of the intervals.
-\mc{heavy cells and columns are still undefined at this point}
-The algorithm proceeds as above, with the possibility of introducing \emph{heavy cells} if there are
-more than $s$ intervals sharing the same duration.
-
-In each cell, the intervals are sorted by end time.
-
-Along with the intervals in the grid, we store the boundaries between
-the columns, as well as the boundaries between the cells in each
-column, in sorted arrays.
-In particular, we denote with $t_s^i$ and $t_e^i$ the minimum start time 
-and maximum end time in column $i$, and
-with $d_{min}^{ij}$ and $d_{max}^{ij}$ the minimum and maximum durations
-of intervals in cell $i,j$.
-This will allow, at query time, the efficient retrieval of the range
-of cells containing intervals that match a given query.
+The pseudocode to partition the intervals in this way is depicted in
+Algorithm~\ref{alg:build-index}. First, we sort all the intervals by
+increasing start time. Then, we proceed to defining the columns iteratively,
+defining breakpoints in the collection of input intervals, starting at $0$.
+Using Algorithm~\ref{alg:next-breakpoint} we define a range of intervals that
+will be grouped in the same column. In particular, we look at the interval
+$s^2$ positions away from the current one (line~\ref{line:column-break}). If
+the two intervals have the same start time, then we scan forward until we
+find the last interval with the same start time
+(line~\ref{line:heavy-bucket}). Note that in this case all the intervals in
+the column will have the same start time, and since it has more than $s^2$
+intervals we deem it \emph{heavy}. Otherwise, if the two intervals have
+different start times, we scan backwards until the breakpoint interval and
+the immediately next one have different start times, to make sure that the
+breakpoint does not split in two a contiguous run of equal start times
+(line~\ref{line:split-bucket}). Note that in this case the column will
+contain at most $s^2$ intervals. Once we found the boundaries of the current
+column, its intervals are sorted by increasing duration. At this point, we
+proceed similarly to find the breakpoints between cells of the column
+(line~\ref{line:cell-break}): starting from the first interval of the column,
+we look at the interval $s$ position away, scanning forward if we are looking
+at a run of more than $s$ intervals with the same duration (thus defining a
+\emph{heavy cell}), or backward in order not to split runs of same-duration
+intervals. Once a cell is identifies this way, its intervals are sorted by
+end time, and we proceed to the next cell. After processing an entire column,
+we move to the next. Along with the grouping of intervals into columns and
+cells, during the execution of the algorithm we collect some ancillary
+information: the maximum start time and minimum end time of each column
+(respectively denoted $t_s^i$ and $t_e^i$ for column $i$), and the maximum duration
+in each cell $ij$, denote with $d_{max}^{ij}$.
+This information will be used to efficiently index into the grid in order to 
+answer range-duration queries.
 
 \begin{figure}
 	\input{example-grid.tex}
