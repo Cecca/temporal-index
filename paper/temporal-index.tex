@@ -490,18 +490,22 @@ $R$ it belongs to.
 		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, r \rightarrow r.t_s)$}\;
 		\Let{$t_e^{i}$}{$\displaystyle\argmin_{t \in I[h..h']} t.t_e$} \algocomment{minimum end time in column}\;
 		\Let{$t_s^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
-		Sort $I[h..h']$ by duration\;
+		\Let{$I'$}{$I_{h..h'}$}\;
+		Sort $I'$ by duration\;
 
 		\Let{$k$}{$0$}\;
 		\Let{$j$}{$0$}\;
-		\While{$j < |I[h..h']|$}{
+		\While{$k < |I'|$}{
 			\nllabel{line:cell-break}
-			\Let{$k'$}{\algo{NextBreakpoint}$(I[h..h'], k, s, r \rightarrow |r.t|)$}\;
-			\Let{$d_{max}^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in cell}\;
-			\Let{$G_{ij}$}{$I[k..k']$, sorted by end time}\;
-			\Let{$j$}{$j'+1$}\;
+			\Let{$k'$}{\algo{NextBreakpoint}$(I', k, s, r \rightarrow |r.t|)$}\;
+			\Let{$d_{min}^{ij}$}{$|I_{k}|$}\algocomment{minimum duration in the cell}\;
+			\Let{$d_{max}^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in the cell}\;
+			\Let{$G_{ij}$}{$I'_{k..k'}$, sorted by end time}\;
+			\Let{$j$}{$j+1$}\;
+			\Let{$k$}{$k'+1$}\;
 		}
 		\Let{$h$}{$h' + 1$}\;
+		\Let{$i$}{$i + 1$}\;
 	}
 
 	\Return $G$\;
@@ -584,8 +588,8 @@ end time, and we proceed to the next cell. After processing an entire column,
 we move to the next. Along with the grouping of intervals into columns and
 cells, during the execution of the algorithm we collect some ancillary
 information: the maximum start time and minimum end time of each column
-(respectively denoted $t_s^i$ and $t_e^i$ for column $i$), and the maximum duration
-in each cell $ij$, denote with $d_{max}^{ij}$.
+(respectively denoted $t_s^i$ and $t_e^i$ for column $i$), and the maximum and minimum durations
+in each cell $ij$, denote with $d_{max}^{ij}$ and $d_{min}^{ij}$.
 This information will be used to efficiently index into the grid in order to 
 answer range-duration queries.
 
@@ -639,7 +643,7 @@ all the intervals satisfying the query.
 
   \BlankLine
   \Let{$i$}{$\argmax_{i}\TS^i < \TE$}\;
-  \While{$i \ge 0 \wedge \min\{\TE^i, \TS^i + d_{max}\} \le \TS$} {
+  \While{$i \ge 0 \wedge \TS < \TE^i$} {
 	\Let{$j$}{$\argmax_{j}d_{min}^{ij} \le d_{max}$}\;
 	\While{$d_{max}^{ij} \ge d_{min}$}{
 		\For{$t \in G_{ij}$}{
