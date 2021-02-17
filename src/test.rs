@@ -30,7 +30,7 @@ fn run_test_same_result(data: &Vec<Interval>, queries: &Vec<Query>, mut algo: Bo
         actual.sort_unstable();
         assert!(
             expected == actual,
-            "query {} is {:?}, {} false negatives, {} false positives:\nfalse negatives:\n{}",
+            "query {} is {:?}, {} false negatives, {} false positives, {} true positives:\nfalse negatives:\n{}",
             idx,
             queries[idx],
             BTreeSet::from_iter(actual.iter())
@@ -38,6 +38,9 @@ fn run_test_same_result(data: &Vec<Interval>, queries: &Vec<Query>, mut algo: Bo
                 .count(),
             BTreeSet::from_iter(expected.iter())
                 .difference(&BTreeSet::from_iter(actual.iter()))
+                .count(),
+            BTreeSet::from_iter(expected.iter())
+                .intersection(&BTreeSet::from_iter(actual.iter()))
                 .count(),
             Vec::from_iter(
                 BTreeSet::from_iter(actual.iter())
@@ -120,17 +123,29 @@ macro_rules! same_result {
                 run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(10)));
             }
 
-            // #[test]
-            // fn [<$name _period_index_plusplus_manybucks>]() {
-            //     let (data, queries) = &$value;
-            //     run_test_same_result(data, queries, Box::new(PeriodIndexPlusPlus::new(100000)));
-            // }
+            #[test]
+            fn [<$name _rd_index_time_duration>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 5)));
+            }
 
-            // #[test]
-            // fn [<$name _ebi>]() {
-            //     let (data, queries) = &$value;
-            //     run_test_same_result(data, queries, Box::new(EBIIndex::default()));
-            // }
+            #[test]
+            fn [<$name _rd_index_duration_time>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 5)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_time_duration_ps_50>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 5)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_duration_time_ps_50>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 5)));
+            }
         }
     )*
     }
