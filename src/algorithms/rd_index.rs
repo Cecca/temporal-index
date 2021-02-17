@@ -77,8 +77,6 @@ impl Algorithm for RDIndex {
         } else {
             panic!("uninitialized index!");
         }
-
-        todo!()
     }
 
     fn clear(&mut self) {
@@ -92,7 +90,7 @@ fn next_breakpoint<F: Fn(&Interval) -> Time>(
     block: usize,
     key: F,
 ) -> usize {
-    if start + block > intervals.len() {
+    if start + block >= intervals.len() - 1 {
         return intervals.len() - 1;
     }
 
@@ -101,7 +99,7 @@ fn next_breakpoint<F: Fn(&Interval) -> Time>(
     let mut end = lookahead;
     if key(&intervals[start]) == lookahead_key {
         // We are looking at a heavy column/cell
-        while end < intervals.len() && lookahead_key == key(&intervals[end + 1]) {
+        while end < intervals.len() - 1 && lookahead_key == key(&intervals[end + 1]) {
             end += 1;
         }
     } else {
@@ -279,7 +277,7 @@ impl<V> TimePartition<V> {
     fn query<F: FnMut(&V)>(&self, range: Interval, mut action: F) {
         let end = match self.max_start_times.binary_search(&range.end) {
             Ok(i) => i,  // exact match, equal end time than maximum start time
-            Err(i) => i, // maximum start time strictly less than end time
+            Err(i) => std::cmp::min(i, self.max_start_times.len() - 1),
         };
 
         for i in (0..=end).rev() {
@@ -336,9 +334,9 @@ impl<V> DurationPartition<V> {
 
     #[allow(dead_code)]
     fn query<F: FnMut(&V)>(&self, duration_range: DurationRange, mut action: F) {
-        let end = match self.min_durations.binary_search(&duration_range.min) {
+        let end = match self.min_durations.binary_search(&duration_range.max) {
             Ok(i) => i,
-            Err(i) => i,
+            Err(i) => std::cmp::min(i, self.min_durations.len() - 1),
         };
 
         for i in (0..=end).rev() {
