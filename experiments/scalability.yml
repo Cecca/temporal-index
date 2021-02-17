@@ -38,6 +38,9 @@
     - PeriodIndexStar:
         num_buckets: [32, 64]
         num_levels: [4, 8]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [100, 500, 1000, 50000, 10000, 100000, 1000000, 10000000]
 
 ########################################################################
 #
@@ -59,10 +62,10 @@
               - Scaled: 
                   inner: {Uniform: { low: 1, high: 666 }}
                   scale: 1440
-              # Up to three months
+              # Up to one month, in hours
               - Scaled:
-                  inner: {Uniform: { low: 1, high: 2160 }}
-                  scale: 1440
+                  inner: {Uniform: { low: 1, high: 744 }}
+                  scale: 60
           
         duration:
           - Single: 
@@ -80,6 +83,9 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
 - mode:
@@ -100,10 +106,10 @@
               - Scaled: 
                   inner: {Uniform: { low: 1, high: 6660 }}
                   scale: 1440
-              # Up to three months
+              # Up to one months
               - Scaled:
-                  inner: {Uniform: { low: 1, high: 2160 }}
-                  scale: 1440
+                  inner: {Uniform: { low: 1, high: 744 }}
+                  scale: 60
           
         duration:
           - Single: 
@@ -121,6 +127,9 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
 - mode:
@@ -141,10 +150,10 @@
               - Scaled: 
                   inner: {Uniform: { low: 1, high: 66600 }}
                   scale: 1440
-              # Up to three months
+              # Up to one months
               - Scaled:
-                  inner: {Uniform: { low: 1, high: 2160 }}
-                  scale: 1440
+                  inner: {Uniform: { low: 1, high: 744 }}
+                  scale: 60
           
         duration:
           - Single: 
@@ -162,6 +171,9 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
 - mode:
@@ -182,10 +194,10 @@
               - Scaled: 
                   inner: {Uniform: { low: 1, high: 666000 }}
                   scale: 1440
-              # Up to three months
+              # Up to one months
               - Scaled:
-                  inner: {Uniform: { low: 1, high: 2160 }}
-                  scale: 1440
+                  inner: {Uniform: { low: 1, high: 744 }}
+                  scale: 60
           
         duration:
           - Single: 
@@ -203,6 +215,9 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
 ######################################################################
@@ -246,6 +261,9 @@
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
         page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [100, 200, 1000]
 
 
 - mode:
@@ -285,6 +303,9 @@
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
         page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [100, 200, 1000]
 
 - mode:
     Batch
@@ -322,6 +343,9 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
 - mode:
@@ -361,6 +385,9 @@
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
         page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [100, 200, 1000]
 
 ######################################################################
 #
@@ -399,6 +426,9 @@
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
         page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [100, 200, 1000]
 
 - mode:
     Batch
@@ -433,6 +463,9 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
 - mode:
@@ -503,5 +536,8 @@
         num_buckets: [32, 64]
         num_levels: [4, 8]
     - PeriodIndexPlusPlus:
+        page_size: [100, 200, 1000]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [100, 200, 1000]
 
