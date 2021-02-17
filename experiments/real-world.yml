@@ -16,10 +16,10 @@
               - Scaled: 
                   inner: {Uniform: { low: 1, high: 666 }}
                   scale: 1440
-              # Up to three months
+              # Up to one month, granularity of hours
               - Scaled:
-                  inner: {Uniform: { low: 1, high: 2160 }}
-                  scale: 1440
+                  inner: {Uniform: { low: 1, high: 744 }}
+                  scale: 60
           
         duration:
           - Free

@@ -894,12 +894,11 @@ equipped with 94 Gb of memory and a Intel\textregistered Xeon\textregistered CPU
 As a benchmark we consider the following datasets and workloads\footnote{
 	All the datasets are available in the code repository.}:
 %
-\mc{This might not make sense, since the dataset covers just August? Check that it indeed covers just August}
 \paragraph{\dataset{Flight}} A set of 701\,353 flights, identified by their
 takeoff and landing time, at the granularity of minute, covering the month
 of August 2018.
 Queries on this dataset are generated at random, with time ranges with durations
-uniformly distributed between 1 and 90 days,
+uniformly distributed between 1 and 31 days, at the granularity of hours,
 and duration ranges with endpoints uniformly distributed between 1 minute and
 a day, at the granularity of minutes.
 %
