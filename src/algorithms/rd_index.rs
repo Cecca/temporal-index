@@ -1,7 +1,7 @@
 use crate::types::*;
 use deepsize::DeepSizeOf;
 
-#[derive(DeepSizeOf, Debug, Clone, Copy)]
+#[derive(DeepSizeOf, Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
     TimeDuration,
     DurationTime,

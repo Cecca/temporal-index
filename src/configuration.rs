@@ -43,6 +43,10 @@ pub enum AlgorithmConfiguration {
     PeriodIndexPlusPlus {
         page_size: Vec<usize>,
     },
+    RDIndex {
+        dimension_order: Vec<DimensionOrder>,
+        page_size: Vec<usize>
+    },
     GridFile {
         side_cells: Vec<usize>,
     },
@@ -78,6 +82,13 @@ impl AlgorithmConfiguration {
             Self::PeriodIndexPlusPlus { page_size } => {
                 let iter = iproduct!(page_size).map(|ps| {
                     Rc::new(RefCell::new(PeriodIndexPlusPlus::new(*ps)))
+                        as Rc<RefCell<dyn Algorithm>>
+                });
+                Box::new(iter)
+            }
+            Self::RDIndex { dimension_order, page_size } => {
+                let iter = iproduct!(dimension_order, page_size).map(|(order, ps)| {
+                    Rc::new(RefCell::new(RDIndex::new(*order, *ps)))
                         as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
