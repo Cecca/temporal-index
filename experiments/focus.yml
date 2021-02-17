@@ -41,45 +41,7 @@
         num_levels: [8]
     - PeriodIndexPlusPlus:
         page_size: [200]
-
-# Clustered
-- mode: 
-    Focus:
-      samples: 100
-
-  datasets:
-    - Random:
-        seed: [123]
-        n: 
-          - 10000000
-        start_times:
-          - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
-        durations:
-          - Zipf: { n: 10000000, beta: 1 }
-
-  queries:
-    - Systematic:
-        seed: [23512]
-        n: [1024]
-        base:
-          Random:
-            seed: [123]
-            n: 
-              - 10000000
-            start_times:
-              - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
-            durations:
-              - Zipf: { n: 10000000, beta: 1 }
-
-  algorithms:
-    - BTree
-    - GridFile:
-        side_cells: [1000]
-    - IntervalTree
-    - PeriodIndexStar:
-        num_buckets: [64]
-        num_levels: [8]
-    - PeriodIndexPlusPlus:
+    - RDIndex:
+        dimension_order: [DurationTime, TimeDuration]
         page_size: [200]
-
 
