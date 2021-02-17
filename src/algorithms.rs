@@ -9,6 +9,7 @@ pub mod nested_btree;
 pub mod nested_vecs;
 pub mod period_index;
 pub mod period_index_plusplus;
+pub mod rd_index;
 
 pub use btree::*;
 pub use ebi::*;
@@ -21,3 +22,4 @@ pub use nested_btree::*;
 pub use nested_vecs::*;
 pub use period_index::*;
 pub use period_index_plusplus::*;
+pub use rd_index::*;
