@@ -78,6 +78,13 @@ table_batch <- function() {
           "uniform",
           "clustered"
         )
+    ) %>%
+    mutate(
+      algorithm_name = case_when(
+        str_detect(algorithm_params, "TimeDuration") ~ str_c(algorithm_name, "-td"),
+        str_detect(algorithm_params, "DurationTime") ~ str_c(algorithm_name, "-dt"),
+        TRUE ~ algorithm_name
+      )
     )
 
   dbDisconnect(conn)
@@ -90,7 +97,7 @@ filter_synthetic <- function(data_batch) {
       str_detect(dataset_name, "random"),
       # Focus on experiments on 10 million intervals, without mixing
       # in experiments about scalability
-      str_detect(dataset_params, "n=10000000 "),
+      str_detect(dataset_params, " n=10000000 "),
       # Filter out datasets used in scalability experiments
       !str_detect(dataset_params, "start_high=1000000000 "),
       !(queryset_params %in% c(
@@ -114,6 +121,9 @@ table_best <- function() {
   bind_rows(synth, real) %>%
     group_by(algorithm_name, queryset_id, dataset_id) %>%
     slice_max(qps) %>%
+    # if there are multiple entries with the exact 
+    # same queries per second, just return the first
+    slice(1) %>%
     ungroup() %>%
     mutate(dataset_name = case_when(
       dataset_name == "random-uniform-zipf" ~ "UZ",
