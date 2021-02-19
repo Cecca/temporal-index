@@ -58,7 +58,7 @@ plan <- drake_plan(
   figure_parameter_dependency = data_parameter_dependency %>%
     plot_parameter_dependency() %>%
     save_png("paper/images/param_dependency.png",
-      width = 5, height = 7
+      width = 5, height = 4
     ),
 
   # Data about the start times of real datasets

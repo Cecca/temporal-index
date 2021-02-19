@@ -47,7 +47,7 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         geom_line() +
         scale_x_continuous(trans = "log10", limits = c(10, NA)) +
         scale_y_continuous(trans = "log10", limits = c(NA, NA)) +
-        scale_color_workload() +
+        # scale_color_workload() +
         facet_grid(vars(algorithm_name), vars(start_times_distribution), scales = "fixed") +
         labs(
             x = "page size",

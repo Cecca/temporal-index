@@ -64,6 +64,8 @@ table_batch <- function() {
     mutate(
       workload_type = case_when(
         queryset_name == "random-uniform-zipf-uniform" ~ "both",
+        queryset_name == "random-zipf-uniform-uniform" ~ "both",
+        queryset_name == "random-zipf-uniform-None" ~ "time",
         queryset_name == "random-clustered-zipf-uniform" ~ "both",
         queryset_name == "random-None-uniform" ~ "duration",
         queryset_name == "random-uniform-zipf-None" ~ "time",
@@ -74,9 +76,10 @@ table_batch <- function() {
     ) %>%
     mutate(
       start_times_distribution =
-        if_else(dataset_name == "random-uniform-zipf",
-          "uniform",
-          "clustered"
+        case_when(
+          dataset_name == "random-uniform-zipf" ~ "uniform",
+          dataset_name == "random-clustered-zipf" ~ "clustered",
+          dataset_name == "random-zipf-uniform" ~ "zipf",
         )
     ) %>%
     mutate(
@@ -105,7 +108,8 @@ filter_synthetic <- function(data_batch) {
         "seed=23512 n=20000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
         "seed=23512 n=20000  dur_dist_low=1 dur_dist_high=10000"
       )),
-      !(queryset_id %in% c(389, 408))
+      !(queryset_id %in% c(389, 408)),
+      dataset_name != "random-zipf-uniform"
     )
 }
 
@@ -211,7 +215,12 @@ table_scalability <- function() {
 # and page size
 table_parameter_dependency <- function() {
   table_batch() %>%
-    filter(algorithm_name %in% c("period-index++", "rd-index-td", "rd-index-dt")) %>%
+    filter(
+      algorithm_name %in% c("rd-index-td", "rd-index-dt"),
+      dataset_name %in% c("random-zipf-uniform", "random-uniform-zipf"),
+      !(queryset_name %in% c("random-clustered-zipf-uniform", "random-clustered-zipf-None")),
+      !(dataset_name == "random-zipf-uniform" & str_detect(queryset_name, "random-uniform-zipf"))
+    ) %>%
     mutate(
       algorithm_params = str_remove(algorithm_params, "dimension_order=.* "),
       dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[, 2]),
