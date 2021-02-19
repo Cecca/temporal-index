@@ -48,7 +48,7 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         scale_x_continuous(trans = "log10", limits = c(10, NA)) +
         scale_y_continuous(trans = "log10", limits = c(NA, NA)) +
         scale_color_workload() +
-        facet_wrap(vars(start_times_distribution), scales = "fixed") +
+        facet_grid(vars(algorithm_name), vars(start_times_distribution), scales = "fixed") +
         labs(
             x = "page size",
             y = "queries per second",

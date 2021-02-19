@@ -111,7 +111,15 @@ filter_synthetic <- function(data_batch) {
 
 filter_real <- function(data_batch) {
   data_batch %>%
-    filter(dataset_name %in% c("Flight", "Webkit", "Tourism"))
+    filter(dataset_name %in% c("Flight", "Webkit", "Tourism")) %>%
+    filter(case_when(
+      dataset_name != "Flight" ~ TRUE,
+      queryset_name == "random-None-uniform-scaled" ~ TRUE,
+      str_detect(queryset_params, "dur_scale=60") ~ TRUE,
+      TRUE ~ FALSE
+    ))
+    # filter((dataset_name != "Flight") |
+    #         (str_detect(queryset_params, "dur_scale=60")))
 }
 
 table_best <- function() {
@@ -119,6 +127,7 @@ table_best <- function() {
   synth <- filter_synthetic(data)
   real <- filter_real(data)
   bind_rows(synth, real) %>%
+    filter(algorithm_name != "period-index++") %>%
     group_by(algorithm_name, queryset_id, dataset_id) %>%
     slice_max(qps) %>%
     # if there are multiple entries with the exact 
@@ -202,8 +211,9 @@ table_scalability <- function() {
 # and page size
 table_parameter_dependency <- function() {
   table_batch() %>%
-    filter(algorithm_name == "period-index++") %>%
+    filter(algorithm_name %in% c("period-index++", "rd-index-td", "rd-index-dt")) %>%
     mutate(
+      algorithm_params = str_remove(algorithm_params, "dimension_order=.* "),
       dataset_n = as.integer(str_match(dataset_params, "n=(\\d+)")[, 2]),
       queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2])
     ) %>%
