@@ -51,8 +51,8 @@
         n: [20000]
         range:
           - Pair: [
-              Zipf: { n: 10000000, beta: 1 }
-              Uniform: { low: 1, high: 10000000 },
+              Zipf: { n: 10000000, beta: 1 },
+              Uniform: { low: 1, high: 10000000 }
           ]
           - Free
         duration:
