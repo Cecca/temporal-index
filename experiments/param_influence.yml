@@ -7,15 +7,18 @@
   datasets:
     - Random:
         seed: [123]
-        n: 
-          - 1000000
-          - 10000000
-          - 100000000
+        n: [10000000]
         start_times:
           - Uniform: { low: 1, high: 10000000 }
-          - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
+    - Random:
+        seed: [123]
+        n: [10000000]
+        start_times:
+          - Zipf: { n: 10000000, beta: 1 }
+        durations:
+          - Uniform: { low: 1, high: 10000000 }
 
   queries:
     - Random:
