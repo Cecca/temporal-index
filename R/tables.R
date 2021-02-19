@@ -32,6 +32,7 @@ table_batch <- function() {
   conn <- dbConnect(RSQLite::SQLite(), db_file)
 
   res <- dplyr::tbl(conn, "batch") %>%
+    filter(algorithm_name != "period-index++") %>%
     collect() %>%
     # Filter some no longer considered configurations that might still be
     # lingering around
@@ -257,7 +258,15 @@ table_query_focus <- function() {
     "select * from query_focus_w_stats natural join focus_configuration"
   )) %>%
     mutate(query_time = set_units(query_time_ns, "ns")) %>%
-    select(-query_time_ns)
+    select(-query_time_ns) %>%
+    filter(algorithm_name != "period-index++") %>%
+    mutate(
+      algorithm_name = case_when(
+        str_detect(algorithm_params, "TimeDuration") ~ str_c(algorithm_name, "-td"),
+        str_detect(algorithm_params, "DurationTime") ~ str_c(algorithm_name, "-dt"),
+        TRUE ~ algorithm_name
+      )
+    )
 }
 
 table_running_example <- function(query_range, query_duration) {

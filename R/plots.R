@@ -157,7 +157,7 @@ plot_query_focus_precision <- function(data_focus) {
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
         scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
-        facet_wrap(vars(algorithm_name), ncol = 5) +
+        facet_wrap(vars(algorithm_name), ncol = 6) +
         labs(
             x = "time selectivity",
             y = "duration selectivity"
@@ -250,7 +250,7 @@ plot_query_focus <- function(data_focus) {
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
         scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
-        facet_wrap(vars(algorithm_name), ncol = 5) +
+        facet_wrap(vars(algorithm_name), ncol = 6) +
         labs(
             x = "time selectivity",
             y = "duration selectivity"
@@ -294,7 +294,7 @@ plot_selectivity_dependency <- function(data_selectivity) {
             geom_abline(slope = 1, yintercept = 0, inherit.aes = F) +
             geom_point_interactive(size = 0.5) +
             geom_rangeframe(show.legend = FALSE) +
-            facet_wrap(vars(algorithm_name), ncol = 5, scales = "free_y") +
+            facet_wrap(vars(algorithm_name), ncol = 6, scales = "free_y") +
             scale_color_manual(values = c(
                 "both" = "#414141",
                 "duration-only" = "steelblue",
