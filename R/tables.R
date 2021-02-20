@@ -178,6 +178,9 @@ table_best <- function() {
 # Extracts, out of all the batch experiments, the scalability ones
 table_scalability <- function() {
   batch_data <- table_batch() %>%
+    filter(
+      (!str_detect(dataset_name, "Flight")) | (str_detect(queryset_params, "dur_scale=60"))
+    ) %>%
     mutate(
       # For synthetic datasets
       dataset_n = as.integer(str_match(dataset_params, " n=(\\d+)")[, 2]),

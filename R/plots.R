@@ -40,7 +40,7 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         aes(
             x = page_size,
             y = drop_units(qps),
-            color = workload_type
+            color = algorithm_name
         )
     ) +
         geom_point() +
@@ -48,11 +48,16 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         scale_x_continuous(trans = "log10", limits = c(10, NA)) +
         scale_y_continuous(trans = "log10", limits = c(NA, NA)) +
         # scale_color_workload() +
-        facet_grid(vars(algorithm_name), vars(start_times_distribution), scales = "fixed") +
+        scale_color_tableau() +
+        facet_grid(
+            vars(workload_type),
+            vars(start_times_distribution),
+            scales = "free_y"
+        ) +
         labs(
             x = "page size",
             y = "queries per second",
-            color = "workload"
+            color = "algorithm"
         ) +
         theme_bw() +
         theme(

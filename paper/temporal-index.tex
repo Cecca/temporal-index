@@ -45,11 +45,19 @@
 \newcommand{\argmax}{\operatorname{argmax}}
 \newcommand{\argmin}{\operatorname{argmin}}
 
+% \definecolor{firstcolor}{HTML}{FDE725}
+% \definecolor{secondcolor}{HTML}{5DC863}
+% \definecolor{thirdcolor}{HTML}{21908C}
+% \definecolor{fourthcolor}{HTML}{3B528B}
+% \definecolor{fifthcolor}{HTML}{440154}
+
+
 \definecolor{firstcolor}{HTML}{FDE725}
-\definecolor{secondcolor}{HTML}{5DC863}
-\definecolor{thirdcolor}{HTML}{21908C}
-\definecolor{fourthcolor}{HTML}{3B528B}
-\definecolor{fifthcolor}{HTML}{440154}
+\definecolor{secondcolor}{HTML}{7AD151}
+\definecolor{thirdcolor}{HTML}{22A884}
+\definecolor{fourthcolor}{HTML}{2A788E}
+\definecolor{fifthcolor}{HTML}{414487}
+\definecolor{sixthcolor}{HTML}{440154}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -709,7 +717,7 @@ supported by our index structure.
 In this analysis we assume that the index is built by partitioning first in the time dimension,
 and then in the duration dimension.
 The choice of the order of this partitioning affects the practical performance, as we will discuss
-in Section~\ref{sec:experiments}.
+in Section~\ref{sec:experiments} (Figure~\ref{fig:param-dependency}).
 Nonetheless, the results in this section hold for both dimension orderings.
 
 \begin{theorem}
@@ -954,11 +962,12 @@ write them to a file.
   % where it is an order of magnitude slower, although the ranking remains the same.
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
 		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination:
-		\crule[firstcolor]{.5em}{1em} first,
-		\crule[secondcolor]{.5em}{1em} second,
-		\crule[thirdcolor]{.5em}{1em} third,
-		\crule[fourthcolor]{.5em}{1em} fourth,
-		and \crule[fifthcolor]{.5em}{1em} last.
+		\crule[firstcolor]{.5em}{1em}~first,
+		\crule[secondcolor]{.5em}{1em}~second,
+		\crule[thirdcolor]{.5em}{1em}~third,
+		\crule[fourthcolor]{.5em}{1em}~fourth,
+		\crule[fifthcolor]{.5em}{1em}~fifth,
+		and \crule[sixthcolor]{.5em}{1em}~last.
 		With \dataset{UZ} we denote interval sets with Uniform distribution of start times and Zipf
 		distribution of durations, with \dataset{UU} we refer to sets of intervals with Uniform distribution
 		for both the start time and the duration, and with \dataset{CZ} we denote intervals with
@@ -978,6 +987,11 @@ Table~\ref{tbl:overview-qps} reports an overview
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
 For index structures that take parameters, we report on the best configuration
+\mc{The performance of \ours with the two ordering variants is rather similar across
+all datasets. This is because we are reporting the results for the configuration
+with the best page size. For a fixed page size, the difference introduced by the
+ordering of dimensions can be up to three orders of magnitude, as
+will be discussed in Figure~\ref{fig:param-dependency}.}
 
 We remark that the overall difference in throughput for different workloads is
 due to the different output sizes: \qdo queries are in general less selective than \qrd queries,
@@ -1142,6 +1156,23 @@ thus increasing the running time.
 Conversely, the performance improves with the page size for \qro queries.
 In this case having fewer duration columns means that fewer groups of cells
 will need to be queried, thus improving performance.
+
+\mc{
+\begin{itemize}
+\item For a fixed page size, the gap between the two orderings is up to
+  three orders of magnitude
+\item I can't explain the behaviour for time only queries\dots I would
+	expect the time-duration order to perform better at high page counts (as it does)
+	and the duration-time order to perform better at low/intermediate page
+	counts, since then we have few columns to explore
+\item It is true, however, that the time part of the query is also constrained
+	by the duration part of the query: to evaluate the overlap with the query
+	we have to consider both the start and end times, but their relationship is
+	dictated by the duration: in this respect having the partitioning by
+	duration also helps in reducing the number of evaluated intervals!
+\item From the figure we can see that the behaviour is dictated by the duration part of the queries
+\end{itemize}
+}
 
 \section{Scalability with respect to the input size}
 \label{sec:scalability}
