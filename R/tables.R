@@ -264,6 +264,28 @@ table_query_focus <- function() {
     mutate(query_time = set_units(query_time_ns, "ns")) %>%
     select(-query_time_ns) %>%
     filter(algorithm_name != "period-index++") %>%
+    filter(algorithm_params != "dimension_order=TimeDuration page_size=10") %>%
+    mutate(
+      algorithm_name = case_when(
+        str_detect(algorithm_params, "TimeDuration") ~ str_c(algorithm_name, "-td"),
+        str_detect(algorithm_params, "DurationTime") ~ str_c(algorithm_name, "-dt"),
+        TRUE ~ algorithm_name
+      )
+    )
+}
+
+table_query_focus_inefficient <- function() {
+  db_file <- here::here("temporal-index-results.sqlite")
+  conn <- dbConnect(RSQLite::SQLite(), db_file)
+
+  as_tibble(dbGetQuery(
+    conn,
+    "select * from query_focus_w_stats natural join focus_configuration"
+  )) %>%
+    mutate(query_time = set_units(query_time_ns, "ns")) %>%
+    select(-query_time_ns) %>%
+    filter(algorithm_name != "period-index++") %>%
+    filter(algorithm_params == "dimension_order=TimeDuration page_size=10") %>%
     mutate(
       algorithm_name = case_when(
         str_detect(algorithm_params, "TimeDuration") ~ str_c(algorithm_name, "-td"),
