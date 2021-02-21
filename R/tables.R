@@ -202,7 +202,8 @@ table_scalability <- function() {
         (dataset_name %in% c("Flight", "Webkit", "Tourism") &
           queryset_name %in% c(
             "random-uniform-scaled-uniform-scaled-uniform-scaled",
-            "random-uniform-scaled-uniform-scaled-uniform"
+            "random-uniform-scaled-uniform-scaled-uniform",
+            "random-uniform-uniform-uniform"
           ))
     ) %>%
     mutate(
