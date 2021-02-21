@@ -4,6 +4,7 @@
 \usepackage{colortbl}
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{tcolorbox}
+\usepackage{wrapfig}
 %\usepackage{todonotes}
 
 \usepackage{listings}
@@ -1117,6 +1118,23 @@ Finally, \algo{period-index$\star$} answers queries with mixed performance, poss
 being replicated across several cells.
 As we observed previously, queries restricting only the time are the ones answered most efficiently
 by this data structure.
+
+\begin{wrapfigure}{r}{0.35\columnwidth}
+	\centering
+	\includegraphics[width=0.35\columnwidth]{images/selectivity-dep-inefficient.png}
+\end{wrapfigure}
+So far, we have reported on the performance of the best configuration
+of \ours{}, observing that under both orderings of dimensions it visits
+a fraction of intervals close to the selectivity of the query,
+i.e. it shows close to optimal behaviour.
+The figure at the side reports, under a setting similar to the one of
+Figure~\ref{fig:time-vs-selectivity}, the performance of \ours{}
+with a time-duration ordering and page size 10.
+As we will see in the next section, this configuration is not ideal:
+indeed, for several queries we have to visit more intervals than the
+precision of the query.
+This is especially true for duration-only queries (blue dots).
+\mc{Elaborate on why this is the case.}
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
