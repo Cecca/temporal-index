@@ -2,6 +2,8 @@
 # These experiments are configured using the best parameter configuration found for each 
 # algorithm, for each dataset, in the [batch] experiments
 
+
+
 # Uniform start times
 - mode: 
     Focus:
@@ -44,4 +46,39 @@
     - RDIndex:
         dimension_order: [DurationTime, TimeDuration]
         page_size: [200]
+
+# These experiments, instead, are configured using a bad 
+# parameter configuration, to see how the plot changes
+- mode: 
+    Focus:
+      samples: 100
+
+  datasets:
+    - Random:
+        seed: [123]
+        n: 
+          - 10000000
+        start_times:
+          - Uniform: { low: 1, high: 10000000 }
+        durations:
+          - Zipf: { n: 10000000, beta: 1 }
+
+  queries:
+    - Systematic:
+        seed: [23512, 12345, 1298579, 49589, 1294587, 1435786]
+        n: [1024]
+        base:
+          Random:
+            seed: [123]
+            n: 
+              - 10000000
+            start_times:
+              - Uniform: { low: 1, high: 10000000 }
+            durations:
+              - Zipf: { n: 10000000, beta: 1 }
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration]
+        page_size: [10]
 
