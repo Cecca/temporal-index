@@ -268,7 +268,7 @@ plot_query_focus <- function(data_focus) {
         )
 }
 
-plot_selectivity_dependency <- function(data_selectivity) {
+plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
     plotdata <- data_selectivity %>%
         filter(matches > 0) %>%
         filter(!(selectivity_time >= 0.99 & selectivity_duration >= 0.99)) %>%
@@ -327,7 +327,20 @@ plot_selectivity_dependency <- function(data_selectivity) {
     }
 
 
-    inner(plotdata)
+    p <- inner(plotdata)
+    if (bare) {
+        cat("Bare plot\n")
+        p <- p +
+            theme(
+                legend.position="none",
+                strip.text=element_blank(),
+                plot.margin = margin(0, 0, 0, 0, "mm"),
+                axis.line = element_line(),
+                axis.text = element_text(size=8),
+                axis.title = element_blank()
+            )
+    }
+    p
     # p1 <- plotdata %>%
     #     filter(algorithm_name != "period-index-*") %>%
     #     inner()
