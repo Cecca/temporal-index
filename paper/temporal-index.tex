@@ -34,7 +34,7 @@
 \newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
 \newcommand{\rs}{\rel{s}}
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
-\newcommand{\R}{\ensuremath{\mathbf{R}}}
+\newcommand{\R}{\ensuremath{\mathbf{r}}} % temporal relation
 \newcommand{\A}{\dbattset{A}}
 \newcommand{\T}{\ensuremath{t}}
 \newcommand{\TS}{\ensuremath{t_s}}
@@ -346,22 +346,27 @@ The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a f
 
 \section{Preliminaries}
 
-We assume a linearly ordered, discrete time domain, $\domT$.  A
-time interval is a set of contiguous time points, and $[\TS,\TE)$
+We assume a linearly ordered, discrete time domain, $\domT$.  A time
+interval is a set of contiguous time points, and $t = [\TS,\TE)$
 denotes the closed-open interval of points from $\TS$ to $\TE$.  A
-tuple in a temporal relation is timestamped with an interval that, for instance,
-represents the tuple's valid time.  The schema of a temporal relation
-is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
-nontemporal attributes with domains $\Omega_i$ and $\T$ is the
-timestamp attribute with domain $\domT \times \domT$. A temporal
-relation $\R$ with schema $R$ is a finite set of tuples, where each
-tuple has a value in the appropriate domain for each attribute in the
-schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
-$r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
-$r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE - \TS$.
-Furthermore, given two intervals $t$ and $t'$, we denote with
-$t \cap t'$ the set of time points shared by the two intervals, which, if
-not empty, is itself an interval.
+tuple in a temporal relation is timestamped with an interval that, for
+instance, represents the tuple's valid time.  The schema of a temporal
+relation is given by $R = (\args{A}{m},T)$, where $\args{A}{m}$ are
+the nontemporal attributes with domains $\Omega_i$ and $T=[T_s, T_e)$
+is the timestamp attribute with domain $\domT \times \domT$. \jg{I
+  think we can keep the timestamp attribute in uppercase to be
+  consisten with the nontemporal attributes, but use lowercase if we
+  use a query interval. Then, attributes and schemas are in uppercase,
+  while tuples, relations, and intervals (as values not timestamp
+  attributes) are lowercase.} A temporal relation $\R$ with schema $R$
+is a finite set of tuples, where each tuple has a value in the
+appropriate domain for each attribute in the schema. We use $r.A_i$ to
+denote the value of attribute $A_i$ in tuple $r$.  We use the
+abbreviations $\A = \{ \args{A}{m} \}$ and $r.\A = (\args{r.A}{m})$,
+and we use $|\T|$ to denote the duration of time interval $\T$, i.e.,
+$|\T| = \TE - \TS$.  Furthermore, given two intervals $t$ and $t'$, we
+denote with $t \cap t'$ the set of time points shared by the two
+intervals, which, if not empty, is itself an interval.
 
 \subsection{Temporal queries}
 
@@ -371,7 +376,7 @@ Our index efficiently supports the three following types of queries (defined as 
   Given a temporal interval $t = [\TS, \TE)$ and a temporal relation
   $\R$, a \emph{range query} $Q(\R, t)$ is defined as
   \[
-    Q(\R, t) = \left\{r \in \R : r.t \cap t \ne \emptyset
+    Q(\R, t) = \left\{r \in \R : r.T \cap t \ne \emptyset
     \right\}
   \]
 \end{definition}
@@ -441,12 +446,15 @@ space, with one coordinate being the duration and the other the start time.
 A range-duration query with time interval $[\TS, \TE)$ and duration interval
 $[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
 which is defined by all points $(t, d)$ (corresponding to the time interval $[t, t + d)$) such that
-\begin{equation*}
-\begin{aligned}
-  t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
-          \quad\wedge&\quad d_{min} \le d \le d_{max}
-\end{aligned}
-\end{equation*}
+% \begin{equation*}
+% \begin{aligned}
+%   t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
+%           \quad\wedge&\quad d_{min} \le d \le d_{max}
+% \end{aligned}
+% \end{equation*}
+\begin{align*}
+  (\TS - d < t < \TE) \quad \land \quad (d_{min} \le d \le d_{max})
+\end{align*}
 
 \begin{example}
   Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
@@ -505,20 +513,21 @@ $R$ it belongs to.
 \end{algorithm}
 
 \begin{algorithm}
-	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
-	\KwIn{A collection of intervals $I$; the page size parameter $s$}
-	\KwOut{A grid partitioning intervals first by time, then by duration}
-	
-	\mc{Fix notation}\;
-	\Let{$G$}{$\emptyset$}\;
-	\For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
-		\Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
-		\For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
-			Sort $I_{ij}$ by decreasing end time\;
-			\Let{$G_{ij}$}{$I_{ij}$}\;
-		}
-	}
-	\Return $G$\;
+  \caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
+  \KwIn{A collection of intervals $I$; the page size parameter $s$ \jg{should we also pass the 2 funktions $k_1$ and $k_2$ used by partition}}
+  \KwOut{A grid partitioning intervals first by time, then by duration}
+  
+  \mc{Fix notation}\;
+  \Let{$G$}{$\emptyset$}\;
+  \For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
+    \Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
+    \For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
+      Sort $I_{ij}$ by decreasing end time\;
+      % \Let{$G_{ij}$}{$I_{ij}$}\;
+      \Let{$G$}{$G \cup \{ (t_s^{i,max}, d_{max}^{i}, I_{ij})\}$}\;
+    }
+  }
+  \Return $G$\;
 \end{algorithm}
 
 Our grid structure partitions the dataset first along
