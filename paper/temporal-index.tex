@@ -312,7 +312,7 @@ geometrically. To support efficient indexing of times, each level is further
 partitioned in the time domain. This data structure is adaptive to the
 distribution of start times, while it assumes a Zipf-like distribution for
 the durations of the intervals. As we shall see, our index structure removes
-this assuption, supporting databases with arbitrary distributions of
+this assumption, supporting databases with arbitrary distributions of
 durations.
 
 {\color{red}
@@ -349,13 +349,33 @@ while~\cite{DBLP:conf/sigmod/NathanDAK20,
 
 \ad{TODO: extend the next paragraph and say that join data structures cannot be applied to this problem, with a few exceptions, e.g., OIP.}
 
-{\color{red}
-Recently, there has been a renewed interest in temporal join processing. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read the input relations sorted by the start and end points of intervals as separated events in a sorted-merge join fashion. The temporal join is performed by joining active tuples of one relation (i.e., tuples for which the start point has been encountered but not yet the end point) with the matching  events of the other relation.
-The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based plane sweep algorithm that sorts the input relations by start time and performs an interleaving merge-join with backtracking. Other approaches are based on partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}. They first partition the data and then perform the join either by using a nested loop within candidate partitions or a sorted-merge join between all partitions. These approaches focus on reducing the search space within a temporal join and are not directly applicable to the problem of reducing the search space for selection queries addressed in this paper. Moreover, they do not consider the duration of periods for processing.
-}
+{\color{red} Recently, there has been a renewed interest in temporal join
+processing. Approaches based on the timeline
+index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read
+the input relations sorted by the start and end points of intervals as
+separated events in a sorted-merge join fashion. The temporal join is
+performed by joining active tuples of one relation (i.e., tuples for which
+the start point has been encountered but not yet the end point) with the
+matching events of the other relation. The work by Bouros and
+Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based
+plane sweep algorithm that sorts the input relations by start time and
+performs an interleaving merge-join with backtracking. Other approaches are
+based on
+partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}.
+They first partition the data and then perform the join either by using a
+nested loop within candidate partitions or a sorted-merge join between all
+partitions. These approaches focus on reducing the search space within a
+temporal join and are not directly applicable to the problem of reducing the
+search space for selection queries addressed in this paper. Moreover, they do
+not consider the duration of periods for processing. }
 
-\ad{TODO: add time travel works~\cite{DBLP:conf/icde/KaufmannMHKT13} to indicate the difference that we focus on range queries rather than point queries.}
-
+Given the abundance of storage available nowadays it is sometimes desirable to
+implement updates as additions of new versions of records rather than
+in-place modifications. In this context, \emph{time travel} queries
+are of paramount importance to retrieve the state of a database 
+at a \emph{given point in time}~\cite{DBLP:conf/icde/KaufmannMHKT13}.
+We remark that this is fundamentally different from the problem we focus on in this
+paper, which are \emph{range} queries rather than \emph{point} queries.
 
 \section{Preliminaries}
 
@@ -365,7 +385,7 @@ denotes the closed-open interval of points from $\TS$ to $\TE$.  A
 tuple in a temporal relation is timestamped with an interval that, for instance,
 represents the tuple's valid time.  The schema of a temporal relation
 is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
-nontemporal attributes with domains $\Omega_i$ and $\T$ is the
+non-temporal attributes with domains $\Omega_i$ and $\T$ is the
 timestamp attribute with domain $\domT \times \domT$. A temporal
 relation $\R$ with schema $R$ is a finite set of tuples, where each
 tuple has a value in the appropriate domain for each attribute in the
