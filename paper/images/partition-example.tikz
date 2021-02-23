@@ -1,0 +1,41 @@
+\begin{tikzpicture}[xscale=1.4]
+	\begin{pgfonlayer}{nodelayer}
+		\node [style=basenumber] (2) at (0, 0) {1};
+		\node [style=basenumber] (4) at (1, 0) {2};
+		\node [style=basenumber] (5) at (2, 0) {4};
+		\node [style=basenumber] (6) at (3, 0) {4};
+		\node [style=basenumber] (7) at (4, 0) {7};
+		\node [style=basenumber] (8) at (5, 0) {8};
+		\node [style=basenumber] (9) at (6, 0) {10};
+		\node [style=basenumber] (10) at (9, 0) {13};
+		\node [style=basenumber] (11) at (8, 0) {13};
+		\node [style=basenumber] (12) at (7, 0) {13};
+		\node [style=basenumber] (13) at (10, 0) {13};
+		\node [style=basenumber] (14) at (11, 0) {13};
+		\node [style=basenumber] (15) at (12, 0) {13};
+		\node [style=basenumber] (16) at (13, 0) {13};
+		\node [style=basenumber] (17) at (14, 0) {13};
+		\node [style=basenumber] (18) at (15, 0) {13};
+		\node [style=basenumber] (19) at (17, 0) {13};
+		\node [style=basenumber] (20) at (16, 0) {13};
+		\node [style=basenumber] (21) at (18, 0) {14};
+		\node [style=basenumber] (22) at (19, 0) {15};
+		\node [style=basenumber] (23) at (20, 0) {16};
+		\node [style=basenumber] (24) at (21, 0) {17};
+		\node [style=basenumber] (25) at (22, 0) {19};
+		\node [style=basenumber] (26) at (23, 0) {21};
+		\node [style=basenumber] (27) at (24, 0) {23};
+	\end{pgfonlayer}
+	\begin{pgfonlayer}{edgelayer}
+		\draw [style=jump, in=120, out=60, looseness=0.75] (2) to (10);
+		\draw [style=jump] (9) to (12);
+		\draw [style=jump, bend left=45] (12) to (18);
+		\draw [style=jump, bend right=75, looseness=1.50] (18) to (20);
+		\draw [style=jump, bend right=75, looseness=1.50] (20) to (19);
+		\draw [style=jump] (19) to (21);
+		\draw [style=jump, bend left=60] (21) to (27);
+		\draw [style=jump, in=-60, out=-120, looseness=1.50] (10) to (11);
+		\draw [style=jump, bend left=75, looseness=1.50] (11) to (12);
+		\draw [style=jump, bend left=75, looseness=1.50] (12) to (9);
+	\end{pgfonlayer}
+\end{tikzpicture}
