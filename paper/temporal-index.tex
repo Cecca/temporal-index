@@ -534,7 +534,7 @@ $R$ it belongs to.
 	\While{$h < |I|$}{
 		\nllabel{line:column-break}
 		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, r \rightarrow r.t_s)$}\;
-		\Let{$t_e^{i}$}{$\displaystyle\argmin_{t \in I[h..h']} t.t_e$} \algocomment{minimum end time in column}\;
+		\Let{$t_e^{i}$}{$\displaystyle\argmax_{t \in I[0..h']} t.t_e$} \algocomment{maximum end time in all the columns, including the current one}\;
 		\Let{$t_s^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
 		\Let{$I'$}{$I_{h..h'}$}\;
 		Sort $I'$ by duration\;
@@ -685,12 +685,12 @@ are met:
 The query algorithm is reported in Algorithm~\ref{alg:query}.
 First find the index of the last column in the start time dimension containing
 at least one interval satisfying condition~\ref{eq:end-condition}, by means 
-of binary search on the boundaries of the columns \mc{which are the earliest 
-start times of each column. Is this a bug?}.
+of binary search on the boundaries of the columns 
 Let this index be $i$.
 Then we inspect column $G_i$ and all the preceding columns, until we get to a column
-that cannot possibly contain intervals matching the query, because its latest end time does
-not satisfy condition~\ref{eq:start-condition}.
+that cannot possibly contain intervals matching the query, because the latest end time 
+of that column \emph{and all the preceding ones}
+does not satisfy condition~\ref{eq:start-condition}.
 When inspecting a column, we look for the cell within the column with the largest 
 minimum duration, again by binary search.
 Then we scan the cells backward, util we get to a cell whose maximum duration is smaller than the
