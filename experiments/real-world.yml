@@ -38,11 +38,9 @@
     - PeriodIndexStar:
         num_buckets: [32, 64, 128, 256, 512]
         num_levels: [4, 8, 32, 64]
-    - PeriodIndexPlusPlus:
-        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+        page_size: [10, 50, 100, 500]
 
 - mode:
     Batch
@@ -80,11 +78,9 @@
     - PeriodIndexStar:
         num_buckets: [32, 64, 128, 256, 512]
         num_levels: [4, 8, 16, 32]
-    - PeriodIndexPlusPlus:
-        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+        page_size: [10, 50, 100, 500]
 
 - mode:
     Batch
@@ -119,10 +115,8 @@
     - PeriodIndexStar:
         num_buckets: [32, 64, 128, 256, 512]
         num_levels: [4, 8, 16, 32]
-    - PeriodIndexPlusPlus:
-        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+        page_size: [10, 50, 100, 500]
 
 
