@@ -52,13 +52,12 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         geom_point() +
         geom_line() +
         scale_x_continuous(trans = "log10", limits = c(10, NA)) +
-        scale_y_continuous(trans = "log10", labels = scales::number_format(), limits = c(NA, NA)) +
-        # scale_color_workload() +
+        scale_y_continuous(trans = "identity", labels = scales::number_format(), limits = c(NA, NA)) +
         scale_color_tableau() +
         facet_grid(
             vars(workload_type),
             vars(start_times_distribution),
-            scales = "free_y"
+            scales = "free"
         ) +
         labs(
             x = "page size",

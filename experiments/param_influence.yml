@@ -23,11 +23,11 @@
   queries:
     - Random:
         seed: [23512]
-        n: [20000]
+        n: [10000]
         range:
           - Pair: [
               Uniform: { low: 1, high: 10000000 },
-              Uniform: { low: 1, high: 10000000 }
+              Zipf: { n: 10000000, beta: 1 }
           ]
           - Free
         duration:
@@ -38,4 +38,4 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [10, 50, 100, 500, 1000]
+        page_size: [10, 50, 100, 500, 1000, 5000, 10000]
