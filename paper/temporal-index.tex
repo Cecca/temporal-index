@@ -486,6 +486,13 @@ $R$ it belongs to.
 
 \begin{figure*}
 	\tikzfig{images/partition-example}
+	\caption{
+		Example of partitioning a sorted sequence of start times using \textsc{NextBreakpoint}
+		with parameter $b=9$. The invocation results in three groups, of which the
+		second is \emph{heavy}.
+		\label{fig:example-partitioning}
+	}
+	\Description{}
 \end{figure*}
 
 \begin{algorithm}[t]
@@ -607,6 +614,22 @@ information: the maximum start time and minimum end time of each column
 in each cell $ij$, denote with $d_{max}^{ij}$ and $d_{min}^{ij}$.
 This information will be used to efficiently index into the grid in order to 
 answer range-duration queries.
+
+\begin{example}
+Figure~\ref{fig:example-partitioning} depicts a sequence of
+invocations of Algorithm~\ref{alg:next-breakpoint} on a sequence
+of sorted start times, with parameter $b=9$.
+The first jump by 9 positions would split a run of intervals with the
+same start time, therefore the algorithms iterates back until the first
+start time $< 13$ (this corresponds to line~\ref{line:split-bucket} in Algorithm~\ref{alg:next-breakpoint}).
+Then, the second invocation would again split a run of more than 9 intervals
+with the same start time, but this time the endpoints of the jump have the
+same value. We are therefore in the case handled by line~\ref{line:heavy-bucket}
+in Algorithm~\ref{alg:next-breakpoint}, and thus we iterate forward
+until the last interval with the same start time, defining a \emph{heavy}
+column.
+The last jump defines the third column
+\end{example}
 
 \begin{figure}
 	\input{example-grid.tex}
