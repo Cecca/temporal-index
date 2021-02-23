@@ -138,13 +138,49 @@ macro_rules! same_result {
             #[test]
             fn [<$name _rd_index_time_duration_ps_50>]() {
                 let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 5)));
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 50)));
             }
 
             #[test]
             fn [<$name _rd_index_duration_time_ps_50>]() {
                 let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 5)));
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 50)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_time_duration_ps_100>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 100)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_duration_time_ps_100>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 100)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_time_duration_ps_1000>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 1000)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_duration_time_ps_1000>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 1000)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_time_duration_ps_1>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::TimeDuration, 1)));
+            }
+
+            #[test]
+            fn [<$name _rd_index_duration_time_ps_1>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 1)));
             }
         }
     )*
@@ -158,42 +194,42 @@ same_result! {
     ),
     rand_uniform: (
         RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
-        RandomQueryset::new(12351, 100,
+        RandomQueryset::new(12351, 1000,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some(TimeDistribution::Uniform{low: 10, high: 1000}),
                             ).get(),
     ),
     rand_clustered_queries: (
         RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
-        RandomQueryset::new(12351, 100,
+        RandomQueryset::new(12351, 1000,
                             Some((TimeDistribution::Clustered{n: 10, high: 10000, std_dev: 10000}, TimeDistribution::Zipf{n: 10000, beta: 1.0})),
                             Some(TimeDistribution::Uniform{low: 10, high: 1000}),
                             ).get(),
     ),
     rand_uniform_late_start: (
         RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1000, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
-        RandomQueryset::new(12351, 100,
+        RandomQueryset::new(12351, 1000,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some(TimeDistribution::Uniform{low: 10, high: 1000}),
                             ).get(),
     ),
     rand_uniform_duration_only: (
         RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
-        RandomQueryset::new(12351, 100,
+        RandomQueryset::new(12351, 1000,
                             None,
                             Some(TimeDistribution::Uniform{low: 10, high: 1000}),
                             ).get(),
     ),
     rand_uniform_overlap_only: (
         RandomDataset::new(12351, 1000, TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 1000}).get().unwrap(),
-        RandomQueryset::new(12351, 100,
+        RandomQueryset::new(12351, 1000,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             None
                             ).get(),
     ),
     rand_clustered: (
         RandomDataset::new(12351, 1000, TimeDistribution::Clustered{n: 100, high: 10000, std_dev: 10}, TimeDistribution::Zipf{n: 10000, beta: 1.0}).get().unwrap(),
-        RandomQueryset::new(12351, 100,
+        RandomQueryset::new(12351, 1000,
                             Some((TimeDistribution::Uniform{low: 1, high: 10000}, TimeDistribution::Uniform{low: 10, high: 10000})),
                             Some(TimeDistribution::Uniform{low: 10, high: 1000}),
                             ).get(),
