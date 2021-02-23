@@ -48,7 +48,7 @@ impl Algorithm for RDIndex {
     }
 
     fn version(&self) -> u8 {
-        1
+        2
     }
 
     fn index(&mut self, dataset: &[Interval]) {
@@ -59,6 +59,12 @@ impl Algorithm for RDIndex {
             self.page_size,
             self.dimension_order,
         ));
+        assert!(
+            self.grid.as_ref().unwrap().len() == dataset.len(),
+            "not all the intervals are indexed! indexed: {}, dataset: {}",
+            self.grid.as_ref().unwrap().len(),
+            dataset.len()
+        );
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
@@ -141,6 +147,22 @@ impl Grid {
                 },
             )),
         }
+    }
+
+    /// return the number of indexed intervals
+    fn len(&self) -> usize {
+        let mut cnt = 0;
+        match self {
+            Self::TimeDuration(grid) => {
+                grid.for_each(|column| {
+                    column.for_each(|cell| cnt += cell.len());
+                });
+            }
+            Self::DurationTime(grid) => grid.for_each(|column| {
+                column.for_each(|cell| cnt += cell.len());
+            }),
+        }
+        cnt
     }
 
     #[allow(dead_code)]
@@ -266,6 +288,17 @@ impl<V> TimePartition<V> {
             start = end + 1;
         }
 
+        // do the cumulative maximum end time.
+        // we need to do this because early buckets might contain end times that are later
+        // than the end times of the following buckets.
+        let mut cum_max = 0;
+        for t in max_end_times.iter_mut() {
+            if *t > cum_max {
+                cum_max = *t;
+            }
+            *t = cum_max;
+        }
+
         Self {
             max_start_times,
             max_end_times,
@@ -276,7 +309,7 @@ impl<V> TimePartition<V> {
     #[allow(dead_code)]
     fn query<F: FnMut(&V)>(&self, range: Interval, mut action: F) {
         let end = match self.max_start_times.binary_search(&range.end) {
-            Ok(i) => i,  // exact match, equal end time than maximum start time
+            Ok(i) => i, // exact match, equal end time than maximum start time
             Err(i) => std::cmp::min(i, self.max_start_times.len() - 1),
         };
 
