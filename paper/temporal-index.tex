@@ -23,9 +23,9 @@
 \newcommand{\ours}{\algo{RD-index}\xspace}
 
 %% Commands defining notation for query types
-\newcommand{\qrd}{\textsc{rd}\xspace}
-\newcommand{\qdo}{\textsc{do}\xspace}
-\newcommand{\qro}{\textsc{ro}\xspace}
+\newcommand{\qrd}{range-duration\xspace}
+\newcommand{\qdo}{duration-only\xspace}
+\newcommand{\qro}{range-only\xspace}
 
 %% Algorithms notation
 \newcommand{\Let}[2]{#1 $\leftarrow$ #2}
@@ -762,7 +762,7 @@ in a similar fashion.
 
 \section{Analysis}
 
-We now provde guarantees on the time required by all the operations
+We now provide guarantees on the time required by all the operations
 supported by our index structure.
 In this analysis we assume that the index is built by partitioning first in the time dimension,
 and then in the duration dimension.
@@ -794,11 +794,11 @@ Nonetheless, the results in this section hold for both dimension orderings.
 	and the theorem follows.
 \end{proof}
 
-Before stating our main result, we establish the follwing fundamental facts
+Before stating our main result, we establish the following fundamental facts
 about heavy columns and cells.
 
 \begin{lemma}\label{lem:heavy}
-	A heavy cell in a heavy conlumn contains only copies of the same interval.
+	A heavy cell in a heavy column contains only copies of the same interval.
 \end{lemma}
 \begin{proof}
 	\mc{This is trivial, so we can omit it.}
@@ -856,7 +856,7 @@ about heavy columns and cells.
 		$\BT{k_{ij}}$ in the complexity.
 
 		\item The cell's duration range satisfies the query constraint, but
-		the starting time range doesn't. If the duration colum containing the
+		the starting time range doesn't. If the duration column containing the
 		cell is heavy, then the cell cannot be heavy (by
 		Lemma~\ref{lem:heavy}) and the algorithm has to evaluate $\BO{s}$
 		intervals. Otherwise the cell might be heavy. In such case, all the
@@ -917,7 +917,7 @@ at the same time increasing the number of columns that need to be queried.
 	and updating cell boundaries by inserting in-order requires $\BO{\frac{n}{s}}$
 \end{proof}
 
-In a similar way we can prove the follwing theorem.
+In a similar way we can prove the following theorem.
 
 \begin{theorem}
 	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
@@ -1098,7 +1098,7 @@ their start time distribution show similar performance.
 		Number of examined intervals against selectivity of the query.
 		Each point represents a query:
 		red dots are \qro queries, blue dots are \qdo queries.
-		The black line represents the ideal behaviour, in which only matching
+		The black line represents the ideal behavior, in which only matching
 		intervals are examined.
 		Note that all the plots except for the one related to the 
 		\algo{PeriodIndex*} share the $y$ axis.
@@ -1117,7 +1117,7 @@ For a given dataset, we build a query set such that queries are uniformly distri
 \emph{time}$\times$\emph{duration} selectivity plan: this way we have queries which are
 very selective in only one dimension, or that are very selective in both dimensions, or that are not
 selective at all.
-The goal is to investigate the behaviour of each index structure for queries with different characteristics.
+The goal is to investigate the behavior of each index structure for queries with different characteristics.
 To account for the overhead of measuring time and to level out the effect of the CPU cache,
 we measure the time taken to repeat a given query 100 consecutive times, which divided by 100
 gives an estimate of the time required by the query.
@@ -1160,7 +1160,7 @@ Considering the \algo{b-tree} and \algo{interval-tree}, we have \qro and \qdo re
 are answered with the worst performance, as we expect given that they are answered
 by simple enumeration.
 Other queries are answered with varying degrees of efficiency, with queries constraining
-just the dimension on which the index specializes exhibiting a close-to-ideal behaviour.
+just the dimension on which the index specializes exhibiting a close-to-ideal behavior.
 \mc{Actually this is not strictly true for the \algo{b-tree}, why?}
 
 Finally, \algo{period-index$\star$} answers queries with mixed performance, possibly as an effect of intervals
@@ -1175,7 +1175,7 @@ by this data structure.
 So far, we have reported on the performance of the best configuration
 of \ours{}, observing that under both orderings of dimensions it visits
 a fraction of intervals close to the selectivity of the query,
-i.e. it shows close to optimal behaviour.
+i.e. it shows close to optimal behavior.
 The figure at the side reports, under a setting similar to the one of
 Figure~\ref{fig:time-vs-selectivity}, the performance of \ours{}
 with a time-duration ordering and page size 10.
@@ -1198,19 +1198,37 @@ This is especially true for duration-only queries (blue dots).
 
 To test the dependency of the query time on the \emph{page size} parameter, we consider
 a dataset with 10 million intervals with starting times both uniformly
-distributed between 0 and 10 million and clustered around 10 random centers,
+distributed between 0 and 10 million 
 and durations distributed according to a
-Zipf's law with $\beta = 1$.
+Zipf's law with $\beta = 1$; and a dataset of the same size with 
+Zipf-distributed start times and uniformly distributed durations.
+The aim is to investigate the influence of the parameters when the skew is either in the
+time or in the duration dimension.
 As for the query workload, we consider batches of 20\,000 \qrd, \qro, and \qdo queries.
 
-Figure~\ref{fig:param-dependency} reports the results of varying the page size of the
+Figure~\ref{fig:param-dependency} reports the results of varying the order of the dimensions
 index under these different workloads, in terms of queries per second.
-Interestingly, we observe different trends for different query workloads.
-First, consider \qrd queries.
-For both the distributions of start times that we consider, the peak performance
-is around page size 100.
-This behavior, with the performance increasing to a peak and then decreasing, is in line with
-our complexity analysis of the query time.
+We observe very different trends for different query workloads.
+Consider first \qrd queries.
+For data with uniform start times we have that there is an optimal value for the page size, which
+is slightly smaller for the duration-time ordering.
+For larger values the performance degrades.
+If the start times are zipf-distributed, instead, the performance profile of the two orderings
+is very different: indexing first the time and then the duration favors selecting large values
+for the page size parameter, whereas indexing first the duration and then the start time shows
+the opposite behavior.
+A very similar trend can be observed for \qdo queries.
+On the other hand, for \qro queries the index performs best when larger pages are used, under both
+orderings.
+
+The reason for this performance profile is to be found in the asymmetry of range-duration queries:
+when querying for a time range, grouping the intervals by duration can help in examining fewer intervals,
+since the overlap predicate can be rewritten as a function of the start time and the duration of the intervals;
+conversely, the query for a duration range does not benefit from a partitioning of the time domain, since
+the duration of an interval is independent of its position on the timeline.
+Therefore, when evaluating \qro queries we benefit from a finer partitioning
+
+
 
 If we move our attention, instead, to \qdo queries, we see
 that increasing the page size is detrimental, with performance staying approximately the

@@ -35,18 +35,24 @@ plot_scalability <- function(data_scalability) {
 }
 
 plot_parameter_dependency <- function(data_parameter_dependency) {
+    data_parameter_dependency %>%
+    mutate(start_times_distribution = case_when(
+        start_times_distribution == "uniform" ~ "skewed durations",
+        start_times_distribution == "zipf" ~ "skewed start times",
+        T ~ start_times_distribution
+    )) %>%
     ggplot(
-        data_parameter_dependency,
         aes(
             x = page_size,
             y = drop_units(qps),
             color = algorithm_name
         )
     ) +
+        geom_rangeframe(color = "black") +
         geom_point() +
         geom_line() +
         scale_x_continuous(trans = "log10", limits = c(10, NA)) +
-        scale_y_continuous(trans = "log10", limits = c(NA, NA)) +
+        scale_y_continuous(trans = "log10", labels = scales::number_format(), limits = c(NA, NA)) +
         # scale_color_workload() +
         scale_color_tableau() +
         facet_grid(
@@ -59,10 +65,11 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
             y = "queries per second",
             color = "algorithm"
         ) +
-        theme_bw() +
+        theme_paper() +
         theme(
             legend.position = "bottom",
-            legend.direction = "horizontal"
+            legend.direction = "horizontal",
+            # axis.line = element_line()
         )
 }
 

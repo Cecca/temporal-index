@@ -32,7 +32,7 @@
 		\node [style=none] (32) at (18, -1) {};
 		\node [style=none] (33) at (24, -1) {};
 		\node [style=none] (34) at (3, -1.75) {};
-		\node [style=firstbucket] (35) at (3, -1.75) {first bucket};
+		\node [style=firstbucket] (35) at (3, -1.75) {first column};
 		\node [style=secondbucket] (36) at (12, -1.75) {second column (heavy)};
 		\node [style=thirdbucket] (39) at (21, -1.75) {third column};
 	\end{pgfonlayer}
