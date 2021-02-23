@@ -38,7 +38,7 @@
 \newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
 \newcommand{\rs}{\rel{s}}
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
-\newcommand{\R}{\ensuremath{\mathbf{R}}}
+\newcommand{\R}{\ensuremath{\mathbf{r}}} % temporal relation
 \newcommand{\A}{\dbattset{A}}
 \newcommand{\T}{\ensuremath{t}}
 \newcommand{\TS}{\ensuremath{t_s}}
@@ -379,22 +379,23 @@ paper, which are \emph{range} queries rather than \emph{point} queries.
 
 \section{Preliminaries}
 
-We assume a linearly ordered, discrete time domain, $\domT$.  A
-time interval is a set of contiguous time points, and $[\TS,\TE)$
+We assume a linearly ordered, discrete time domain, $\domT$.  A time
+interval is a set of contiguous time points, and $t = [\TS,\TE)$
 denotes the closed-open interval of points from $\TS$ to $\TE$.  A
-tuple in a temporal relation is timestamped with an interval that, for instance,
-represents the tuple's valid time.  The schema of a temporal relation
-is  given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are the
-non-temporal attributes with domains $\Omega_i$ and $\T$ is the
+tuple in a temporal relation is timestamped with an interval that, for
+instance, represents the tuple's valid time.  The schema of a temporal
+relation is given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are
+the non-temporal attributes with domains $\Omega_i$ and $\T$ is the
 timestamp attribute with domain $\domT \times \domT$. A temporal
 relation $\R$ with schema $R$ is a finite set of tuples, where each
 tuple has a value in the appropriate domain for each attribute in the
 schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
 $r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
-$r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of time interval $\T$, i.e., $|\T| = \TE - \TS$.
-Furthermore, given two intervals $t$ and $t'$, we denote with
-$t \cap t'$ the set of time points shared by the two intervals, which, if
-not empty, is itself an interval.
+$r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of
+time interval $\T$, i.e., $|\T| = \TE - \TS$.  Furthermore, given two
+intervals $t$ and $t'$, we denote with $t \cap t'$ the set of time
+points shared by the two intervals, which, if not empty, is itself an
+interval.
 
 \subsection{Temporal queries}
 
@@ -404,7 +405,7 @@ Our index efficiently supports the three following types of queries (defined as 
   Given a temporal interval $t = [\TS, \TE)$ and a temporal relation
   $\R$, a \emph{range query} $Q(\R, t)$ is defined as
   \[
-    Q(\R, t) = \left\{r \in \R : r.t \cap t \ne \emptyset
+    Q(\R, t) = \left\{r \in \R : r.T \cap t \ne \emptyset
     \right\}
   \]
 \end{definition}
@@ -474,12 +475,15 @@ space, with one coordinate being the duration and the other the start time.
 A range-duration query with time interval $[\TS, \TE)$ and duration interval
 $[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
 which is defined by all points $(t, d)$ (corresponding to the time interval $[t, t + d)$) such that
-\begin{equation*}
-\begin{aligned}
-  t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
-          \quad\wedge&\quad d_{min} \le d \le d_{max}
-\end{aligned}
-\end{equation*}
+% \begin{equation*}
+% \begin{aligned}
+%   t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
+%           \quad\wedge&\quad d_{min} \le d \le d_{max}
+% \end{aligned}
+% \end{equation*}
+\begin{align*}
+  (\TS - d < t < \TE) \quad \land \quad (d_{min} \le d \le d_{max})
+\end{align*}
 
 \begin{example}
   Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
