@@ -7,13 +7,9 @@
   datasets:
     - Random:
         seed: [123]
-        n: 
-          - 1000000
-          - 10000000
-          - 100000000
+        n: [10000000]
         start_times:
           - Uniform: { low: 1, high: 10000000 }
-          - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
 
@@ -33,5 +29,38 @@
           - Free
 
   algorithms:
-    - PeriodIndexPlusPlus:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
+- mode:
+    Batch
+
+  datasets:
+    - Random:
+        seed: [123]
+        n: [10000000]
+        start_times:
+          - Zipf: { n: 10000000, beta: 1 }
+        durations:
+          - Uniform: { low: 1, high: 10000000 }
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [20000]
+        range:
+          - Pair: [
+              Zipf: { n: 10000000, beta: 1 },
+              Uniform: { low: 1, high: 10000000 }
+          ]
+          - Free
+        duration:
+          - Single:
+              Uniform: { low: 1, high: 10000 }
+          - Free
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]

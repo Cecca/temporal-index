@@ -40,19 +40,24 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         aes(
             x = page_size,
             y = drop_units(qps),
-            color = workload_type
+            color = algorithm_name
         )
     ) +
         geom_point() +
         geom_line() +
         scale_x_continuous(trans = "log10", limits = c(10, NA)) +
         scale_y_continuous(trans = "log10", limits = c(NA, NA)) +
-        scale_color_workload() +
-        facet_wrap(vars(start_times_distribution), scales = "fixed") +
+        # scale_color_workload() +
+        scale_color_tableau() +
+        facet_grid(
+            vars(workload_type),
+            vars(start_times_distribution),
+            scales = "free_y"
+        ) +
         labs(
             x = "page size",
             y = "queries per second",
-            color = "workload"
+            color = "algorithm"
         ) +
         theme_bw() +
         theme(
@@ -157,7 +162,7 @@ plot_query_focus_precision <- function(data_focus) {
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
         scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
-        facet_wrap(vars(algorithm_name), ncol = 5) +
+        facet_wrap(vars(algorithm_name), ncol = 6) +
         labs(
             x = "time selectivity",
             y = "duration selectivity"
@@ -250,7 +255,7 @@ plot_query_focus <- function(data_focus) {
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
         scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
-        facet_wrap(vars(algorithm_name), ncol = 5) +
+        facet_wrap(vars(algorithm_name), ncol = 6) +
         labs(
             x = "time selectivity",
             y = "duration selectivity"
@@ -263,7 +268,7 @@ plot_query_focus <- function(data_focus) {
         )
 }
 
-plot_selectivity_dependency <- function(data_selectivity) {
+plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
     plotdata <- data_selectivity %>%
         filter(matches > 0) %>%
         filter(!(selectivity_time >= 0.99 & selectivity_duration >= 0.99)) %>%
@@ -294,7 +299,7 @@ plot_selectivity_dependency <- function(data_selectivity) {
             geom_abline(slope = 1, yintercept = 0, inherit.aes = F) +
             geom_point_interactive(size = 0.5) +
             geom_rangeframe(show.legend = FALSE) +
-            facet_wrap(vars(algorithm_name), ncol = 5, scales = "free_y") +
+            facet_wrap(vars(algorithm_name), ncol = 6, scales = "free_y") +
             scale_color_manual(values = c(
                 "both" = "#414141",
                 "duration-only" = "steelblue",
@@ -322,7 +327,20 @@ plot_selectivity_dependency <- function(data_selectivity) {
     }
 
 
-    inner(plotdata)
+    p <- inner(plotdata)
+    if (bare) {
+        cat("Bare plot\n")
+        p <- p +
+            theme(
+                legend.position="none",
+                strip.text=element_blank(),
+                plot.margin = margin(0, 0, 0, 0, "mm"),
+                axis.line = element_line(),
+                axis.text = element_text(size=8),
+                axis.title = element_blank()
+            )
+    }
+    p
     # p1 <- plotdata %>%
     #     filter(algorithm_name != "period-index-*") %>%
     #     inner()

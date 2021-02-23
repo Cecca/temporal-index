@@ -4,10 +4,13 @@
 \usepackage{colortbl}
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{tcolorbox}
+\usepackage{wrapfig}
 %\usepackage{todonotes}
 
 \usepackage{listings}
 \usepackage{tikz}
+\usepackage{tikzit}
+\input{images/styles.tikzstyles}
 \usepackage{multirow}
 \usepackage{array}
 
@@ -26,6 +29,7 @@
 
 %% Algorithms notation
 \newcommand{\Let}[2]{#1 $\leftarrow$ #2}
+\newcommand{\algocomment}[1]{{\hfill$\triangleleft~~${\footnotesize #1}}}
 
 %% Notations for temporal relations
 
@@ -42,12 +46,21 @@
 \newcommand{\dataset}[1]{\texttt{#1}}
 \newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
 \newcommand{\argmax}{\operatorname{argmax}}
+\newcommand{\argmin}{\operatorname{argmin}}
+
+% \definecolor{firstcolor}{HTML}{FDE725}
+% \definecolor{secondcolor}{HTML}{5DC863}
+% \definecolor{thirdcolor}{HTML}{21908C}
+% \definecolor{fourthcolor}{HTML}{3B528B}
+% \definecolor{fifthcolor}{HTML}{440154}
+
 
 \definecolor{firstcolor}{HTML}{FDE725}
-\definecolor{secondcolor}{HTML}{5DC863}
-\definecolor{thirdcolor}{HTML}{21908C}
-\definecolor{fourthcolor}{HTML}{3B528B}
-\definecolor{fifthcolor}{HTML}{440154}
+\definecolor{secondcolor}{HTML}{7AD151}
+\definecolor{thirdcolor}{HTML}{22A884}
+\definecolor{fourthcolor}{HTML}{2A788E}
+\definecolor{fifthcolor}{HTML}{414487}
+\definecolor{sixthcolor}{HTML}{440154}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -299,7 +312,7 @@ geometrically. To support efficient indexing of times, each level is further
 partitioned in the time domain. This data structure is adaptive to the
 distribution of start times, while it assumes a Zipf-like distribution for
 the durations of the intervals. As we shall see, our index structure removes
-this assuption, supporting databases with arbitrary distributions of
+this assumption, supporting databases with arbitrary distributions of
 durations.
 
 {\color{red}
@@ -336,13 +349,33 @@ while~\cite{DBLP:conf/sigmod/NathanDAK20,
 
 \ad{TODO: extend the next paragraph and say that join data structures cannot be applied to this problem, with a few exceptions, e.g., OIP.}
 
-{\color{red}
-Recently, there has been a renewed interest in temporal join processing. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read the input relations sorted by the start and end points of intervals as separated events in a sorted-merge join fashion. The temporal join is performed by joining active tuples of one relation (i.e., tuples for which the start point has been encountered but not yet the end point) with the matching  events of the other relation.
-The work by Bouros and Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based plane sweep algorithm that sorts the input relations by start time and performs an interleaving merge-join with backtracking. Other approaches are based on partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}. They first partition the data and then perform the join either by using a nested loop within candidate partitions or a sorted-merge join between all partitions. These approaches focus on reducing the search space within a temporal join and are not directly applicable to the problem of reducing the search space for selection queries addressed in this paper. Moreover, they do not consider the duration of periods for processing.
-}
+{\color{red} Recently, there has been a renewed interest in temporal join
+processing. Approaches based on the timeline
+index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read
+the input relations sorted by the start and end points of intervals as
+separated events in a sorted-merge join fashion. The temporal join is
+performed by joining active tuples of one relation (i.e., tuples for which
+the start point has been encountered but not yet the end point) with the
+matching events of the other relation. The work by Bouros and
+Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based
+plane sweep algorithm that sorts the input relations by start time and
+performs an interleaving merge-join with backtracking. Other approaches are
+based on
+partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}.
+They first partition the data and then perform the join either by using a
+nested loop within candidate partitions or a sorted-merge join between all
+partitions. These approaches focus on reducing the search space within a
+temporal join and are not directly applicable to the problem of reducing the
+search space for selection queries addressed in this paper. Moreover, they do
+not consider the duration of periods for processing. }
 
-\ad{TODO: add time travel works~\cite{DBLP:conf/icde/KaufmannMHKT13} to indicate the difference that we focus on range queries rather than point queries.}
-
+Given the abundance of storage available nowadays it is sometimes desirable to
+implement updates as additions of new versions of records rather than
+in-place modifications. In this context, \emph{time travel} queries
+are of paramount importance to retrieve the state of a database 
+at a \emph{given point in time}~\cite{DBLP:conf/icde/KaufmannMHKT13}.
+We remark that this is fundamentally different from the problem we focus on in this
+paper, which are \emph{range} queries rather than \emph{point} queries.
 
 \section{Preliminaries}
 
@@ -351,22 +384,18 @@ interval is a set of contiguous time points, and $t = [\TS,\TE)$
 denotes the closed-open interval of points from $\TS$ to $\TE$.  A
 tuple in a temporal relation is timestamped with an interval that, for
 instance, represents the tuple's valid time.  The schema of a temporal
-relation is given by $R = (\args{A}{m},T)$, where $\args{A}{m}$ are
-the nontemporal attributes with domains $\Omega_i$ and $T=[T_s, T_e)$
-is the timestamp attribute with domain $\domT \times \domT$. \jg{I
-  think we can keep the timestamp attribute in uppercase to be
-  consisten with the nontemporal attributes, but use lowercase if we
-  use a query interval. Then, attributes and schemas are in uppercase,
-  while tuples, relations, and intervals (as values not timestamp
-  attributes) are lowercase.} A temporal relation $\R$ with schema $R$
-is a finite set of tuples, where each tuple has a value in the
-appropriate domain for each attribute in the schema. We use $r.A_i$ to
-denote the value of attribute $A_i$ in tuple $r$.  We use the
-abbreviations $\A = \{ \args{A}{m} \}$ and $r.\A = (\args{r.A}{m})$,
-and we use $|\T|$ to denote the duration of time interval $\T$, i.e.,
-$|\T| = \TE - \TS$.  Furthermore, given two intervals $t$ and $t'$, we
-denote with $t \cap t'$ the set of time points shared by the two
-intervals, which, if not empty, is itself an interval.
+relation is given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are
+the non-temporal attributes with domains $\Omega_i$ and $\T$ is the
+timestamp attribute with domain $\domT \times \domT$. A temporal
+relation $\R$ with schema $R$ is a finite set of tuples, where each
+tuple has a value in the appropriate domain for each attribute in the
+schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
+$r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
+$r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of
+time interval $\T$, i.e., $|\T| = \TE - \TS$.  Furthermore, given two
+intervals $t$ and $t'$, we denote with $t \cap t'$ the set of time
+points shared by the two intervals, which, if not empty, is itself an
+interval.
 
 \subsection{Temporal queries}
 
@@ -479,55 +508,75 @@ $R$ it belongs to.
 \subsection{Index Construction}
 \label{sec:index-construction}
 
-\begin{algorithm}%[t]
-  \caption{\textsc{Partition}$(I, b, k)$\label{alg:define-boundaries}}
-  \KwIn{A collection of intervals $I$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
-  \KwOut{
-    An array of pairs, where the first item is an upper bound to the keys
-	in the bucket,
-	and the second item contains the intervals in the bucket.
-  }
+\begin{figure*}
+	\tikzfig{images/partition-example}
+	\caption{
+		Example of partitioning a sorted sequence of start times using \textsc{NextBreakpoint}
+		with parameter $b=9$. The invocation results in three groups, of which the
+		second is \emph{heavy}.
+		\label{fig:example-partitioning}
+	}
+	\Description{}
+\end{figure*}
 
-  Sort $I$ according to $k$, such that $I_i$ is the $i$-th interval in sorted order\nllabel{line:sorting}\;
-  \Let{$B$}{$[]$}\;
-  \Let{$i$}{$0$}\;
-  \While{$i < |I|$}{
-    \nllabel{line:iterate}
-    \Let{$j$}{$i+b$}\;
-    \uIf{$k(I_i) = k(I_{j})$} {
-      \nllabel{line:heavy-bucket}
-      \lWhile{$j < |I| \wedge k(I_i) = k(I_j)$} {
-        \Let{$j$}{$j+1$}
-      }
-    } \Else {
-      \nllabel{line:split-bucket}
-      \lWhile{$j > i \wedge k(I_j) = k(I_{j+1})$} {
-        \Let{$j$}{$j-1$}
-      }
-    }
-	\Let{$I^{\subseteq}$}{$\{I_h ~|~ i \le h \le j\}$}\;
-    Append $(k(I_j), I^\subseteq)$ to $B$\;
-    \Let{$i$}{$j+1$}\;
-  }
-  \Return $B$\;
+\begin{algorithm}[t]
+	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
+	\KwIn{A collection of intervals $I$; the page size parameter $s$}
+	\KwOut{A grid $G$ partitioning intervals first by time, then by duration;
+	a sorted collection of column boundaries $t_s^i$; a sorted collection of cell
+	boundaries $d_{max}^{ij}$ for each column $i$}
+
+	\BlankLine
+
+	Sort $I$ by start start time\;
+	\Let{$h$}{$0$}\;
+	\Let{$i$}{$0$}\;
+	\While{$h < |I|$}{
+		\nllabel{line:column-break}
+		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, r \rightarrow r.t_s)$}\;
+		\Let{$t_e^{i}$}{$\displaystyle\argmin_{t \in I[h..h']} t.t_e$} \algocomment{minimum end time in column}\;
+		\Let{$t_s^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
+		\Let{$I'$}{$I_{h..h'}$}\;
+		Sort $I'$ by duration\;
+
+		\Let{$k$}{$0$}\;
+		\Let{$j$}{$0$}\;
+		\While{$k < |I'|$}{
+			\nllabel{line:cell-break}
+			\Let{$k'$}{\algo{NextBreakpoint}$(I', k, s, r \rightarrow |r.t|)$}\;
+			\Let{$d_{min}^{ij}$}{$|I_{k}|$}\algocomment{minimum duration in the cell}\;
+			\Let{$d_{max}^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in the cell}\;
+			\Let{$G_{ij}$}{$I'_{k..k'}$, sorted by end time}\;
+			\Let{$j$}{$j+1$}\;
+			\Let{$k$}{$k'+1$}\;
+		}
+		\Let{$h$}{$h' + 1$}\;
+		\Let{$i$}{$i + 1$}\;
+	}
+
+	\Return $G$\;
 \end{algorithm}
 
-\begin{algorithm}
-  \caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
-  \KwIn{A collection of intervals $I$; the page size parameter $s$ \jg{should we also pass the 2 funktions $k_1$ and $k_2$ used by partition}}
-  \KwOut{A grid partitioning intervals first by time, then by duration}
-  
-  \mc{Fix notation}\;
-  \Let{$G$}{$\emptyset$}\;
-  \For{$(\TS^{i, max}, I_i) \in$ \textsc{Partition}$(I, s^2, t \rightarrow t.\TS)$}{
-    \Let{$\TE^i$}{$\max_{t\in I_i} t.\TE$}\;
-    \For{$(d_{max}^{j}, I_{ij}) \in$ \textsc{Partition}$(I_i, s, t \rightarrow |t|)$}{
-      Sort $I_{ij}$ by decreasing end time\;
-      % \Let{$G_{ij}$}{$I_{ij}$}\;
-      \Let{$G$}{$G \cup \{ (t_s^{i,max}, d_{max}^{i}, I_{ij})\}$}\;
-    }
-  }
-  \Return $G$\;
+\begin{algorithm}[t]
+	\caption{\textsc{NextBreakpoint}$(I, h, b, k)$\label{alg:next-breakpoint}}
+	\KwIn{A collection of intervals $I$, sorted according to the key function $k$; the current index $h$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
+	\KwOut{The next split index in the collection $I$}
+
+	\Let{$h'$}{$\min\{h + b, |I| - 1\}$}\;
+	\uIf{$k(I_h) = k(I_{h'})$} {
+		\nllabel{line:heavy-bucket}
+		{\footnotesize look for the last interval with the same key:}\;
+		\lWhile{$h' < |I| \wedge k(I_h) = k(I_{h'+1})$} {
+			\Let{$h'$}{$h'+1$}
+		}
+	} \Else {
+		\nllabel{line:split-bucket}
+		{\footnotesize look backwards for the first interval with a different key:}\;
+		\lWhile{$h' > h \wedge k(I_{h'}) = k(I_{h'+1})$} {
+			\Let{$h'$}{$h'-1$}
+		}
+	}
+	\Return $h'$\;
 \end{algorithm}
 
 Our grid structure partitions the dataset first along
@@ -546,9 +595,7 @@ The purpose of this parameter is to allow the optimization of the data structure
 to different scenario. In an external memory setting, the parameter $s$ might be
 set to the disk block size. In a main memory scenario, it could be set
 to that a cell fits in a cache line.
-We divide the intervals into \emph{columns} \jg{We use
-  columns and buckets interchangably, isn't it? Should we only use the
-  term bucket or only columns?} based on their duration with two
+We divide the intervals into \emph{columns} based on their duration with two
 goals: all the intervals with the same start time should be in the same
 column, and each column should have at most $s^2$ intervals, unless
 there are more than $s^2$ intervals with the same start time.  In the
@@ -558,57 +605,55 @@ Partitioning start times in this way allows, intuitively, to then further partit
 each column in $s$ cells of $s$ elements each\footnote{We could use two separate 
 parameters to control the number of partitions in the two dimensions, but using $s$ and $s^2$ makes
 for a simpler exposition, analysis and implementation.}.
-To this end, we invoke
-Algorithm~\ref{alg:define-boundaries} on the entire set of intervals,
-setting the bucket size to $s^2$ and the key function $k$ to the
-duration.
-In this invocation, we first sort all the intervals by
-increasing start time.  
-Then, we iterativaly define bucket boundaries as follows.  We set the
-start of the first bucket to the start time of the first interval.
-Then, we look ahead at the interval $s^2$ positions from it, and we
-can have one of three cases:
-\begin{enumerate}
-\item the look ahead interval has the same start time as the one
-  starting the column, meaning that we are considering a run of more
-  than $s^2$ intervals all with the same start time
-  (line~\ref{line:heavy-bucket} of
-  Algorithm~\ref{alg:define-boundaries}).  Then, the boundary of the
-  bucket is set to the current start time, and the start of the next
-  column is set to the first interval with start time strictly larger
-  than the current one;j
-\item the look ahead interval and the one immediately following it
-  have the same start time, which is however different from the one of
-  the interval starting the column (line~\ref{line:split-bucket} of
-  Algorithm~\ref{alg:define-boundaries}).  In order not to break a run
-  of intervals with the same start time between different columns while keeping
-  the column itself smaller than $s^2$, we look for the first interval
-  preceding the look ahead with a strictly smaller start time, and make
-  it the end of the column;
-\item otherwise, the look ahead interval marks the end of the column.
-\end{enumerate} 
-\jg{It would be nice to have an example/illustration of the
-array $B$ with concrete values, where to show the above cases. If we use a
-running example with 6-8 concrete intervals, it should be sufficient.}
 
-Then, each column is further partitioned according to the duration, invoking on it
-Algorithm~\ref{alg:define-boundaries} with bucket size $s$ and key function $k$ set to extract
-the duration of the intervals.
-\mc{heavy cells and columns are still undefined at this point}
-The algorithm proceeds as above, with the possibility of introducing \emph{heavy cells} if there are
-more than $s$ intervals sharing the same duration.
+The pseudocode to partition the intervals in this way is depicted in
+Algorithm~\ref{alg:build-index}. First, we sort all the intervals by
+increasing start time. Then, we proceed to defining the columns iteratively,
+defining breakpoints in the collection of input intervals, starting at $0$.
+Using Algorithm~\ref{alg:next-breakpoint} we define a range of intervals that
+will be grouped in the same column. In particular, we look at the interval
+$s^2$ positions away from the current one (line~\ref{line:column-break}). If
+the two intervals have the same start time, then we scan forward until we
+find the last interval with the same start time
+(line~\ref{line:heavy-bucket}). Note that in this case all the intervals in
+the column will have the same start time, and since it has more than $s^2$
+intervals we deem it \emph{heavy}. Otherwise, if the two intervals have
+different start times, we scan backwards until the breakpoint interval and
+the immediately next one have different start times, to make sure that the
+breakpoint does not split in two a contiguous run of equal start times
+(line~\ref{line:split-bucket}). Note that in this case the column will
+contain at most $s^2$ intervals. Once we found the boundaries of the current
+column, its intervals are sorted by increasing duration. At this point, we
+proceed similarly to find the breakpoints between cells of the column
+(line~\ref{line:cell-break}): starting from the first interval of the column,
+we look at the interval $s$ position away, scanning forward if we are looking
+at a run of more than $s$ intervals with the same duration (thus defining a
+\emph{heavy cell}), or backward in order not to split runs of same-duration
+intervals. Once a cell is identifies this way, its intervals are sorted by
+end time, and we proceed to the next cell. After processing an entire column,
+we move to the next. Along with the grouping of intervals into columns and
+cells, during the execution of the algorithm we collect some ancillary
+information: the maximum start time and minimum end time of each column
+(respectively denoted $t_s^i$ and $t_e^i$ for column $i$), and the maximum and minimum durations
+in each cell $ij$, denote with $d_{max}^{ij}$ and $d_{min}^{ij}$.
+This information will be used to efficiently index into the grid in order to 
+answer range-duration queries.
 
-In each cell, the intervals are sorted by end time.
-
-Along with the intervals in the grid, we store the boundaries between
-the columns, as well as the boundaries between the cells in each
-column, in sorted arrays.
-In particular, we denote with $t_s^i$ and $t_e^i$ the minimum start time 
-and maximum end time in column $i$, and
-with $d_{min}^{ij}$ and $d_{max}^{ij}$ the minimum and maximum durations
-of intervals in cell $i,j$.
-This will allow, at query time, the efficient retrieval of the range
-of cells containing intervals that match a given query.
+\begin{example}
+Figure~\ref{fig:example-partitioning} depicts a sequence of
+invocations of Algorithm~\ref{alg:next-breakpoint} on a sequence
+of sorted start times, with parameter $b=9$.
+The first jump by 9 positions would split a run of intervals with the
+same start time, therefore the algorithms iterates back until the first
+start time $< 13$ (this corresponds to line~\ref{line:split-bucket} in Algorithm~\ref{alg:next-breakpoint}).
+Then, the second invocation would again split a run of more than 9 intervals
+with the same start time, but this time the endpoints of the jump have the
+same value. We are therefore in the case handled by line~\ref{line:heavy-bucket}
+in Algorithm~\ref{alg:next-breakpoint}, and thus we iterate forward
+until the last interval with the same start time, defining a \emph{heavy}
+column.
+The last jump defines the third column
+\end{example}
 
 \begin{figure}
 	\input{example-grid.tex}
@@ -660,7 +705,7 @@ all the intervals satisfying the query.
 
   \BlankLine
   \Let{$i$}{$\argmax_{i}\TS^i < \TE$}\;
-  \While{$i \ge 0 \wedge \min\{\TE^i, \TS^i + d_{max}\} \le \TS$} {
+  \While{$i \ge 0 \wedge \TS < \TE^i$} {
 	\Let{$j$}{$\argmax_{j}d_{min}^{ij} \le d_{max}$}\;
 	\While{$d_{max}^{ij} \ge d_{min}$}{
 		\For{$t \in G_{ij}$}{
@@ -726,7 +771,8 @@ supported by our index structure.
 In this analysis we assume that the index is built by partitioning first in the time dimension,
 and then in the duration dimension.
 The choice of the order of this partitioning affects the practical performance, as we will discuss
-in Section~\ref{sec:experiments}.
+in Section~\ref{sec:experiments} (Figure~\ref{fig:param-dependency}).
+\mc
 Nonetheless, the results in this section hold for both dimension orderings.
 
 \begin{theorem}
@@ -911,12 +957,11 @@ equipped with 94 Gb of memory and a Intel\textregistered Xeon\textregistered CPU
 As a benchmark we consider the following datasets and workloads\footnote{
 	All the datasets are available in the code repository.}:
 %
-\mc{This might not make sense, since the dataset covers just August? Check that it indeed covers just August}
 \paragraph{\dataset{Flight}} A set of 701\,353 flights, identified by their
 takeoff and landing time, at the granularity of minute, covering the month
 of August 2018.
 Queries on this dataset are generated at random, with time ranges with durations
-uniformly distributed between 1 and 90 days,
+uniformly distributed between 1 and 31 days, at the granularity of hours,
 and duration ranges with endpoints uniformly distributed between 1 minute and
 a day, at the granularity of minutes.
 %
@@ -967,13 +1012,17 @@ write them to a file.
 \label{sec:overview}
 
 \begin{table*}
+  % The new implementation of rd-index has performance very similar to the previous
+  % period-index++, with the notable exception of duration-only workloads,
+  % where it is an order of magnitude slower, although the ranking remains the same.
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
 		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination:
-		\crule[firstcolor]{.5em}{1em} first,
-		\crule[secondcolor]{.5em}{1em} second,
-		\crule[thirdcolor]{.5em}{1em} third,
-		\crule[fourthcolor]{.5em}{1em} fourth,
-		and \crule[fifthcolor]{.5em}{1em} last.
+		\crule[firstcolor]{.5em}{1em}~first,
+		\crule[secondcolor]{.5em}{1em}~second,
+		\crule[thirdcolor]{.5em}{1em}~third,
+		\crule[fourthcolor]{.5em}{1em}~fourth,
+		\crule[fifthcolor]{.5em}{1em}~fifth,
+		and \crule[sixthcolor]{.5em}{1em}~last.
 		With \dataset{UZ} we denote interval sets with Uniform distribution of start times and Zipf
 		distribution of durations, with \dataset{UU} we refer to sets of intervals with Uniform distribution
 		for both the start time and the duration, and with \dataset{CZ} we denote intervals with
@@ -993,6 +1042,11 @@ Table~\ref{tbl:overview-qps} reports an overview
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
 For index structures that take parameters, we report on the best configuration
+\mc{The performance of \ours with the two ordering variants is rather similar across
+all datasets. This is because we are reporting the results for the configuration
+with the best page size. For a fixed page size, the difference introduced by the
+ordering of dimensions can be up to three orders of magnitude, as
+will be discussed in Figure~\ref{fig:param-dependency}.}
 
 We remark that the overall difference in throughput for different workloads is
 due to the different output sizes: \qdo queries are in general less selective than \qrd queries,
@@ -1118,6 +1172,23 @@ being replicated across several cells.
 As we observed previously, queries restricting only the time are the ones answered most efficiently
 by this data structure.
 
+\begin{wrapfigure}{r}{0.35\columnwidth}
+	\centering
+	\includegraphics[width=0.35\columnwidth]{images/selectivity-dep-inefficient.png}
+\end{wrapfigure}
+So far, we have reported on the performance of the best configuration
+of \ours{}, observing that under both orderings of dimensions it visits
+a fraction of intervals close to the selectivity of the query,
+i.e. it shows close to optimal behaviour.
+The figure at the side reports, under a setting similar to the one of
+Figure~\ref{fig:time-vs-selectivity}, the performance of \ours{}
+with a time-duration ordering and page size 10.
+As we will see in the next section, this configuration is not ideal:
+indeed, for several queries we have to visit more intervals than the
+precision of the query.
+This is especially true for duration-only queries (blue dots).
+\mc{Elaborate on why this is the case.}
+
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
 
@@ -1157,6 +1228,23 @@ thus increasing the running time.
 Conversely, the performance improves with the page size for \qro queries.
 In this case having fewer duration columns means that fewer groups of cells
 will need to be queried, thus improving performance.
+
+\mc{
+\begin{itemize}
+\item For a fixed page size, the gap between the two orderings is up to
+  three orders of magnitude
+\item I can't explain the behaviour for time only queries\dots I would
+	expect the time-duration order to perform better at high page counts (as it does)
+	and the duration-time order to perform better at low/intermediate page
+	counts, since then we have few columns to explore
+\item It is true, however, that the time part of the query is also constrained
+	by the duration part of the query: to evaluate the overlap with the query
+	we have to consider both the start and end times, but their relationship is
+	dictated by the duration: in this respect having the partitioning by
+	duration also helps in reducing the number of evaluated intervals!
+\item From the figure we can see that the behaviour is dictated by the duration part of the queries
+\end{itemize}
+}
 
 \section{Scalability with respect to the input size}
 \label{sec:scalability}

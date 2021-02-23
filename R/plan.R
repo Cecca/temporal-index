@@ -58,7 +58,7 @@ plan <- drake_plan(
   figure_parameter_dependency = data_parameter_dependency %>%
     plot_parameter_dependency() %>%
     save_png("paper/images/param_dependency.png",
-      width = 5, height = 3
+      width = 5, height = 4
     ),
 
   # Data about the start times of real datasets
@@ -110,6 +110,22 @@ plan <- drake_plan(
       "paper/images/selectivity-dep.png",
       width = 10,
       height = 3
+    ),
+
+  figure_query_focus_inefficient_precision = table_query_focus_inefficient() %>%
+    plot_query_focus_precision() %>%
+    save_png(
+      "paper/images/query-focus-inefficient-precision.png",
+      width = 4,
+      height = 4
+    ),
+
+  figure_selectivity_dependency_inefficient = table_query_focus_inefficient() %>%
+    plot_selectivity_dependency(bare=TRUE) %>%
+    save_png(
+      "paper/images/selectivity-dep-inefficient.png",
+      width = 2,
+      height = 2
     ),
 
   ######################################################################

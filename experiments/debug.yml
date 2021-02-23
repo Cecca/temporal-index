@@ -1,16 +1,18 @@
 ---
 
 - mode: 
-    Focus:
-      samples: 10
+    Batch
 
   datasets:
-    - Tourism
-
-    - Reiterated:
-        copies: 4
-        base:
-          Tourism
+    - Random:
+        seed: [123]
+        n: 
+          - 100000000
+        start_times:
+          - Uniform: { low: 1, high: 10000000 }
+          - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
+        durations:
+          - Zipf: { n: 10000000, beta: 1 }
 
   queries:
     - Random:
@@ -26,5 +28,8 @@
               Uniform: { low: 1, high: 10000 }
 
   algorithms:
+    - RDIndex:
+        dimension_order: [DurationTime, TimeDuration]
+        page_size: [100]
     - PeriodIndexPlusPlus:
         page_size: [100]

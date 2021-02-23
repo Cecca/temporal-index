@@ -1,7 +1,7 @@
 # This file collects functions related to the production of latex tables
 
 latex_best <- function(data_best) {
-    palette <- viridisLite::viridis(5, direction = -1)
+    palette <- viridisLite::viridis(6, direction = -1)
     lineseps <- c(
         "", "", "", "", "\\addlinespace",
         "", "", "", "", "\\addlinespace",
@@ -19,6 +19,7 @@ latex_best <- function(data_best) {
         ) %>%
         group_by(dataset_name, time_constraint, duration_constraint) %>%
         distinct(algorithm_name, qps) %>%
+        replace_na(list(qps = 0)) %>%
         mutate(
             rank = row_number(desc(qps)),
             qps_num = qps %>% drop_units(),
@@ -47,18 +48,15 @@ latex_best <- function(data_best) {
                 algorithm_name == "grid-file" ~ "GF",
                 algorithm_name == "period-index-*" ~ "PI*",
                 algorithm_name == "interval-tree" ~ "IT",
+                algorithm_name == "rd-index-td" ~ "RD-TD",
+                algorithm_name == "rd-index-dt" ~ "RD-DT",
                 TRUE ~ algorithm_name
             ),
-            # algorithm_name = fct_reorder(algorithm_name, rank, .fun = median)
             algorithm_name = factor(algorithm_name,
-                levels = c("PI++", "GF", "BT", "PI*", "IT"),
+                levels = c("RD-TD", "RD-DT", "PI++", "GF", "BT", "PI*", "IT"),
                 ordered = TRUE
             )
         ) %>%
-        # (function(d) {
-        #     print(group_by(d, algorithm_name) %>% summarise(m = median(rank)) %>% arrange(m))
-        #     d
-        # }) %>%
         arrange(algorithm_name) %>%
         select(
             dataset = dataset_name,
