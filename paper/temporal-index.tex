@@ -40,9 +40,11 @@
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
 \newcommand{\R}{\ensuremath{\mathbf{r}}} % temporal relation
 \newcommand{\A}{\dbattset{A}}
-\newcommand{\T}{\ensuremath{t}}
-\newcommand{\TS}{\ensuremath{t_s}}
-\newcommand{\TE}{\ensuremath{t_e}}
+\newcommand{\T}{\ensuremath{T}}
+\newcommand{\ts}{\ensuremath{t_s}}
+\newcommand{\te}{\ensuremath{t_e}}
+\newcommand{\TS}{\ensuremath{T_s}}
+\newcommand{\TE}{\ensuremath{T_e}}
 \newcommand{\dataset}[1]{\texttt{#1}}
 \newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
 \newcommand{\argmax}{\operatorname{argmax}}
@@ -87,6 +89,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{document}
+\sloppy
+
 \title{Indexing temporal relations for range-duration queries}
 
 \author{Matteo Ceccarello}
@@ -380,36 +384,35 @@ paper, which are \emph{range} queries rather than \emph{point} queries.
 \section{Preliminaries}
 
 We assume a linearly ordered, discrete time domain, $\domT$.  A time
-interval is a set of contiguous time points, and $t = [\TS,\TE)$
-denotes the closed-open interval of points from $\TS$ to $\TE$.  A
-tuple in a temporal relation is timestamped with an interval that, for
-instance, represents the tuple's valid time.  The schema of a temporal
-relation is given by $R = (\args{A}{m},\T)$, where $\args{A}{m}$ are
-the non-temporal attributes with domains $\Omega_i$ and $\T$ is the
-timestamp attribute with domain $\domT \times \domT$. A temporal
-relation $\R$ with schema $R$ is a finite set of tuples, where each
-tuple has a value in the appropriate domain for each attribute in the
-schema. We use $r.A_i$ to denote the value of attribute $A_i$ in tuple
-$r$.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
-$r.\A = (\args{r.A}{m})$, and we use $|\T|$ to denote the duration of
-time interval $\T$, i.e., $|\T| = \TE - \TS$.  Furthermore, given two
-intervals $t$ and $t'$, we denote with $t \cap t'$ the set of time
-points shared by the two intervals, which, if not empty, is itself an
-interval.
+interval is a set of contiguous time points, and $t = [\ts,\te)$
+denotes the closed-open interval of points from $\ts$ to $\te$.  We
+use $|t| = \te - \ts$ to denote the duration of time interval $t$ and
+$t \cap t'$ to denote the set of time points shared by two intervals
+$t$ and $t'$, which, if not empty, is itself an interval.
+%
+The schema of a temporal relation is given by $R = (\args{A}{m},T)$,
+where $\args{A}{m}$ are the non-temporal attributes with domains
+$\Omega_i$ and $\T$ is the timestamp attribute with domain
+$\domT \times \domT$ representing, for instance, the tuple's valid
+time.  A temporal relation $\R$ with schema $R$ is a finite set of
+tuples, where each tuple has a value in the appropriate domain for
+each attribute in the schema. We use $r.A_i$ to denote the value of
+attribute $A_i$ in tuple $r$.  We use the abbreviations
+$\A = \{ \args{A}{m} \}$ and $r.\A = (\args{r.A}{m})$.
 
-\subsection{Temporal queries}
+
+\subsection{Temporal Queries}
 
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
 \begin{definition}[Range query]
-  Given a temporal interval $t = [\TS, \TE)$ and a temporal relation
+  Given a temporal interval $t = [\ts, \te)$ and a temporal relation
   $\R$, a \emph{range query} $Q(\R, t)$ is defined as
   \[
     Q(\R, t) = \left\{r \in \R : r.T \cap t \ne \emptyset
     \right\}
   \]
 \end{definition}
-
 
 \begin{definition}[Duration query]
 	Given a duration interval $d = [d_{min}, d_{max}]$ and a temporal relation $\R$,
@@ -420,7 +423,7 @@ Our index efficiently supports the three following types of queries (defined as 
 \end{definition}
 
 \begin{definition}[Range-duration query]
-	Given a temporal interval $t = [\TS, \TE)$, a duration interval $d = [d_{min}, d_{max}]$,
+	Given a temporal interval $t = [\ts, \te)$, a duration interval $d = [d_{min}, d_{max}]$,
 	and a temporal relation $\R$,
 	a \emph{range-duration query} $Q(\R, t, d)$ is defined as
 	\[
@@ -428,69 +431,97 @@ Our index efficiently supports the three following types of queries (defined as 
 	\]
 \end{definition}
 
-The latter type of query is a combination of the former two.
+A range query retrieves all tuples whose timestamp intersects with the
+query range.  A duration query retrieves all tuples whose timestamp
+has a duration that is between $d_{min}$ and $d_{max}$. A
+range-duration query is a combination of the former two.
+
+\begin{example}\label{example:queries}
+  Consider the following range-duration query on our sample database:
+  $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.  The time range is
+  constrained to be between 10:00 and 14:00, and the duration is
+  constrained to be in $[2h, 4h]$.  Figure~\ref{fig:example-intervals}
+  shows a graphical representation, where the timestamps are drawn by
+  horizontal lines.  The red area indicates the constraint on the
+  start time.  The gray/green segments on top of each timestamp
+  interval denote the duration constraint, where the green part
+  indicates the minimum and maximum duration.  That is, an interval
+  satisfies the range constraint if it intersects with the red area,
+  and it satisfies the duration constraint if its end point is within
+  the green part.
+  % 
+  The only flight matching the query is \texttt{N309AS}.  A range only
+  query with the same time range would return the flights
+  \texttt{N309AS} and \texttt{N431AS}.  A duration only query with
+  duration interval $[2h, 4h]$ would return \texttt{N207SY},
+  \texttt{N309AS}, and \texttt{N432YX}.
+\end{example}
 
 \begin{figure}
   \input{example.tex}
-  \caption{Range-duration query on the example table. The time range
-    is constrained to be between 10:00 and 14:00, and the duration is
-    constrained to be in $[2h, 4h]$. 
-	The red area denotes the constraint on the start time.
-	The gray/green segments on top of each interval denote the duration constraint, with the start
-	of the green part marking the minimum duration, and the end denoting the maximum duration. 
-	An interval satisfies the duration constraint only if its end point is within
-	the green part of the constraint segment.
-	The blue interval is the only
-    one matching both the range and duration
-    constraints.\label{fig:example-intervals} 
-	}
+  \caption{Range-duration query on the example
+    table.  % The time range
+    % is constrained to be between 10:00 and 14:00, and the duration
+    % is
+    % constrained to be in $[2h, 4h]$.
+    % The red area denotes the constraint on the start time.
+    % The gray/green segments on top of each interval denote the
+    % duration constraint, with the start
+    % of the green part marking the minimum duration, and the end
+    % denoting the maximum duration.
+    % An interval satisfies the duration constraint only if its end
+    % point is within
+    % the green part of the constraint segment.
+    % The blue interval is the only
+    % one matching both the range and duration
+    % constraints.
+    \label{fig:example-intervals}
+  }
 \end{figure}
 
-\begin{example}\label{example:queries}
-  Consider the following range-duration query on our example database of flights:
-  $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.
-  Figure~\ref{fig:example-intervals} reports a graphical representation of the
-  intevals in the table, along with the query.
-  The only flight matching the query is \texttt{N309AS}.
-  A range only query with the same time range would return as answers
-  flights \texttt{N309AS} and \texttt{N431AS}.
-  A duration only query with duration interval $[2h, 4h]$ would
-  return as answers 
-  \texttt{N207SY}, \texttt{N309AS}, and \texttt{N432YX}.
-\end{example}
 
 \section{Data Structure}
 
-\begin{figure}
-	\input{example-plane.tex}
-  \caption{Flights of Table~\ref{tab:example} in the duration/start time plane.
-  The smaller gray dots are flights from the same day.
-  The red polygon is the range-duration query of example~\ref{example:queries}.
-  \label{fig:example-plane}}
-\end{figure}
+\subsection{Overview}
 
-An interval can be completely described by its duration and starting time, therefore
-we can represent a set of temporal intervals as a set of points in a two dimensional 
-space, with one coordinate being the duration and the other the start time.
-A range-duration query with time interval $[\TS, \TE)$ and duration interval
-$[d_{min}, d_{max}]$ in such a space is the polygon containing all the solutions,
-which is defined by all points $(t, d)$ (corresponding to the time interval $[t, t + d)$) such that
+An interval can be completely described by its duration and starting
+time.  Therefore, we can represent a set of temporal intervals as a
+set of points in a two dimensional space, with one coordinate being
+the duration and the other the start time.  A range-duration query
+with time interval $[\ts, \te)$ and duration interval
+$[d_{min}, d_{max}]$ in such a space is defined by the polygon that
+contains all points $(t, d)$ (representing time interval $[t, t + d)$)
+such that
 % \begin{equation*}
 % \begin{aligned}
-%   t < \TE \quad\wedge&\quad t > \TS - d \quad\wedge \\
+%   t < \te \quad\wedge&\quad t > \ts - d \quad\wedge \\
 %           \quad\wedge&\quad d_{min} \le d \le d_{max}
 % \end{aligned}
 % \end{equation*}
 \begin{align*}
-  (\TS - d < t < \TE) \quad \land \quad (d_{min} \le d \le d_{max})
+  (\ts - d < t < \te) \quad \land \quad (d_{min} \le d \le d_{max})
 \end{align*}
 
 \begin{example}
-  Figure~\ref{fig:example-plane} lays out the points of table~\ref{tab:example}
-  in the aforementioned space, along with the intervals associated to other flights
-  on the same day.
-  Note how the points (hence the intervals) are not uniformly distributed.
+  Figure~\ref{fig:example-plane} shows the tuples of
+  Table~\ref{tab:example} in the two dimensional space, along other
+  flights on the same day.  The red polygon represents the query of
+  the previous example with query range $[\text{10:00},\text{14:00})$
+  and duration $[\text{2h}, \text{4h}]$.  Note how the points (i.e.,
+  the timestamp intervals of the tuples) are not uniformly
+  distributed.
 \end{example}
+
+\begin{figure}
+  \input{example-plane.tex}
+  \caption{Flights of Table~\ref{tab:example} in the start
+    % time/duration plane.  The smaller gray dots are flights
+    % from the same day.
+    % The red polygon is the range-duration query of
+    % example~\ref{example:queries}.
+    \label{fig:example-plane}
+  }
+\end{figure}
 
 Our index is a grid, partitioning the tuples into disjoint buckets according
 to the durations and the start times of their intervals.
@@ -673,13 +704,13 @@ The last jump defines the third column
 
 \subsection{Querying the Index}
 
-Given a range-duration query $Q(R, \T, d)$ with $\T=[\TS, \TE)$ and $d=[d_{min}, d_{max}]$,
+Given a range-duration query $Q(R, \T, d)$ with $\T=[\ts, \te)$ and $d=[d_{min}, d_{max}]$,
 recall that a tuple $r \in R$ satisfies the query if the three following conditions
 are met:
 \begin{align}
 	 & |r.\T| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
-	 & \TS < r.\TE                  \label{eq:start-condition}     \\
-	 & r.\TS < \TE                  \label{eq:end-condition}
+	 & \ts < r.\te                  \label{eq:start-condition}     \\
+	 & r.\ts < \te                  \label{eq:end-condition}
 \end{align}
 
 The query algorithm is reported in Algorithm~\ref{alg:query}.
@@ -700,19 +731,19 @@ until the end time no longer satisfies~\ref{eq:start-condition}, reporting
 all the intervals satisfying the query.
 
 \begin{algorithm}[t]
-  \caption{\textsc{Query}$(Q([\TS, \TE), [d_{min}, d_{max}]))$\label{alg:query}}
+  \caption{\textsc{Query}$(Q([\ts, \te), [d_{min}, d_{max}]))$\label{alg:query}}
   \KwIn{A range duration query; An index grid $G$}
 
   \BlankLine
-  \Let{$i$}{$\argmax_{i}\TS^i < \TE$}\;
-  \While{$i \ge 0 \wedge \TS < \TE^i$} {
+  \Let{$i$}{$\argmax_{i}\ts^i < \te$}\;
+  \While{$i \ge 0 \wedge \ts < \te^i$} {
 	\Let{$j$}{$\argmax_{j}d_{min}^{ij} \le d_{max}$}\;
 	\While{$d_{max}^{ij} \ge d_{min}$}{
 		\For{$t \in G_{ij}$}{
-			\If{$t.\TE \le \TS$}{
+			\If{$t.\te \le \ts$}{
 				\textbf{break}\;
 			}
-			\If{$|t| \in [d_{min}, d_{max}] \wedge t.\TS < \TE$}{
+			\If{$|t| \in [d_{min}, d_{max}] \wedge t.\ts < \te$}{
 				\textbf{report} $t$\;
 			}
 		}
@@ -728,8 +759,8 @@ all the intervals satisfying the query.
 \label{sec:updating-index}
 
 Our index data structure can be extended to support both insertion and
-removals of tuples. For a tuple $r$, with $r.T=(\TS, \TE)$, by
-querying the index for the duration $|r.T|$ and the start time $\TS$,
+removals of tuples. For a tuple $r$, with $r.T=(\ts, \te)$, by
+querying the index for the duration $|r.T|$ and the start time $\ts$,
 we can identify the cell that should contain the tuple $r$.  If the
 interval $r.T$ is already indexed in the returned cell, then we simply
 append $r$ to its reference list.  Otherwise, inserting new intervals
@@ -822,7 +853,7 @@ about heavy columns and cells.
 	where $k$ is the number of intervals matching the query predicate.
 \end{theorem}
 \begin{proof}
-	Let $\T = [\TS, \TE)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
+	Let $\T = [\ts, \te)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
 	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same start time or duration.
 	A range-duration query defines a \emph{query polygon} in the start time $\times$ duration space, as depicted in Figure~\ref{fig:example-grid}.
@@ -999,7 +1030,7 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 In particular, we run the following type of query:
 \begin{lstlisting}[basicstyle=\ttfamily, mathescape=true]
 SELECT COUNT(*) FROM relation
- WHERE $\TS < \bar{t}_{end}$ AND $\bar{t}_{start} < \TE$
+ WHERE $\ts < \bar{t}_{end}$ AND $\bar{t}_{start} < \te$
    AND $d_{min} \le |T|$ AND $|T| \le d_max$;
 \end{lstlisting}
 where $[\bar{t}_{start}, \bar{t}_{end})$ is the range constraint and
