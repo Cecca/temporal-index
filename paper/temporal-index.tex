@@ -1016,15 +1016,18 @@ or are clustered around 10 instants sampled uniformly at random from $[1, n]$, f
 distribution for $1 \le i \le 10$.
 In both cases, interval durations follow a Zipf distribution with $\beta=1$.
 
-Figure~\ref{fig:data-distributions} reports the distribution of start times and
-durations of the three real-world datasets we consider in this experimental
-evaluation. Note, in particular, that the start times of the \dataset{Flight}
-dataset are approximately uniformly distributed, with durations geometrically distributed.
-The \dataset{Tourism} dataset, on the other hand, has start times more concentrated around
-the weekends, and duration values of three days, one week and two weeks being the most frequent.
-Finally, the \dataset{Webkit} dataset has a distribution of durations similar to \dataset{Flight},
-but the distribution of start times is skewed towards recent times, meaning that more 
-file edits have been done recently.
+Figure~\ref{fig:data-distributions} reports the distribution of start
+times and durations of the three real-world datasets we consider in
+this experimental evaluation. Note, in particular, that the start
+times of the \dataset{Flight} dataset are approximately uniformly
+distributed, with durations geometrically distributed.  The
+\dataset{Tourism} dataset, on the other hand, has start times more
+concentrated around the weekends, and duration values of three days,
+one week and two weeks being the most frequent.  Finally, the
+\dataset{Webkit} dataset has a distribution of durations similar to
+\dataset{Flight}, but the distribution of start times is skewed
+towards recent times, meaning that more file edits have been done
+recently.
 
 In the remainder of the paper, we denote queries constraining both the time range and the
 duration with \qrd (Range-Duration queries), queries constraining only the time range with
