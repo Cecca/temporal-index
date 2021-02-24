@@ -352,27 +352,33 @@ times for all the operations,
 while~\cite{DBLP:conf/sigmod/NathanDAK20,
   DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
 
-\ad{TODO: extend the next paragraph and say that join data structures cannot be applied to this problem, with a few exceptions, e.g., OIP.}
+\ad{The following paragraph is newly rewritten:}
 
-{\color{red} Recently, there has been a renewed interest in temporal join
-processing. Approaches based on the timeline
-index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read
-the input relations sorted by the start and end points of intervals as
-separated events in a sorted-merge join fashion. The temporal join is
-performed by joining active tuples of one relation (i.e., tuples for which
-the start point has been encountered but not yet the end point) with the
-matching events of the other relation. The work by Bouros and
-Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based
-plane sweep algorithm that sorts the input relations by start time and
-performs an interleaving merge-join with backtracking. Other approaches are
-based on
-partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}.
-They first partition the data and then perform the join either by using a
-nested loop within candidate partitions or a sorted-merge join between all
-partitions. These approaches focus on reducing the search space within a
-temporal join and are not directly applicable to the problem of reducing the
-search space for selection queries addressed in this paper. Moreover, they do
-not consider the duration of periods for processing. }
+In recent years, algorithms for the temporal join have been actively studied. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13} process sets of intervals as sorted events list of their start and end points, and compute the temporal join by scanning these event lists in an interleaved fashion and thereby keeping and joining a set of active intervals, i.e., intervals whose start, but not end point has been encountered. To improve the performance of the original linked list data structure to store active intervals, a gapless hash map has been proposed~\cite{DBLP:conf/icde/PiatovHD16} that provides a higher performance for scanning active intervals. The work by Bouros and
+Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} computes the temporal join using a forward scan based
+plane sweep algorithm. First, the input relations are sorted by start time and then an interleaving merge-join is performed to compute the temporal join between the two relations. Other approaches~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17} for the temporal join are based on
+partitioning intervals according to their position and then produce the temporal join result by joining or merging relevant partitions. While, these approaches for the temporal join provide mechanisms to join overlapping intervals, in contrast to our work they are not applicable for general selection queries, as they always require to read the entire relations. Moreover, the duration of intervals is not considered in this works.
+
+
+% {\color{red} Recently, there has been a renewed interest in temporal join
+% processing. Approaches based on the timeline
+% index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13,DBLP:conf/icde/PiatovHD16} read
+% the input relations sorted by the start and end points of intervals as
+% separated events in a sorted-merge join fashion. The temporal join is
+% performed by joining active tuples of one relation (i.e., tuples for which
+% the start point has been encountered but not yet the end point) with the
+% matching events of the other relation. The work by Bouros and
+% Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} employs a forward scan based
+% plane sweep algorithm that sorts the input relations by start time and
+% performs an interleaving merge-join with backtracking. Other approaches are
+% based on
+% partitioning~\cite{DBLP:conf/sigmod/DignosBG14,DBLP:journals/vldb/CafagnaB17}.
+% They first partition the data and then perform the join either by using a
+% nested loop within candidate partitions or a sorted-merge join between all
+% partitions. These approaches focus on reducing the search space within a
+% temporal join and are not directly applicable to the problem of reducing the
+% search space for selection queries addressed in this paper. Moreover, they do
+% not consider the duration of periods for processing. }
 
 Given the abundance of storage available nowadays it is sometimes desirable to
 implement updates as additions of new versions of records rather than
