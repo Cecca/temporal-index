@@ -283,20 +283,23 @@ Our contributions can then be summarized as follows:
 
 \section{Related work}
 
+\ad{The following is newly rewritten:}
+
+The type of selection queries we are studying in this paper are queries with a conjunctive predicate, where one predicate in the conjunction restricts the position of intervals on the time line and the second the duration of intervals. In this section, we review indexing structures that are (partially) suitable for such selection queries, and also review structures similar to our approach that are used for interval joins.
+
+Edelsbrunner's Interval Tree~\cite{edelsbrunner80} is one of the most popular indexing structure for intervals, which is asymptotically optimal for selection queries involving the overlap predicate, and for which also an implementation using standard relational database technology using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00} exists. The shortcoming of this index is that, in contrast to our indexing structure, does not provide a mechanism to restrict the duration of intervals and thus can only solve one part of a range-duration query. A similar indexing structure is the segment tree~\cite{deBerg00}, which builds disjoint segments over intervals at the
+leaf level using all start and end points in a relation, and recursively merges segments in intermediate nodes on the tree. This data structure originally designed for point or time travel queries over intervals, also supports selection queries with the overlap predicate, but similar to the interval tree does not allow to restrict the duration of intervals at the same time.
+
 \ad{This is copy/paste from Period index paper}
 
-{\color{red}
-Related work can be split into two categories. First, index structures suitable for intervals, and second, index structures for two dimensional data. Due to the fact that time is constantly progressing, not all 2D indexes are suitable for temporal data. Finally, we also review structures similar to our approach that are used for temporal joins.
-}
-
-{\color{red}
-In the past, several data structures that support interval data have been proposed. One of the most popular structures is Edelsbrunner's Interval Tree~\cite{edelsbrunner80}, which is asymptotically optimal for temporal intervals and can be mapped into a relational database using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00}. While the interval tree is efficient for range queries, it doesn't take into account the length of intervals.
-Another index structure for intervals is the segment tree~\cite{deBerg00}, which builds disjoint segments (intervals) at the
-leaf level using all start and end points in a relation. Internal
-nodes merge all segments of their child nodes. A tuple is associated
-with all sub-tree roots whose segment is completely covered by the
-tuple's interval. Also this approach does not support queries that constrain the length of intervals.
-}
+% {\color{red}
+% In the past, several data structures that support interval data have been proposed. One of the most popular structures is Edelsbrunner's Interval Tree~\cite{edelsbrunner80}, which is asymptotically optimal for temporal intervals and can be mapped into a relational database using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00}. While the interval tree is efficient for range queries, it doesn't take into account the length of intervals.
+% Another index structure for intervals is the segment tree~\cite{deBerg00}, which builds disjoint segments (intervals) at the
+% leaf level using all start and end points in a relation. Internal
+% nodes merge all segments of their child nodes. A tuple is associated
+% with all sub-tree roots whose segment is completely covered by the
+% tuple's interval. Also this approach does not support queries that constrain the length of intervals.
+% }
 
 {\color{red} Le et al.~\cite{DBLP:conf/sigmod/LeLTC13} propose a
   splitter for temporal and multi-version databases with the aim to
@@ -305,7 +308,7 @@ tuple's interval. Also this approach does not support queries that constrain the
   by minimizing the number of intervals of the largest bucket, whereas
   our goal is the computation of queries involving position and
   duration of intervals in parallel. \jg{Here the difference to our
-    approach is not yet clear to me.}  }
+    approach is not yet clear to me.} \ad{I would remove this work} }
 
 Very recently, Behrend et al.~\cite{BehrendDGSVRK_SSTD19_period-index}
 proposed an index expliticly supporting range-duration queries. Such index,
