@@ -40,22 +40,21 @@
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
 \newcommand{\R}{\ensuremath{\mathbf{r}}} % temporal relation
 \newcommand{\A}{\dbattset{A}}
-\newcommand{\T}{\ensuremath{T}}
-\newcommand{\ts}{\ensuremath{t_s}}
-\newcommand{\te}{\ensuremath{t_e}}
+\newcommand{\T}{\ensuremath{T}} % temporal range
+\newcommand{\D}{\ensuremath{D}} % duration range
 \newcommand{\TS}{\ensuremath{T_s}}
+\newcommand{\rTE}{\ensuremath{r.T_e}}
+\newcommand{\rTS}{\ensuremath{r.T_s}}
 \newcommand{\TE}{\ensuremath{T_e}}
+\newcommand{\Dmin}{\ensuremath{D_{min}}}
+\newcommand{\Dmax}{\ensuremath{D_{max}}}
+\newcommand{\rT}{\ensuremath{r.\T}}
+\newcommand{\qT}{\ensuremath{q.\T}}
+\newcommand{\qD}{\ensuremath{q.\D}}
 \newcommand{\dataset}[1]{\texttt{#1}}
 \newcommand{\crule}[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
 \newcommand{\argmax}{\operatorname{argmax}}
 \newcommand{\argmin}{\operatorname{argmin}}
-
-% \definecolor{firstcolor}{HTML}{FDE725}
-% \definecolor{secondcolor}{HTML}{5DC863}
-% \definecolor{thirdcolor}{HTML}{21908C}
-% \definecolor{fourthcolor}{HTML}{3B528B}
-% \definecolor{fifthcolor}{HTML}{440154}
-
 
 \definecolor{firstcolor}{HTML}{FDE725}
 \definecolor{secondcolor}{HTML}{7AD151}
@@ -384,11 +383,11 @@ paper, which are \emph{range} queries rather than \emph{point} queries.
 \section{Preliminaries}
 
 We assume a linearly ordered, discrete time domain, $\domT$.  A time
-interval is a set of contiguous time points, and $t = [\ts,\te)$
-denotes the closed-open interval of points from $\ts$ to $\te$.  We
-use $|t| = \te - \ts$ to denote the duration of time interval $t$ and
-$t \cap t'$ to denote the set of time points shared by two intervals
-$t$ and $t'$, which, if not empty, is itself an interval.
+interval is a set of contiguous time points, and $\T = [\TS,\TE)$
+denotes the closed-open interval of points from $\TS$ to $\TE$.  We
+use $|T| = \TE - \TS$ to denote the duration of time interval $\T$ and
+$\T \cap \T'$ to denote the set of time points shared by two intervals
+$T$ and $T'$, which, if not empty, is itself an interval.
 %
 The schema of a temporal relation is given by $R = (\args{A}{m},T)$,
 where $\args{A}{m}$ are the non-temporal attributes with domains
@@ -406,35 +405,41 @@ $\A = \{ \args{A}{m} \}$ and $r.\A = (\args{r.A}{m})$.
 Our index efficiently supports the three following types of queries (defined as in~\cite{BehrendDGSVRK_SSTD19_period-index}).
 
 \begin{definition}[Range query]
-  Given a temporal interval $t = [\ts, \te)$ and a temporal relation
-  $\R$, a \emph{range query} $Q(\R, t)$ is defined as
+  Given a temporal interval $\T = [\TS, \TE)$ and a temporal relation
+  $\R$, a \emph{range query} $Q(\R, \T)$ is defined as
   \[
-    Q(\R, t) = \left\{r \in \R : r.T \cap t \ne \emptyset
+    Q(\R, \T) = \left\{r \in \R : \rT \cap \T \ne \emptyset
     \right\}
   \]
 \end{definition}
 
 \begin{definition}[Duration query]
-	Given a duration interval $d = [d_{min}, d_{max}]$ and a temporal relation $\R$,
-	a \emph{duration query} $Q(\R, d)$ is defined as
+	Given a duration interval $\D = [\Dmin, \Dmax]$ and a temporal relation $\R$,
+	a \emph{duration query} $Q(\R, \D)$ is defined as
 	\[
-		Q(\R, d) = \left\{r \in \R : |r.t| \in [d_{min}, d_{max}] \right\}
+		Q(\R, \D) = \left\{r \in \R : |\rT| \in [\Dmin, \Dmax] \right\}
 	\]
 \end{definition}
 
 \begin{definition}[Range-duration query]
-	Given a temporal interval $t = [\ts, \te)$, a duration interval $d = [d_{min}, d_{max}]$,
-	and a temporal relation $\R$,
-	a \emph{range-duration query} $Q(\R, t, d)$ is defined as
-	\[
-		Q(\R, t, d) = \left\{r \in \R : r.t \cap t \ne \emptyset \wedge |r.t| \in [d_{min}, d_{max}] \right\}
+  Given a temporal interval $\T = [\TS, \TE)$, a duration interval
+  $\D = [\Dmin, \Dmax]$, and a temporal relation $\R$, a
+  \emph{range-duration query} $Q(\R, \T, \D)$ is defined as
+  \[
+    Q(\R, \T, \D) = \left\{r \in \R : \rT \cap \T \ne \emptyset \wedge
+      |\rT| \in [\Dmin, \Dmax] \right\}
 	\]
-\end{definition}
+      \end{definition}
 
-A range query retrieves all tuples whose timestamp intersects with the
-query range.  A duration query retrieves all tuples whose timestamp
-has a duration that is between $d_{min}$ and $d_{max}$. A
-range-duration query is a combination of the former two.
+      A range query retrieves all tuples whose timestamp intersects
+      with the query range.  A duration query retrieves all tuples
+      whose timestamp has a duration that is between $d_{min}$ and
+      $d_{max}$. A range-duration query is a combination of the former
+      two.  In the remainder of the paper we will refer, for brevity,
+      with $q = (\T, \D)$ to the pair of constraints used in
+      range-duration queries, and in particular we will use $\qT$ to
+      refer to the time range constraint, and $\qD$ to denote the
+      duration constraint
 
 \begin{example}\label{example:queries}
   Consider the following range-duration query on our sample database:
@@ -479,27 +484,31 @@ range-duration query is a combination of the former two.
   }
 \end{figure}
 
+\begin{example}\label{example:queries}
+  Consider the following range-duration query on our example database
+  of flights: $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.
+  Figure~\ref{fig:example-intervals} reports a graphical
+  representation of the intervals in the table, along with the query.
+  The only flight matching the query is \texttt{N309AS}.  A range only
+  query with the same time range would return as answers flights
+  \texttt{N309AS} and \texttt{N431AS}.  A duration only query with
+  duration interval $[2h, 4h]$ would return as answers
+  \texttt{N207SY}, \texttt{N309AS}, and \texttt{N432YX}.
+\end{example}
 
 \section{Data Structure}
 
 \subsection{Overview}
 
 An interval can be completely described by its duration and starting
-time.  Therefore, we can represent a set of temporal intervals as a
-set of points in a two dimensional space, with one coordinate being
-the duration and the other the start time.  A range-duration query
-with time interval $[\ts, \te)$ and duration interval
-$[d_{min}, d_{max}]$ in such a space is defined by the polygon that
-contains all points $(t, d)$ (representing time interval $[t, t + d)$)
-such that
-% \begin{equation*}
-% \begin{aligned}
-%   t < \te \quad\wedge&\quad t > \ts - d \quad\wedge \\
-%           \quad\wedge&\quad d_{min} \le d \le d_{max}
-% \end{aligned}
-% \end{equation*}
+time, therefore we can represent a set of temporal intervals as a set
+of points in a two dimensional space, with one coordinate being the
+start time and the other the duration.  A range-duration query $q$ in
+such a space is the polygon containing all the solutions, which is
+defined by all points $(t, d)$ (corresponding to the time interval
+$[t, t + d)$) such that
 \begin{align*}
-  (\ts - d < t < \te) \quad \land \quad (d_{min} \le d \le d_{max})
+  (q.\TS - d < t < q.\TE) \quad \land \quad (q.\Dmin \le d \le q.\Dmax)
 \end{align*}
 
 \begin{example}
@@ -564,9 +573,9 @@ $R$ it belongs to.
 	\Let{$i$}{$0$}\;
 	\While{$h < |I|$}{
 		\nllabel{line:column-break}
-		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, r \rightarrow r.t_s)$}\;
-		\Let{$t_e^{i}$}{$\displaystyle\argmax_{t \in I[0..h']} t.t_e$} \algocomment{maximum end time in all the columns, including the current one}\;
-		\Let{$t_s^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
+		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, \T \rightarrow \TE)$}\;
+		\Let{$\TE^{i}$}{$\displaystyle\argmax_{\T \in I[0..h']} \TE$} \algocomment{maximum end time in all the columns, including the current one}\;
+		\Let{$\TS^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
 		\Let{$I'$}{$I_{h..h'}$}\;
 		Sort $I'$ by duration\;
 
@@ -574,9 +583,9 @@ $R$ it belongs to.
 		\Let{$j$}{$0$}\;
 		\While{$k < |I'|$}{
 			\nllabel{line:cell-break}
-			\Let{$k'$}{\algo{NextBreakpoint}$(I', k, s, r \rightarrow |r.t|)$}\;
-			\Let{$d_{min}^{ij}$}{$|I_{k}|$}\algocomment{minimum duration in the cell}\;
-			\Let{$d_{max}^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in the cell}\;
+			\Let{$k'$}{\algo{NextBreakpoint}$(I', k, s, \T \rightarrow |\T|)$}\;
+			\Let{$\Dmin^{ij}$}{$|I_{k}|$}\algocomment{minimum duration in the cell}\;
+			\Let{$\Dmax^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in the cell}\;
 			\Let{$G_{ij}$}{$I'_{k..k'}$, sorted by end time}\;
 			\Let{$j$}{$j+1$}\;
 			\Let{$k$}{$k'+1$}\;
@@ -664,9 +673,9 @@ intervals. Once a cell is identifies this way, its intervals are sorted by
 end time, and we proceed to the next cell. After processing an entire column,
 we move to the next. Along with the grouping of intervals into columns and
 cells, during the execution of the algorithm we collect some ancillary
-information: the maximum start time and minimum end time of each column
-(respectively denoted $t_s^i$ and $t_e^i$ for column $i$), and the maximum and minimum durations
-in each cell $ij$, denote with $d_{max}^{ij}$ and $d_{min}^{ij}$.
+information: the maximum start time and maximum end time of each column\mc{this is to fix}
+(respectively denoted $\TS^i$ and $\TE^i$ for column $i$), and the maximum and minimum durations
+in each cell $ij$, denote with $\Dmax^{ij}$ and $\Dmin^{ij}$.
 This information will be used to efficiently index into the grid in order to 
 answer range-duration queries.
 
@@ -704,13 +713,12 @@ The last jump defines the third column
 
 \subsection{Querying the Index}
 
-Given a range-duration query $Q(R, \T, d)$ with $\T=[\ts, \te)$ and $d=[d_{min}, d_{max}]$,
-recall that a tuple $r \in R$ satisfies the query if the three following conditions
-are met:
+Given a range-duration query $q$, recall that a tuple $r \in R$
+satisfies the query if the three following conditions are met:
 \begin{align}
-	 & |r.\T| \in [d_{min}, d_{max}] \label{eq:duration-condition} \\
-	 & \ts < r.\te                  \label{eq:start-condition}     \\
-	 & r.\ts < \te                  \label{eq:end-condition}
+	 & |\rT| \in [\qD_{min}, \qD_{max}] \label{eq:duration-condition} \\
+	 & q.\TS < r.\TE                  \label{eq:start-condition}     \\
+	 & r.\TS < q.\TE                  \label{eq:end-condition}
 \end{align}
 
 The query algorithm is reported in Algorithm~\ref{alg:query}.
@@ -725,26 +733,26 @@ does not satisfy condition~\ref{eq:start-condition}.
 When inspecting a column, we look for the cell within the column with the largest 
 minimum duration, again by binary search.
 Then we scan the cells backward, util we get to a cell whose maximum duration is smaller than the
-$d_{min}$ required by the query.
+$\Dmin$ required by the query.
 For each interval contained in the visited cells, we scan the intervals by decreasing end time,
 until the end time no longer satisfies~\ref{eq:start-condition}, reporting
 all the intervals satisfying the query.
 
 \begin{algorithm}[t]
-  \caption{\textsc{Query}$(Q([\ts, \te), [d_{min}, d_{max}]))$\label{alg:query}}
-  \KwIn{A range duration query; An index grid $G$}
+  \caption{\textsc{Query}$(q))$\label{alg:query}}
+  \KwIn{A range duration query $q$; An index grid $G$}
 
   \BlankLine
-  \Let{$i$}{$\argmax_{i}\ts^i < \te$}\;
-  \While{$i \ge 0 \wedge \ts < \te^i$} {
-	\Let{$j$}{$\argmax_{j}d_{min}^{ij} \le d_{max}$}\;
-	\While{$d_{max}^{ij} \ge d_{min}$}{
-		\For{$t \in G_{ij}$}{
-			\If{$t.\te \le \ts$}{
+  \Let{$i$}{$\argmax_{i}\TS^i < q.\TE$}\;
+  \While{$i \ge 0 \wedge q.\TS < \TE^i$} {
+	\Let{$j$}{$\argmax_{j}\Dmin^{ij} \le q.\Dmax$}\;
+	\While{$\Dmax^{ij} \ge q.\Dmin$}{
+		\For{$\T \in G_{ij}$}{
+			\If{$\TE \le q.\TS$}{
 				\textbf{break}\;
 			}
-			\If{$|t| \in [d_{min}, d_{max}] \wedge t.\ts < \te$}{
-				\textbf{report} $t$\;
+			\If{$|\T| \in [\Dmin, \Dmax] \wedge \TS < q.\TE$}{
+				\textbf{report} $\T$\;
 			}
 		}
 		\Let{$j$}{$j-1$}\;
@@ -759,52 +767,47 @@ all the intervals satisfying the query.
 \label{sec:updating-index}
 
 Our index data structure can be extended to support both insertion and
-removals of tuples. For a tuple $r$, with $r.T=(\ts, \te)$, by
-querying the index for the duration $|r.T|$ and the start time $\ts$,
-we can identify the cell that should contain the tuple $r$.  If the
-interval $r.T$ is already indexed in the returned cell, then we simply
-append $r$ to its reference list.  Otherwise, inserting new intervals
-directly into cells might make them grow too large to be able to make
-performance guarantees on the query time.  Therefore, we set a
-threshold $2s^2$ for \emph{light} columns and $2s$ for \emph{light}
-cells (as we shall see in the next sections, we can bound the
-performance of \emph{heavy} cells and columns even though they exceed
-the page size).  If a light column exceeds size $2s^2$ then we split
-the column, if a light cell exceeds size $2s$ then we split the cell.
+removals of tuples. For a tuple $r$, with $\rT=[\TS, \TE)$, by
+querying the index for the duration $|\rT|$ and the start time $\TS$,
+we can identify the cell that should contain the tuple $r$.  Inserting
+new intervals directly into cells might make them grow too large to be
+able to make performance guarantees on the query time.  Therefore, we
+set a threshold $2s^2$ for \emph{light} columns and $2s$ for
+\emph{light} cells (as we shall see in the next sections, we can bound
+the performance of \emph{heavy} cells and columns even though they
+exceed the page size).  If a light column exceeds size $2s^2$ then we
+split the column, if a light cell exceeds size $2s$ then we split the
+cell.
 
-Splitting a column entails finding the median duration $\bar{d}$ among its intervals, and then replacing it
-with two new columns with boundaries $[\bar{d}_{min}, \bar{d})$ and $[\bar{d},\bar{d}_{max})$, respectively.
-Each of the two new columns requires the construction of new cell boundaries, which can be done by invoking
-Algorithm~\ref{alg:define-boundaries}.
+Splitting a column $G_i$ entails finding the median start time $\bar{\TS}$
+among its intervals, and then replacing it
+with two new columns with boundaries $(\TS^{i-1}, \bar{\TS}]$ and 
+$(\bar{\TS},\TS^{i}]$, respectively.
+Each of the two new columns requires the construction of new cell 
+boundaries, which can be done by invoking
+Algorithm~\ref{alg:next-breakpoint} repeatedly, like in the inner loop of
+index construction.
 
-Similarly, to split a cell we replace it with two new cells with boundaries $[\bar{t}_{min}, \bar{t})$
-and $[\bar{t}, \bar{t}_{max})$, where $\bar{t}$ is the median start time in the cell being split.
-Then the intervals in each of the two newly created cells are sorted by end time.
+Similarly, to split a cell we replace it with two new cells with boundaries
+$(\Dmax^{i-1}, \bar{|\T|}]$ and $(\bar{|\T|}, \Dmax^{i})$, where $\bar{|\T|}$ is
+the median duration in the cell being split. Then the intervals in each of
+the two newly created cells are sorted by end time.
 
-In both cases, the boundaries are updated by inserting in order $\bar{d}$ (resp. $\bar{t}$) in the sorted
-array of column (resp. cell) boundaries.
-
-As for the removal of a tuple $r$ from the index,
-we query the index to find the cell $C$ containing $r.t$, and we
-remove $r$ from the reference list of the interval.
-If this results in an empty reference list, then the interval is removed from the cell.
-As a consequence the cell might be empty,
-in which case case we remove the cell from the column, removing its lower boundary from the
-array of boundaries unless it is the first cell, in which case we remove the upper boundary from the array.
-This has the effect of making the neighboring cell \emph{cover} the span of times contained in the cell being removed.
-Finally, if the removal of the cell results in an empty column, we remove the column, updating the boundaries array
-in a similar fashion.
+As for the removal of a tuple $r$ from the index, we query the index to find
+the cell $G_ij$ containing $\rT$, removing the interval from the cell. As a
+consequence the cell might be empty, in which case case we remove the cell
+from the column. Finally, if the removal of the cell results in an empty
+column, we remove the column.
 
 \section{Analysis}
 
 We now provide guarantees on the time required by all the operations
-supported by our index structure.
-In this analysis we assume that the index is built by partitioning first in the time dimension,
-and then in the duration dimension.
-The choice of the order of this partitioning affects the practical performance, as we will discuss
-in Section~\ref{sec:experiments} (Figure~\ref{fig:param-dependency}).
-\mc
-Nonetheless, the results in this section hold for both dimension orderings.
+supported by our index structure. In this analysis we assume that the index
+is built by partitioning first in the time dimension, and then in the
+duration dimension. The choice of the order of this partitioning affects the
+practical performance, as we will discuss in Section~\ref{sec:experiments}
+(Figure~\ref{fig:param-dependency}). Nonetheless, the results in this
+section hold for both dimension orderings.
 
 \begin{theorem}
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
@@ -853,7 +856,7 @@ about heavy columns and cells.
 	where $k$ is the number of intervals matching the query predicate.
 \end{theorem}
 \begin{proof}
-	Let $\T = [\ts, \te)$ be the query interval, and $[d_{min}, d_{max}]$ be the duration range of the query.
+	Let $q.\T = [\TS, \TE)$ be the query interval, and $[\Dmin, \Dmax]$ be the duration range of the query.
 	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same start time or duration.
 	A range-duration query defines a \emph{query polygon} in the start time $\times$ duration space, as depicted in Figure~\ref{fig:example-grid}.
@@ -1030,7 +1033,7 @@ duration with \qrd (Range-Duration queries), queries constraining only the time 
 In particular, we run the following type of query:
 \begin{lstlisting}[basicstyle=\ttfamily, mathescape=true]
 SELECT COUNT(*) FROM relation
- WHERE $\ts < \bar{t}_{end}$ AND $\bar{t}_{start} < \te$
+ WHERE $\TS < \bar{t}_{end}$ AND $\bar{t}_{start} < \TE$
    AND $d_{min} \le |T|$ AND $|T| \le d_max$;
 \end{lstlisting}
 where $[\bar{t}_{start}, \bar{t}_{end})$ is the range constraint and
