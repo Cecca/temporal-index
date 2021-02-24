@@ -122,11 +122,11 @@
 
 \begin{abstract}
 	Temporal information plays a crucial role in many database applications, however support for queries on such data is limited.
-	We present an index structure to support queries of temporal intervals constraining both the range, i.e. the position along the timeline, and the duration of the interval.
-	Our data structure features provable bounds on the running time of all the operations, and allows for a simple implementation, sports very predictable query performance.
-	We benchmark our implementation on a variety of datasets and query workloads, investigating both the query rate and the behaviour of the individual queries.
+	We present an index structure to support \emph{range-duration queries} over temporal intervals constraining both the \emph{range}, i.e. the position along the timeline, and the \emph{duration} of the interval.
+	Our data structure features provable bounds on the running time of all the operations, allows for a simple implementation, and sports very predictable query performance.
+	We benchmark our implementation on a variety of datasets and query workloads, investigating both the query rate and the behavior of the individual queries.
 	Our experimental evaluation shows that, compared to other data structures, our index indeed better supports range-duration queries.
-	While other data structures are faster on specialized workloads constraining only the duration or the range, overall our data structure expresses the best compromise across all tested workloads.
+	While other data structures are faster on specialized workloads constraining only the duration or only the range, overall our data structure expresses the best compromise across all tested workloads.
 \end{abstract}
 
 \maketitle
@@ -166,7 +166,7 @@ All these approaches focus on handling temporal intervals, but concentrate on th
 %
 As a result, index structures to support more general selection queries with constraints on both the duration and the position in time of intervals have been missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17} until recently~\cite{BehrendDGSVRK_SSTD19_period-index}.	
 
-This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formuluate queries.
+This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formulate queries.
 For instance, consider the following queries from different application scenarios:
 \begin{itemize}
 	\item[$Q2$:] \emph{"In a database of flights, find all the aircrafts that were flying between 10:00 and 14:00."}
@@ -174,6 +174,8 @@ For instance, consider the following queries from different application scenario
     that have not been modified for more than two years."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
+
+\ad{Should we use three queries from one application to make it more symmetric and show that indeed also in one application domain all three classes are useful? and then introduce the same query classes for other application domains?}
 
 
 % For instance, applications that offer
