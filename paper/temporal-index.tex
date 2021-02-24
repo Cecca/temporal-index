@@ -311,7 +311,7 @@ leaf level using all start and end points in a relation, and recursively merges 
     approach is not yet clear to me.} \ad{I would remove this work} }
 
 Very recently, Behrend et al.~\cite{BehrendDGSVRK_SSTD19_period-index}
-proposed an index expliticly supporting range-duration queries. Such index,
+proposed an index explicitly supporting range-duration queries. Such index,
 named \algo{Period-Index*}, partitions the time domain into \emph{buckets},
 assigning an interval to all the buckets it intersects. Within each bucket,
 intervals are further partitioned in \emph{levels} according to their
@@ -323,11 +323,15 @@ the durations of the intervals. As we shall see, our index structure removes
 this assumption, supporting databases with arbitrary distributions of
 durations.
 
-{\color{red}
-Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
-Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
-The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance. 
-}
+\ad{The following is newly rewritten:}
+
+In a two dimensional space, intervals can be represented as 2D points, where one dimension is the start point and the second dimension is either the end point or the duration of an interval. In this two dimensional space, a selection query with the overlap predicate corresponds to a selection query over a 2D area. \ad{probably also range-duration query} For this, multidimensional indices can be used to find the relevant intervals. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are multidimensional indices that grouping objects in a multidimensional space using minimum bounding (hyper) rectangles. Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are tree structures that recursively divide the space into partitions and place objects into the best fitting partition according to some criteria. \ad{Here we need to mention the drawbacks with regard to our approach.}
+
+% {\color{red}
+% Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
+% Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are a different variant of multidimensional indices. The main idea of these trees is to recursively divide the space into disjoint partitions and to place objects into the best fitting partitions based on some criteria, such as fill factor of partitions or size of partitions.
+% The main issue of these approaches is that they suffer from additional dimensions, which substantially reduces their performance.
+% }
 
 Another multidimensional index is the grid file\cite{DBLP:journals/tods/NievergeltHS84}. In the context of time intervals, the idea is to partition the span of durations and of starting times into cells of equal width, thus allowing efficient access to both dimensions. The main drawback of this data structure is that in case of skewed distributions of data the load of the cells is unequal.
 
