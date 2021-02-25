@@ -35,20 +35,19 @@
 		\node [style=firstbucket] (35) at (3, -1.75) {first column};
 		\node [style=secondbucket] (36) at (12, -1.75) {second column (heavy)};
 		\node [style=thirdbucket] (39) at (21, -1.75) {third column};
+		\node [style=new style 0] (40) at (25, 0) {x};
 	\end{pgfonlayer}
 	\begin{pgfonlayer}{edgelayer}
 		\draw [style=jump, in=120, out=60, looseness=0.75] (2) to (10);
-		\draw [style=jump] (9) to (12);
 		\draw [style=jump, bend left=45] (12) to (18);
 		\draw [style=jump, bend right=75, looseness=1.50] (18) to (20);
 		\draw [style=jump, bend right=75, looseness=1.50] (20) to (19);
-		\draw [style=jump] (19) to (21);
-		\draw [style=jump, bend left=60] (21) to (27);
+		\draw [style=jump, bend right=75, looseness=1.50] (19) to (21);
 		\draw [style=jump, in=-60, out=-120, looseness=1.50] (10) to (11);
 		\draw [style=jump, bend left=75, looseness=1.50] (11) to (12);
-		\draw [style=jump, bend left=75, looseness=1.50] (12) to (9);
 		\draw (32.center) to (33.center);
 		\draw (30.center) to (31.center);
 		\draw (28.center) to (29.center);
+		\draw [style=jump, bend left=60] (21) to (40);
 	\end{pgfonlayer}
 \end{tikzpicture}

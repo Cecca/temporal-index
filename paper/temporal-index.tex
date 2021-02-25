@@ -56,6 +56,26 @@
 \newcommand{\argmax}{\operatorname{argmax}}
 \newcommand{\argmin}{\operatorname{argmin}}
 
+% Algorithms ---------------------------
+
+\newcommand{\Tuples}{\texttt{tuples}\xspace}
+\newcommand{\Tuplesi}[1]{\texttt{tuples[#1]}\xspace}
+\newcommand{\Column}{\texttt{column}\xspace}
+\newcommand{\Colbounds}{\texttt{col\_bounds}\xspace}
+\newcommand{\Colboundsi}{\texttt{col\_bounds[i]}\xspace}
+\newcommand{\Cell}{\texttt{cell}\xspace}
+\newcommand{\Cellbounds}{\texttt{cell\_bounds}\xspace}
+\newcommand{\Cellboundsij}{\texttt{cell\_bounds[i][j]}\xspace}
+\newcommand{\Grid}{\texttt{grid}\xspace}
+\newcommand{\Gridij}{\texttt{grid[i][j]}\xspace}
+\newcommand{\LatestEnds}{\texttt{latest\_end}\xspace}
+\newcommand{\LatestEndsi}{\texttt{latest\_end[i]}\xspace}
+\newcommand{\LatestEndsPrev}{\texttt{latest\_end[i-1]}\xspace}
+\newcommand{\MaxDurations}{\texttt{max\_durations}\xspace}
+\newcommand{\MaxDurationsij}{\texttt{max\_durations[i][j]}\xspace}
+
+
+
 \definecolor{firstcolor}{HTML}{FDE725}
 \definecolor{secondcolor}{HTML}{7AD151}
 \definecolor{thirdcolor}{HTML}{22A884}
@@ -564,66 +584,78 @@ $R$ it belongs to.
 \end{figure*}
 
 \begin{algorithm}[t]
-	\caption{\textsc{BuildIndex}$(I, s)$\label{alg:build-index}}
-	\KwIn{A collection of intervals $I$; the page size parameter $s$}
+	\caption{\textsc{BuildIndex}$(\Tuples, s)$\label{alg:build-index}}
+	\KwIn{An array of $\Tuples$; the page size parameter $s$}
 	\KwOut{A grid $G$ partitioning intervals first by time, then by duration;
 	a sorted collection of column boundaries $t_s^i$; a sorted collection of cell
 	boundaries $d_{max}^{ij}$ for each column $i$}
 
-	\mc{Keep the tuples in the mapping}
+	\BlankLine
+	\Let{\Grid}{two-dimensional array of columns and cells}\;
+	\Let{\Colbounds}{array to store bounds between columns}\;
+	\Let{\LatestEnds}{array containing the latest start time each column and all the preceding ones}\;
+	\Let{\Cellbounds}{two-dimensional array to store bounds between cells in each column}\;
+	\Let{\MaxDurations}{two-dimensional array storing the maximum duration in each cell}\;
 
 	\BlankLine
-
-	Sort $I$ by start time\;
-	\Let{$h$}{$0$}\;
-	\Let{$i$}{$0$}\;
-	\While{$h < |I|$}{
+	Sort $\Tuples$ by interval start time\;
+	\Let{$h$}{$0$} \algocomment{position in \Tuples}\;
+	\Let{$i$}{$0$} \algocomment{column index}\;
+	\While{$h < |\Tuples|$}{
 		\nllabel{line:column-break}
-		\Let{$h'$}{\algo{NextBreakpoint}$(I, h, s^2, \T \rightarrow \TE)$}\;
-		\Let{$\TE^{i}$}{$\displaystyle\argmax_{\T \in I[0..h']} \TE$} \algocomment{maximum end time in all the columns, including the current one}\;
-		\Let{$\TS^{i}$}{$(I_{h'})_s$} \algocomment{maximum start time in column} \;
-		\Let{$I'$}{$I_{h..h'}$}\;
-		Sort $I'$ by duration\;
+		\Let{\Column}{\algo{NextSubseq}$(\Tuples, h, s^2, \rT \rightarrow \rTS)$}\;
+		\Let{\Colboundsi}{$\max\{\rTS : r \in \Column\}$}\;
+		\Let{\LatestEndsi}{
+			$\max\{\LatestEndsPrev, \{\rTE : r \in \Column\}\}$
+		}\;
 
-		\Let{$k$}{$0$}\;
-		\Let{$j$}{$0$}\;
-		\While{$k < |I'|$}{
+		Sort \Column by duration\;
+
+		\Let{$k$}{$0$} \algocomment{position in \Column}\;
+		\Let{$j$}{$0$} \algocomment{cell index}\;
+		\While{$k < |\Column|$}{
 			\nllabel{line:cell-break}
-			\Let{$k'$}{\algo{NextBreakpoint}$(I', k, s, \T \rightarrow |\T|)$}\;
-			\Let{$\dmin^{ij}$}{$|I_{k}|$}\algocomment{minimum duration in the cell}\;
-			\Let{$\dmax^{ij}$}{$|I_{k'}|$}\algocomment{maximum duration in the cell}\;
-			\Let{$G_{ij}$}{$I'_{k..k'}$, sorted by end time}\;
+			\Let{\Cell}{\algo{NextSubseq}$(\Column, k, s, \rT \rightarrow |\rT|)$}\;
+			Sort \Cell by end time\;
+			\Let{\Gridij}{\Cell}\;
+			\Let{\Cellboundsij}{$\min\{|\rT| : r \in \Cell\}$}\;
+			\Let{\MaxDurationsij}{$\max\{|\rT| : r \in \Cell\}$}\;
 			\Let{$j$}{$j+1$}\;
-			\Let{$k$}{$k'+1$}\;
+			\Let{$k$}{$k + |\Cell|$}\;
 		}
-		\Let{$h$}{$h' + 1$}\;
 		\Let{$i$}{$i + 1$}\;
+		\Let{$h$}{$h + |\Column|$}\;
 	}
 
-	\Return $G$\;
+	\Return \Grid\;
 \end{algorithm}
 
 \begin{algorithm}[t]
-	\caption{\textsc{NextBreakpoint}$(I, h, b, k)$\label{alg:next-breakpoint}}
-	\KwIn{A collection of intervals $I$, sorted according to the key function $k$; the current index $h$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
-	\KwOut{The next split index in the collection $I$}
-	\mc{Return a set instead of the index}
+	\caption{\textsc{NextSubseq}$(\Tuples, h, b, k)$\label{alg:next-breakpoint}}
+	\KwIn{
+		A collection of $\Tuples$, sorted according to the key function $k$;
+	    the current index $h$; 
+		a subsequence size $b$;
+	    a \emph{key} function $k: \Tuples \to \domT$
+	}
+	\KwOut{A subsequence of \Tuples starting from position $h$, either of size $\le b$ or all having the same key}
 
-	\Let{$h'$}{$\min\{h + b, |I| - 1\}$}\;
-	\uIf{$k(I_h) = k(I_{h'})$} {
+	\BlankLine
+	\Let{$h'$}{$\min\{h + b, |\Tuples|\}$}\;
+	\uIf{$k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
 		\nllabel{line:heavy-bucket}
 		{\footnotesize look for the last interval with the same key:}\;
-		\lWhile{$h' < |I| \wedge k(I_h) = k(I_{h'+1})$} {
+		\lWhile{$h' < |\Tuples| \wedge k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
 			\Let{$h'$}{$h'+1$}
 		}
 	} \Else {
 		\nllabel{line:split-bucket}
 		{\footnotesize look backwards for the first interval with a different key:}\;
-		\lWhile{$h' > h \wedge k(I_{h'}) = k(I_{h'+1})$} {
+		\lWhile{$h' > h \wedge k(\Tuplesi{h'-1}) = k(\Tuplesi{h'})$} {
 			\Let{$h'$}{$h'-1$}
 		}
 	}
-	\Return $h'$\;
+	\Return $\{\R_{h..h'}\}$\;
 \end{algorithm}
 
 Our grid structure partitions the dataset first along either the start

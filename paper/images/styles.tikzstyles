@@ -8,6 +8,7 @@
 \tikzstyle{firstbucket}=[fill=none, draw=none, shape=circle, minimum size=0, inner sep=0, text={rgb:red,230;green,159;blue,0}]
 \tikzstyle{secondbucket}=[fill=none, draw=none, shape=circle, minimum size=0, inner sep=0, text={rgb:red,86;green,180;blue,233}]
 \tikzstyle{thirdbucket}=[fill=none, draw=none, shape=circle, minimum size=0, inner sep=0, text={rgb:red,0;green,158;blue,115}]
+\tikzstyle{new style 0}=[fill=white, draw=none, shape=circle]
 
 % Edge styles
 \tikzstyle{jump}=[->]
