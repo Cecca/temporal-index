@@ -413,6 +413,7 @@ tuples, where each tuple has a value in the appropriate domain for
 each attribute in the schema. We use $r.A_i$ to denote the value of
 attribute $A_i$ in tuple $r$.  We use the abbreviations
 $\A = \{ \args{A}{m} \}$ and $r.\A = (\args{r.A}{m})$.
+\mc{When we have a relation we use capital letters, for the queries we use lowercase letters}
 
 
 \subsection{Temporal Queries}
@@ -572,6 +573,8 @@ $R$ it belongs to.
 	a sorted collection of column boundaries $t_s^i$; a sorted collection of cell
 	boundaries $d_{max}^{ij}$ for each column $i$}
 
+	\mc{Keep the tuples in the mapping}
+
 	\BlankLine
 
 	Sort $I$ by start time\;
@@ -607,6 +610,7 @@ $R$ it belongs to.
 	\caption{\textsc{NextBreakpoint}$(I, h, b, k)$\label{alg:next-breakpoint}}
 	\KwIn{A collection of intervals $I$, sorted according to the key function $k$; the current index $h$; a bucket size $b$; a \emph{key} function $k: I \to \domT$}
 	\KwOut{The next split index in the collection $I$}
+	\mc{Return a set instead of the index}
 
 	\Let{$h'$}{$\min\{h + b, |I| - 1\}$}\;
 	\uIf{$k(I_h) = k(I_{h'})$} {
@@ -1158,7 +1162,7 @@ their start time distribution show similar performance.
 	\Description{Time versus selectivity}
 \end{figure*}
 
-We investigate the relationship between the selectivity of the queries (i.e. the fraction of the
+We investigate the relationship between the selectivity of queries (i.e. the fraction of the
 input that satisfies them) and the time taken by different data structures to answer them.
 Given that range-duration queries constrain both the time and the duration ranges,
 for a query $q$ we can define the \emph{time selectivity} as the fraction of the input that
@@ -1175,18 +1179,24 @@ we measure the time taken to repeat a given query 100 consecutive times, which d
 gives an estimate of the time required by the query.
 
 Figure~\ref{fig:selectivity-grid} reports results for such a setup, with 1024 queries arranged in a 32$\times$32
-grid, running on the \dataset{UZ Synthetic} dataset. Colors encode the time required by queries having
+grid, running on the \dataset{UZ Synthetic} dataset. In the top row of plots, colors encode the time required by queries having
 a particular combination of selectivity in the time and duration dimensions.
+In the bottom row of plots, colors encode the fraction of the datasets inspected by each query.
 When reading Figure~\ref{fig:selectivity-grid}, remember that less selective queries require more time
 just to iterate through the output.
 Interestingly, different data structures exhibit different patterns in this plot, as a result
 of how they access data.
-The \algo{interval-tree} plot exhibits vertical bands: the data structure is only able to select intervals
-based only on their position on the timeline, therefore for a fixed time selectivity of the query
-the time employed to filter in the duration dimension does not depend on the selectivity of the query,
+First and foremost, we note that each data structure has similar patterns
+both in the top and the bottom plot, since the time to answer a query is
+tightly related to fraction of intervals inspected.
+
+The \algo{interval-tree} plot exhibits vertical bands: the data structure is able to select intervals
+only based on their position on the timeline, therefore for a fixed time selectivity of the query
+the fraction of intervals inspected (and thus the time to answer the query)
+do not depend on the selectivity in the duration dimension,
 since all the candidate intervals need to be examined.
 For similar reasons, \algo{b-tree} shows horizontal bands.
-The data structures that explicitly index both dimensions, instead, tend to exhibit a more \emph{diagonal}
+Data structures that explicitly index both dimensions, instead, tend to exhibit a more \emph{diagonal}
 pattern, in particular \ours.
 The pattern exhibited by \algo{period-index*} tends to be more similar to the \algo{interval-tree}.
 This means that this index is more responsive to queries that are selective in the time dimension.
