@@ -35,6 +35,15 @@ plot_scalability <- function(data_scalability) {
 }
 
 plot_parameter_dependency <- function(data_parameter_dependency) {
+    distinct_values <- tribble(
+        ~dataset_name, ~distinct_values,
+        "random-uniform-zipf", 6319382,
+        "random-zipf-uniform", 1955006
+    ) %>%
+    mutate(
+        threshold = sqrt(distinct_values)
+    )
+
     plotdata <- data_parameter_dependency %>%
         mutate(start_times_distribution = case_when(
             start_times_distribution == "uniform" ~ "skewed durations",
@@ -42,17 +51,25 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
             T ~ start_times_distribution
         )) %>%
         group_by(start_times_distribution, workload_type) %>%
-        mutate(ratio_to_best = qps / max(qps))
+        mutate(ratio_to_best = qps / max(qps)) %>%
+        inner_join(distinct_values) %>%
+        mutate(
+            one_column = page_size >= threshold
+        )
+
+
     inner <- function(toplot) {
         ggplot(
             toplot,
             aes(
                 x = page_size,
                 y = drop_units(ratio_to_best),
-                color = algorithm_name
+                color = algorithm_name,
+                shape = one_column
             )
         ) +
             geom_rangeframe(color = "black") +
+            geom_line(aes(group = algorithm_name), linetype = "dotted") +
             geom_point() +
             geom_line() +
             scale_x_continuous(trans = "log10", limits = c(1, NA)) +
@@ -66,6 +83,7 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
                 vars(start_times_distribution),
                 scales = "free"
             ) +
+            guides(shape = F) +
             labs(
                 x = "page size",
                 y = "queries per second (ratio to best)",
