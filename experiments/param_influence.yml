@@ -38,4 +38,4 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [1, 10, 100, 1000, 10000]
+        page_size: [1, 10, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 250, 400, 500, 600, 700, 800, 900, 1000, 2000, 2500, 5000, 10000]
