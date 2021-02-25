@@ -658,10 +658,12 @@ $R$ it belongs to.
 	\Return $\{\R_{h..h'}\}$\;
 \end{algorithm}
 
-Our grid structure partitions the dataset first along either the start
-time or duration dimension, and then along the other. The choice of
+Our grid structure partitions an array of tuples first along either the start
+time or duration dimensions of the intervals, and then along the other. 
+The choice of
 which dimension to index first may impact the performance of the
-index, depending on the query workload and the data distribution.  In
+index, depending on the query workload and the data distribution, as we shall
+see in Section~\ref{sec:experiments}.  In
 the following we assume that the start time dimension is partitioned
 first, followed by the duration dimension.  All the descriptions,
 considerations, and proofs also hold with the dimensions swapped.
@@ -674,6 +676,7 @@ considerations, and proofs also hold with the dimensions swapped.
 % set to the disk block size. In a main memory scenario, it could be
 % set such that a cell fits in a cache line.
 %
+Let $s$ be the \emph{page size} parameter.
 We divide the intervals into \emph{columns} based on their start time
 with two goals: all the intervals with the same start time should be
 in the same column, and each column should have at most $s^2$
@@ -687,34 +690,37 @@ cells of $s$ elements each\footnote{We could use two separate
   analysis and implementation.}.
 
 The pseudocode to partition the intervals in this way is depicted in
-Algorithm~\ref{alg:build-index}. First, we sort all the intervals by
-increasing start time. Then, we proceed to defining the columns iteratively,
-defining breakpoints in the collection of input intervals, starting at $0$.
-Using Algorithm~\ref{alg:next-breakpoint} we define a range of intervals that
-will be grouped in the same column. In particular, we look at the interval
+Algorithm~\ref{alg:build-index}. Let \Tuples be an array of all the
+tuples to be indexed.
+First, we sort \Tuples by
+increasing start time. 
+Using Algorithm~\ref{alg:next-breakpoint} we define a range of tuples in
+the sorted array that
+will be grouped in the same column. In particular, we look at the tuple
 $s^2$ positions away from the current one (line~\ref{line:column-break}). If
-the two intervals have the same start time, then we scan forward until we
-find the last interval with the same start time
-(line~\ref{line:heavy-bucket}). Note that in this case all the intervals in
+the two tuples have intervals with the same start time, then we scan forward until we
+find the first interval with a different start time
+(line~\ref{line:heavy-bucket}). Note that in this case all the tuples in
 the column will have the same start time, and since it has more than $s^2$
-intervals we deem it \emph{heavy}. Otherwise, if the two intervals have
-different start times, we scan backwards until the breakpoint interval and
-the immediately next one have different start times, to make sure that the
+intervals we deem it \emph{heavy}. Otherwise, if the two tuples have
+intervals with different start times, we scan backwards until the 
+the current tuple and the previous one have different start times,
+to make sure that the
 breakpoint does not split in two a contiguous run of equal start times
 (line~\ref{line:split-bucket}). Note that in this case the column will
 contain at most $s^2$ intervals.
 
-Once we found the boundaries of the current column, its intervals are
+Once the current column as been defined, its tuples are
 sorted by increasing duration. At this point, we proceed similarly to
 find the breakpoints between cells of the column
-(line~\ref{line:cell-break}): starting from the first interval of the
-column, we look at the interval $s$ position away, scanning forward if
-we are looking at a run of more than $s$ intervals with the same
+(line~\ref{line:cell-break}): starting from the first tuple of the
+column, we look at the tuple $s$ position away, scanning forward if
+we are looking at a run of more than $s$ tuples with the same
 duration (thus defining a \emph{heavy cell}), or backward in order not
-to split runs of same-duration intervals. Once a cell is identifies
-this way, its intervals are sorted by end time, and we proceed to the
+to split runs of same-duration tuples. Once a cell is identifies
+this way, its tuples are sorted by end time, and we proceed to the
 next cell. After processing an entire column, we move to the
-next. Along with the grouping of intervals into columns and cells,
+next. Along with the grouping of tuples into columns and cells,
 during the execution of the algorithm we collect some ancillary
 information: the maximum start time and maximum end time of each
 column\mc{this is to fix} (respectively denoted $\TS^i$ and $\TE^i$
