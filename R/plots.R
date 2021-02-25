@@ -35,41 +35,50 @@ plot_scalability <- function(data_scalability) {
 }
 
 plot_parameter_dependency <- function(data_parameter_dependency) {
-    data_parameter_dependency %>%
-    mutate(start_times_distribution = case_when(
-        start_times_distribution == "uniform" ~ "skewed durations",
-        start_times_distribution == "zipf" ~ "skewed start times",
-        T ~ start_times_distribution
-    )) %>%
-    ggplot(
-        aes(
-            x = page_size,
-            y = drop_units(qps),
-            color = algorithm_name
-        )
-    ) +
-        geom_rangeframe(color = "black") +
-        geom_point() +
-        geom_line() +
-        scale_x_continuous(trans = "log10", limits = c(10, NA)) +
-        scale_y_continuous(trans = "identity", labels = scales::number_format(), limits = c(NA, NA)) +
-        scale_color_tableau() +
-        facet_grid(
-            vars(workload_type),
-            vars(start_times_distribution),
-            scales = "free"
+    plotdata <- data_parameter_dependency %>%
+        mutate(start_times_distribution = case_when(
+            start_times_distribution == "uniform" ~ "skewed durations",
+            start_times_distribution == "zipf" ~ "skewed start times",
+            T ~ start_times_distribution
+        )) %>%
+        group_by(start_times_distribution, workload_type) %>%
+        mutate(ratio_to_best = qps / max(qps))
+    inner <- function(toplot) {
+        ggplot(
+            toplot,
+            aes(
+                x = page_size,
+                y = drop_units(ratio_to_best),
+                color = algorithm_name
+            )
         ) +
-        labs(
-            x = "page size",
-            y = "queries per second",
-            color = "algorithm"
-        ) +
-        theme_paper() +
-        theme(
-            legend.position = "bottom",
-            legend.direction = "horizontal",
-            # axis.line = element_line()
-        )
+            geom_rangeframe(color = "black") +
+            geom_point() +
+            geom_line() +
+            scale_x_continuous(trans = "log10", limits = c(1, NA)) +
+            scale_y_continuous(
+                trans = "identity", 
+                labels = scales::number_format(accuracy = 0.1, limits = c(NA, NA))
+            ) +
+            scale_color_tableau() +
+            facet_grid(
+                vars(workload_type),
+                vars(start_times_distribution),
+                scales = "free"
+            ) +
+            labs(
+                x = "page size",
+                y = "queries per second (ratio to best)",
+                color = "algorithm"
+            ) +
+            theme_paper() +
+            theme(
+                legend.position = "bottom",
+                legend.direction = "horizontal",
+            )
+    }
+
+    inner(plotdata)
 }
 
 plot_real_distribution <- function(data_start, data_duration) {
