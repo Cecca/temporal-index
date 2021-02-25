@@ -492,18 +492,6 @@ Our index efficiently supports the three following types of queries (defined as 
   }
 \end{figure}
 
-\begin{example}\label{example:queries}
-  Consider the following range-duration query on our example database
-  of flights: $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.
-  Figure~\ref{fig:example-intervals} reports a graphical
-  representation of the intervals in the table, along with the query.
-  The only flight matching the query is \texttt{N309AS}.  A range only
-  query with the same time range would return as answers flights
-  \texttt{N309AS} and \texttt{N431AS}.  A duration only query with
-  duration interval $[2h, 4h]$ would return as answers
-  \texttt{N207SY}, \texttt{N309AS}, and \texttt{N432YX}.
-\end{example}
-
 \section{Data Structure}
 
 \subsection{Overview}
