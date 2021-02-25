@@ -104,6 +104,7 @@ filter_synthetic <- function(data_batch) {
       str_detect(dataset_params, " n=10000000 "),
       # Filter out datasets used in scalability experiments
       !str_detect(dataset_params, "start_high=1000000000 "),
+      str_detect(queryset_params, " n=5000 "),
       !(queryset_params %in% c(
         "start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1 dur_dist_low=1 dur_dist_high=10000",
         "seed=23512 n=20000 start_low=1 start_high=10000000 dur_n=10000000 dur_beta=1",
@@ -223,8 +224,9 @@ table_parameter_dependency <- function() {
     filter(
       algorithm_name %in% c("rd-index-td", "rd-index-dt"),
       dataset_name %in% c("random-zipf-uniform", "random-uniform-zipf"),
-      !(queryset_name %in% c("random-clustered-zipf-uniform", "random-clustered-zipf-None")),
-      !(dataset_name == "random-zipf-uniform" & str_detect(queryset_name, "random-uniform-zipf"))
+      queryset_name %in% c("random-uniform-zipf-uniform", "random-None-uniform", "random-uniform-zipf-None"),
+      # !(queryset_name %in% c("random-clustered-zipf-uniform", "random-clustered-zipf-None")),
+      # !(dataset_name == "random-zipf-uniform" & str_detect(queryset_name, "random-uniform-zipf"))
     ) %>%
     mutate(
       algorithm_params = str_remove(algorithm_params, "dimension_order=.* "),
@@ -234,7 +236,7 @@ table_parameter_dependency <- function() {
     get_params(queryset_params, "q_") %>%
     filter(
       dataset_n == 10000000,
-      queryset_n == 20000,
+      queryset_n == 10000,
       na_or_in(q_dur_dist_high, c(10000)),
       na_or_in(q_start_high, c(10000000))
     ) %>%

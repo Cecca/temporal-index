@@ -40,7 +40,7 @@ latex_best <- function(data_best) {
                 format = "latex",
                 escape = FALSE
             )
-        ) %>%
+        ) %>% 
         mutate(
             algorithm_name = case_when(
                 algorithm_name == "period-index++" ~ "PI++",

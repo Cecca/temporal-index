@@ -1248,69 +1248,56 @@ This is especially true for duration-only queries (blue dots).
 	\Description{}
 \end{figure}
 
-To test the dependency of the query time on the \emph{page size} parameter, we consider
-a dataset with 10 million intervals with starting times both uniformly
-distributed between 0 and 10 million 
-and durations distributed according to a
-Zipf's law with $\beta = 1$; and a dataset of the same size with 
-Zipf-distributed start times and uniformly distributed durations.
-The aim is to investigate the influence of the parameters when the skew is either in the
-time or in the duration dimension.
-As for the query workload, we consider batches of 20\,000 \qrd, \qro, and \qdo queries.
+To test the dependency of the query time on the \emph{page size} parameter, 
+we consider two datasets with 10 million intervals each. The first datasets has 
+uniform start times and skewed durations (with Zipf distribution), the second
+has skewed start times and uniformly distributed durations.
+As for the query workload, we consider batches of 10\,000 \qrd, \qro, and \qdo queries.
+The aim is to investigate the influence of the parameters in different scenarios, in particular the influence
+of the order in which dimensions are indexed.
+We vary the page size between 1 and 10\,000. Note that, due to the size of the dataset, any page size above 
+$\sqrt{10\cdot 10^6} \approx 3\,162$ results in a degenerate configuration where
+there is a single column containing all the intervals. In this case the intervals are 
+partitioned according to a single dimension, with the number of cells controlled by the page size parameter.
+This situation might happen also at lower values of the page size parameter, depending on the number 
+of distinct values in the dimension being partitioned.
+On the other hand, for page size $1$, each cell of the grid contains all and only intervals with the
+same start time and duration. Querying the data structure in this case amounts to performing binary searches
+directly on the values of the domains of start times and durations.
 
-Figure~\ref{fig:param-dependency} reports the results of varying the order of the dimensions
-index under these different workloads, in terms of queries per second.
+Figure~\ref{fig:param-dependency} reports the results of this experiment,
+in terms of queries per second. To ease the comparison between the subplots, we rescale
+the reported throughput by the highest value for a each combination of dataset and query workload.
+Degenerate configurations resulting in a single column are reported as triangles rather than dots.
+
 We observe very different trends for different query workloads.
-Consider first \qrd queries.
-For data with uniform start times we have that there is an optimal value for the page size, which
-is slightly smaller for the duration-time ordering.
-For larger values the performance degrades.
-If the start times are zipf-distributed, instead, the performance profile of the two orderings
-is very different: indexing first the time and then the duration favors selecting large values
-for the page size parameter, whereas indexing first the duration and then the start time shows
-the opposite behavior.
-A very similar trend can be observed for \qdo queries.
-On the other hand, for \qro queries the index performs best when larger pages are used, under both
-orderings.
+Consider first \qrd queries on the dataset with skewed durations.
+In this case, both orderings of dimensions exhibit a similar behavior, with peak performance
+reached by intermediate values of the page size.
+If we consider \qdo queries, instead, the profile changes. Indexing first by duration (blue line) slightly
+favors smaller page sizes, which imply smaller columns and thus a more fine grained access to the data.
+Indexing first by time, instead, requires a \qdo to traverse all the columns: in this scenario high page 
+sizes are favored, since they translate in fewer columns to be iterated through.
+For \qro we observe a symmetric pattern.
 
-The reason for this performance profile is to be found in the asymmetry of range-duration queries:
-when querying for a time range, grouping the intervals by duration can help in examining fewer intervals,
-since the overlap predicate can be rewritten as a function of the start time and the duration of the intervals;
-conversely, the query for a duration range does not benefit from a partitioning of the time domain, since
-the duration of an interval is independent of its position on the timeline.
-Therefore, when evaluating \qro queries we benefit from a finer partitioning
+When data has skew on the start times, instead, the patterns exhibited
+by the two indexing orders are rather different.
+First, we note that the gap between the best configurations of the two indexing orders is
+much wider than with the other dataset.
+Second, while the indexing first by duration exhibits a similar pattern on both datasets,
+indexing first by start time performs best in the degenerate case of a single column , 
+therefore with no partitioning of the start times at all.
+This might come as a surprise, but the reason lies in the asymmetry of the role that duration
+and timeline position have in queries.
+When querying for durations, the position of start times on the timeline does 
+not affect the outcome of a query.
+Conversely, a range query involves comparing both the start and the end time of intervals:
+such comparison can be rephrased in terms of start times and durations.
+Therefore, range queries can benefit from a partition of the duration dimension, since it
+implies a partition of the end times.
 
-
-
-If we move our attention, instead, to \qdo queries, we see
-that increasing the page size is detrimental, with performance staying approximately the
-same up until around page size 100.
-This is also in line with our expectations: a larger page size means a coarser partitioning
-of the dataset.
-All the intervals in cells in the same duration column are considered as being part of the output,
-therefore having less duration columns forces each query to evaluate more non-matching intervals,
-thus increasing the running time.
-
-Conversely, the performance improves with the page size for \qro queries.
-In this case having fewer duration columns means that fewer groups of cells
-will need to be queried, thus improving performance.
-
-\mc{
-\begin{itemize}
-\item For a fixed page size, the gap between the two orderings is up to
-  three orders of magnitude
-\item I can't explain the behaviour for time only queries\dots I would
-	expect the time-duration order to perform better at high page counts (as it does)
-	and the duration-time order to perform better at low/intermediate page
-	counts, since then we have few columns to explore
-\item It is true, however, that the time part of the query is also constrained
-	by the duration part of the query: to evaluate the overlap with the query
-	we have to consider both the start and end times, but their relationship is
-	dictated by the duration: in this respect having the partitioning by
-	duration also helps in reducing the number of evaluated intervals!
-\item From the figure we can see that the behaviour is dictated by the duration part of the queries
-\end{itemize}
-}
+Overall, we observe that indexing first by duration has either better or comparable performance compared to indexing by time first.
+Therefore, we recommend to choose the former ordering of dimensions when building an \ours.
 
 \section{Scalability with respect to the input size}
 \label{sec:scalability}
