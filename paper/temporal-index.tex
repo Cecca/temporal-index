@@ -1217,7 +1217,8 @@ gives an estimate of the time required by the query.
 Figure~\ref{fig:selectivity-grid} reports results for such a setup, with 1024 queries arranged in a 32$\times$32
 grid, running on the \dataset{UZ Synthetic} dataset. In the top row of plots, colors encode the time required by queries having
 a particular combination of selectivity in the time and duration dimensions.
-In the bottom row of plots, colors encode the fraction of the datasets inspected by each query.
+In the bottom row of plots, colors encode the fraction of the dataset inspected by each query.
+This metric allows a more implementation-independent assessment of the relative performance of different data structures.
 When reading Figure~\ref{fig:selectivity-grid}, remember that less selective queries require more time
 just to iterate through the output.
 Interestingly, different data structures exhibit different patterns in this plot, as a result
@@ -1246,25 +1247,21 @@ the \emph{overall} selectivity of the same queries.
 The performance is assessed in terms of the fraction of the input inspected
 by each query, which are represented as dots whose position along the $x$
 axis encodes their overall selectivity.
-Ideally, a data structure should answer the queries in time linearly dependent on the selectivity,
-irrespective of whether the query is more selective in the time or duration dimension.
-From the figure, we observe that \ours indeed shows the ideal behavior.
-This is consistent with the theoretical analysis: the query time depends on the
-output size plus some overhead proportional to the cell size, that can be amortized with
-the correct parameter choice (which we will discuss in the next section).
-Moreover, \ours is able to answer queries in a more timely fashion, compared to the other indices.
+Ideally, a data structure should answer queries by inspecting just the
+tuples which are parts of the output: such ideal behaviour is represented
+by the black diagonal Figure~\ref{fig:time-vs-selectivity}.
+From the figure, we observe that \ours indeed shows the ideal behavior,
+when parameters are configured optimally.
 
-As for the \algo{grid-file}, the query times are more scattered: the efficiency of a query
-in this case is in fact dependent on the density of the cells being considered.
+As for the \algo{grid-file}, since the efficiency in answering a query depends on the density of the cells being considered, the performance is in many cases far from ideal, which can be seen from the fact that several queries are far away from the ideal diagonal.
 
 Considering the \algo{b-tree} and \algo{interval-tree}, we have \qro and \qdo respectively
 are answered with the worst performance (i.e. they score 1 in Figure~\ref{fig:time-vs-selectivity}), as we expect given that they are answered
-by simple enumeration.
+by simple enumeration of the entire dataset.
 Other queries are answered with varying degrees of efficiency, with queries constraining
-just the dimension on which the index specializes exhibiting a close-to-ideal behavior.
+just the dimension on which the index specializes (duration for \algo{b-tree} and time for \algo{interval-tree}) exhibiting a the ideal behavior.
 
-Finally, \algo{period-index$\star$} answers queries with mixed performance, possibly as an effect of intervals
-being replicated across several cells.
+Finally, \algo{period-index$\star$} inspects the same tuples multiple times for the majority of queries. This is because the index is storing several copies of each tuple.
 As we observed previously, queries restricting only the time are the ones answered most efficiently
 by this data structure.
 
