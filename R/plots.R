@@ -13,16 +13,16 @@ plot_scalability <- function(data_scalability) {
         geom_point() +
         geom_line() +
         geom_rangeframe(color = "black") +
-        scale_x_log10(
+        scale_x_continuous(
             name = "dataset scale",
             labels = scales::number_format()
         ) +
-        scale_y_log10(
+        scale_y_continuous(
             name = "queries per second",
             labels = scales::number_format()
         ) +
         scale_color_tableau() +
-        facet_wrap(vars(dataset_name), ncol = 4) +
+        facet_wrap(vars(dataset_name), ncol = 4, scales="free_y") +
         theme_paper() +
         theme(
             legend.position = "top",
