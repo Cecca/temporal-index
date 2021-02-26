@@ -188,16 +188,12 @@ All these approaches focus on handling temporal intervals, but concentrate on th
 As a result, index structures to support more general selection queries with constraints on both the duration and the position in time of intervals have been missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17} until recently~\cite{BehrendDGSVRK_SSTD19_period-index}.	
 
 This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formulate queries.
-For instance, consider the following queries from different application scenarios:
+For instance, consider the following queries from the tourism application scenarios:
 \begin{itemize}
-	\item[$Q1$:] \emph{"In a database of flights, find all the aircrafts that were flying between 10:00 and 14:00."}
-	\item[$Q2$:] \emph{"In a source code repository, find all the files
-    that have not been modified for more than two years."}
+	\item[$Q1$:] \emph{"Find all the tourists who stayed in Bolzano the weekend of pentecost (June 8th--9th) 2019."}
+	\item[$Q2$:] \emph{"Find all the tourists who stayed in Bolzano for a short term (between 1-3 days)."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
-
-\ad{Should we use three queries from one application to make it more symmetric and show that indeed also in one application domain all three classes are useful? and then introduce the same query classes for other application domains?}
-\mc{Rephrase the queries in terms of tourism; also rephrase the running example in terms of tourism}
 
 % For instance, applications that offer
 % situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
@@ -212,9 +208,9 @@ $Q2$ imposes constraints on the duration of matching events,
 and we call it \emph{duration query}. 
 Finally, query $Q3$ constrains both types of information;
 we call it \emph{range-duration query}.
-Similar queries have been reported in
-other application scenarios, e.g., air traffic
-analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
+Similar queries can easily be found and have been reported in
+other application scenarios, such as source code repository analysis, or air traffic
+analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}, where we use the latter as a running example later on. \ad{If we change the running example to tourism data, then we have to change this last sentence.}
 
 As shown in the above examples, time periods can comprise information about
 their position on the timeline and the length of the period. However, index
