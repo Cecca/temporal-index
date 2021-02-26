@@ -190,23 +190,27 @@ As a result, index structures to support more general selection queries with con
 This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formulate queries.
 For instance, consider the following queries from different application scenarios:
 \begin{itemize}
-	\item[$Q2$:] \emph{"In a database of flights, find all the aircrafts that were flying between 10:00 and 14:00."}
-  \item[$Q1$:] \emph{"In a source code repository, find all the files
+	\item[$Q1$:] \emph{"In a database of flights, find all the aircrafts that were flying between 10:00 and 14:00."}
+	\item[$Q2$:] \emph{"In a source code repository, find all the files
     that have not been modified for more than two years."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
 
 \ad{Should we use three queries from one application to make it more symmetric and show that indeed also in one application domain all three classes are useful? and then introduce the same query classes for other application domains?}
-
+\mc{Rephrase the queries in terms of tourism; also rephrase the running example in terms of tourism}
 
 % For instance, applications that offer
 % situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
 % both to the duration and the position of events.
 
-The first query $Q1$ imposes constraints on the duration of matching events,
-and we call it \emph{duration query}. In contrast, query $Q2$ retrieves
+The first query 
+$Q1$ retrieves
 tuples based on the position of the events on the timeline; we call it
-\emph{range query}. Finally, query $Q3$ constrains both types of information;
+\emph{range query}. 
+In contrast, query 
+$Q2$ imposes constraints on the duration of matching events,
+and we call it \emph{duration query}. 
+Finally, query $Q3$ constrains both types of information;
 we call it \emph{range-duration query}.
 Similar queries have been reported in
 other application scenarios, e.g., air traffic
@@ -321,15 +325,6 @@ leaf level using all start and end points in a relation, and recursively merges 
 % with all sub-tree roots whose segment is completely covered by the
 % tuple's interval. Also this approach does not support queries that constrain the length of intervals.
 % }
-
-{\color{red} Le et al.~\cite{DBLP:conf/sigmod/LeLTC13} propose a
-  splitter for temporal and multi-version databases with the aim to
-  support load balancing for distributed computing. For a user-defined
-  number of buckets the goal is to efficiently find the optimal splits
-  by minimizing the number of intervals of the largest bucket, whereas
-  our goal is the computation of queries involving position and
-  duration of intervals in parallel. \jg{Here the difference to our
-    approach is not yet clear to me.} \ad{I would remove this work} }
 
 Very recently, Behrend et al.~\cite{BehrendDGSVRK_SSTD19_period-index}
 proposed an index explicitly supporting range-duration queries. Such index,
@@ -498,7 +493,9 @@ two.
 \begin{figure}
   \input{example.tex}
   \caption{Range-duration query on the example
-    table.  % The time range
+    table. 
+	\mc{use the same color (either gray or green) and then dashed lines. Constraint thin, tuple thick. Move label at top and constraint at bottom}
+	 % The time range
     % is constrained to be between 10:00 and 14:00, and the duration
     % is
     % constrained to be in $[2h, 4h]$.
@@ -622,8 +619,8 @@ $R$ it belongs to.
 	\BlankLine
 	\Let{\Grid}{two-dimensional array of columns and cells}\;
 	\Let{\Colbounds}{array to store bounds between columns}\;
-	\Let{\LatestEnds}{array containing the latest start time in each column and all the preceding ones}\;
-	\Let{\Cellbounds}{two-dimensional array to store bounds between cells in each column}\;
+	\Let{\LatestEnds}{array containing the latest end time in each column and all the preceding ones}\;
+	\Let{\Cellbounds}{two-dimensional array to store bounds between cells in each cell}\;
 	\Let{\MaxDurations}{two-dimensional array storing the maximum duration in each cell}\;
 
 	\BlankLine
@@ -856,7 +853,7 @@ Then the intervals in each of
 the two newly created cells are sorted by end time.
 
 As for the removal of a tuple $r$ from the index, we query the index to find
-the cell $G_ij$ containing $\rT$, removing the interval from the cell. As a
+the cell $\Gridij$ containing $\rT$, removing the interval from the cell. As a
 consequence the cell might be empty, in which case case we remove the cell
 from the column. Finally, if the removal of the cell results in an empty
 column, we remove the column.
@@ -1030,6 +1027,7 @@ In a similar way we can prove the following theorem.
 		datasets considered in this paper.\label{fig:data-distributions}}
 \end{figure*}
 
+\mc{Enumerate the competitors and fix the notation for the algorithm}
 In this section we compare experimentally our proposed index with alternative approaches.
 In particular, we aim to answer the following questions:
 \begin{enumerate}
@@ -1038,6 +1036,8 @@ In particular, we aim to answer the following questions:
 	\item How does the page size parameter affect the performance of the index? (Section~\ref{sec:param-dep})
 	\item How does the performance scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
 \end{enumerate}
+
+\subsection{Setup and datasets}
 
 To this end, we implemented our index, as well as some baseline competitors,
 using Rust 1.44.1. Our implementation, which is open source and available
@@ -1107,6 +1107,7 @@ write them to a file.
   % period-index++, with the notable exception of duration-only workloads,
   % where it is an order of magnitude slower, although the ranking remains the same.
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
+	\mc{Say the lighter the color the faster}
 		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination:
 		\crule[firstcolor]{.5em}{1em}~first,
 		\crule[secondcolor]{.5em}{1em}~second,
@@ -1194,6 +1195,7 @@ their start time distribution show similar performance.
 		intervals are examined.
 		Note that all the plots except for the one related to the 
 		\algo{PeriodIndex*} share the $y$ axis.
+		\mc{mention that the diagonal is the same for all}
 		\label{fig:time-vs-selectivity}}
 	\Description{Time versus selectivity}
 \end{figure*}
@@ -1290,6 +1292,8 @@ This is especially true for duration-only queries (blue dots).
 	\includegraphics[width=\columnwidth]{images/param_dependency.png}
 	\caption{Dependency of the performance, in terms of queries per second, on the
 		page size parameter.
+		\mc{Duration is more selective than range. If we add skewness we make it even worse! And of course we want to index the most selective dimension first}
+		\mc{Try also skew-skew and uniform uniform}
 		\label{fig:param-dependency}}
 	\Description{}
 \end{figure}
@@ -1344,8 +1348,9 @@ implies a partition of the end times.
 
 Overall, we observe that indexing first by duration has either better or comparable performance compared to indexing by time first.
 Therefore, we recommend to choose the former ordering of dimensions when building an \ours.
+\mc{Move to a more general part at the end of the analysis part}
 
-\section{Scalability with respect to the input size}
+\section{Real world-datasets}
 \label{sec:scalability}
 
 \begin{figure*}

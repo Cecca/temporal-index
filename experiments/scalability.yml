@@ -1,5 +1,7 @@
 ---
 
+# FIXME: Run on a linear range of sizes, not exponential
+
 # scalability experiments
 - mode:
     Batch
@@ -104,6 +106,7 @@
         range:
           - Pair: 
               - Scaled: 
+                  # FIXME! The query workload should stay the same across the 
                   inner: {Uniform: { low: 1, high: 6660 }}
                   scale: 1440
               # Up to one months
