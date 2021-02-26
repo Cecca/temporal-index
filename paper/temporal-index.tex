@@ -875,22 +875,19 @@ section hold for both dimension orderings.
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
 \end{theorem}
 \begin{proof}
-  Computing the bucket boundaries for the duration using
-  Algorithm~\ref{alg:define-boundaries} requires time $\BO{n\log n}$
-  for sorting (line~\ref{line:sorting}) and time $\BO{n}$ for
-  iterating through the sorted intervals to find the boundaries
-  (line~\ref{line:iterate}): in fact, each of the $n$ intervals is
+  Computing column boundaries for the duration requires
+  time $\BO{n\log n}$ for sorting the tuples, while invoking
+  Algorithm~\ref{alg:next-breakpoint} requires time 
+  $\BO{n}$ for iterating through the sorted intervals to find the boundaries: in fact, each of the $n$ intervals is
   visited at most once.
 
 	Let $n_i$ be the number of intervals in the $i$-th column.
-	Then, the invocation of Algorithm~\ref{alg:define-boundaries} to find cell boundaries
-	requires time $\BO{n_i \log n_i}$, following the same argument as above.
-	Therefore, the time for building the second level of the index is
-	\[
-          \BO{\sum_i n_i \log n_i}
-          \le \BO{\log n \cdot \sum_i n_i}
-          = \BO{n \log n}
-        \]
+	Sorting the column requires time $\BO{n_i\log n_i}$
+	Then, the invocation of Algorithm~\ref{alg:next-breakpoint} to find cell boundaries
+	requires time $\BO{n_i}$, following the same argument as above.
+	Similarly, let $n_{ij}$ be the size of cell $ij$. Sorting its tuples by end time requires time $\BO{n_{ij} \log n_{ij}}$.
+	Therefore, the time for running the inner loop is
+	$\BO{n \log n}$ overall,
 	and the theorem follows.
 \end{proof}
 
@@ -918,11 +915,11 @@ about heavy columns and cells.
 	where $k$ is the number of intervals matching the query predicate.
 \end{theorem}
 \begin{proof}
-	Let $q.\T = [\TS, \TE)$ be the query interval, and $[\dmin, \dmax]$ be the duration range of the query.
+	Let $\T = [\TS, \TE)$ be the query interval, and $[\dmin, \dmax]$ be the duration range of the query.
 	Recall that the index construction algorithm may create a heavy column or cell when it cannot break down a group of intervals
 	because they all share the same start time or duration.
 	A range-duration query defines a \emph{query polygon} in the start time $\times$ duration space, as depicted in Figure~\ref{fig:example-grid}.
-	For a given cell $G_{ij}$, we denote by $k_{ij}$ the number of intervals in $G_{ij}$ matching the query.
+	For a given cell $\Gridij$, we denote by $k_{ij}$ the number of intervals in $\Gridij$ matching the query.
 
 	The query time is comprised of two parts: first we have to index into the grid to find the correct
 	range of cells to query; second we have to filter the intervals in each cell to retrieve
@@ -940,12 +937,12 @@ about heavy columns and cells.
 		\BO{\frac{n}{s^2} \log\frac{n}{s}}
 	\]
 
-	Consider now the enumeration of the results from the cells. There are four possible cases for a cell $C$:
+	Consider now the enumeration of the results from the cells. There are four possible cases for a cell $\Gridij$:
 	\begin{enumerate}
 		\item Both the cell's durations range and start times range fall
 		within the query polygon. In such cell, the query constraints on the
 		duration and the start time are satisfied by construction. The
-		algorithm considers just the intervals of $G_{ij}$ which are part of
+		algorithm considers just the intervals of $\Gridij$ which are part of
 		the output (since it iterates over the cell's intervals by decreasing
 		end time). Therefore, the time spent enumerating intervals from the
 		cell is $\BO{k_{ij}}$.
@@ -1000,7 +997,7 @@ at the same time increasing the number of columns that need to be queried.
 	time $\BO{\log n/s + n/s + s^2 \log s}$.
 \end{theorem}
 \begin{proof}
-	Finding the cell that should contain $r.t$ requires time $\BO{\log\frac{n}{s^2}}$ to find the column, and
+	Finding the cell that should contain $\rT$ requires time $\BO{\log\frac{n}{s^2}}$ to find the column, and
 	time $\BO{\log\frac{n}{s}}$ to find the cell within the column (as in the worst case all the intervals
 	in the index have the same duration).
 
@@ -1008,9 +1005,10 @@ at the same time increasing the number of columns that need to be queried.
   they can contain more than $s^2$ (resp. $s$) intervals, as long as they all have
   the same start time (resp. duration).
   Therefore we consider only the case of splitting a non-heavy column or non-heavy cell.
-	Splitting a column with $2s^2 + 1$ intervals requires to find the median and
-	to apply Algorithm~\ref{alg:define-boundaries} on the
-	two newly defined columns, both operations that require time $\BO{s^2\log s^2}$.
+	Splitting a column with $2s^2 + 1$ intervals requires to find the median,
+	to sort the newly created columns, and
+	to apply Algorithm~\ref{alg:next-breakpoint} on them
+	operations which require time $\BO{s^2\log s^2}$ overall.
 	Furthermore, inserting the new column boundaries in order in the sorted array of boundaries requires
 	$\BO{\frac{n}{s^2}}$ time.
 	By similar reasoning, splitting a cell with $2s+1$ intervals requires time $\BO{s\log s}$,
@@ -1022,8 +1020,6 @@ In a similar way we can prove the following theorem.
 \begin{theorem}
 	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
 \end{theorem}
-
-\mc{Discuss the tradeoffs of the data structure, and then relate them to the experimental results.}
 
 \section{Experimental evaluation}
 \label{sec:experiments}
