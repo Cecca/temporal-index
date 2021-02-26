@@ -65,6 +65,7 @@
 \newcommand{\Colboundsi}{\texttt{col\_bounds[i]}\xspace}
 \newcommand{\Cell}{\texttt{cell}\xspace}
 \newcommand{\Cellbounds}{\texttt{cell\_bounds}\xspace}
+\newcommand{\Cellboundsi}{\texttt{cell\_bounds[i]}\xspace}
 \newcommand{\Cellboundsij}{\texttt{cell\_bounds[i][j]}\xspace}
 \newcommand{\Grid}{\texttt{grid}\xspace}
 \newcommand{\Gridij}{\texttt{grid[i][j]}\xspace}
@@ -572,8 +573,6 @@ $R$ it belongs to.
 \subsection{Index Construction}
 \label{sec:index-construction}
 
-\jg{Now the algorithm is much clearer, at least for me.}
-
 \begin{figure*}
 	\tikzfig{images/partition-example}
 	\caption{
@@ -658,8 +657,7 @@ $R$ it belongs to.
 		\Let{$h$}{$h + |\Column|$}\;
 	}
 
-	\Return \Grid\;
-        \jg{Should probably be \Return (\Grid, \Colbounds, \LatestEnds, \Cellbounds, \MaxDurations)\;}
+	\Return (\Grid, \Colbounds, \LatestEnds, \Cellbounds, \MaxDurations)\;
 \end{algorithm}
 
 Our grid structure partitions an array of tuples first along either the start
@@ -737,6 +735,8 @@ at query time to find the first cell to inspect, while \MaxDurations stores
 the maximum duration in each cell, which at query time will determine when to
 stop iterating through cells.
 
+Finally, tuples in each cell are sorted by the end time.
+
 \begin{figure}
   \input{example-grid.tex}
   \caption{Adaptive grid dividing the example set of flights into five
@@ -756,42 +756,56 @@ stop iterating through cells.
 
 \subsection{Querying the Index}
 
-Given a range-duration query $q$, recall that a tuple $r \in R$
+Given a range-duration query with time range $[\TS, \TE)$, 
+recall that a tuple $r \in \R$
 satisfies the query if the three following conditions are met:
 \begin{align}
-	 & |\rT| \in [\qD_{min}, \qD_{max}] \label{eq:duration-condition} \\
-	 & q.\TS < r.\TE                  \label{eq:start-condition}     \\
-	 & r.\TS < q.\TE                  \label{eq:end-condition}
+	 & |\rT| \in [\dmin, \dmax] \label{eq:duration-condition} \\
+	 & \TS < \rTE                  \label{eq:start-condition}     \\
+	 & \rTS < \TE                  \label{eq:end-condition}
 \end{align}
 
-The query algorithm is reported in Algorithm~\ref{alg:query}.
-First find the index of the last column in the start time dimension containing
-at least one interval satisfying condition~\ref{eq:end-condition}, by means 
-of binary search on the boundaries of the columns 
-Let this index be $i$.
-Then we inspect column $G_i$ and all the preceding columns, until we get to a column
-that cannot possibly contain intervals matching the query, because the latest end time 
-of that column \emph{and all the preceding ones}
-does not satisfy condition~\ref{eq:start-condition}.
-When inspecting a column, we look for the cell within the column with the largest 
-minimum duration, again by binary search.
-Then we scan the cells backward, util we get to a cell whose maximum duration is smaller than the
-$\dmin$ required by the query.
-For each interval contained in the visited cells, we scan the intervals by decreasing end time,
-until the end time no longer satisfies~\ref{eq:start-condition}, reporting
-all the intervals satisfying the query.
+The query pseudocode is reported in Algorithm~\ref{alg:query}.
+First, we find the index of the last column that can contain matching
+tuples.
+To this end, we perform a binary search on the array \Colbounds to find
+the last column $i$ such that the minimum start time in the column (which is the column bound) is strictly less than \TE, the query end time (line~\ref{line:search-column}).
+This ensures that the column contains at least one tuple satisfying
+condition \eqref{eq:end-condition}.
+Then, we iterate \emph{backwards} through columns until column $i$
+cannot possibly contain tuples satisfying the query.
+For this, we use the support array \LatestEnds: if
+$\LatestEndsi \le \TS$ then we know that all the columns at index $\le i$
+contain tuples stopping earlier than the start of the query range,
+hence we can avoid inspecting them because of condition~\eqref{eq:start-condition}.
+
+For each column that we consider, we perform a binary search on the array
+\Cellboundsi, looking for the last cell $j$ such that the minimum duration in
+the cell (which is the cell bound) is $\le$ to $\dmax$, the maximum duration
+in the query (line~\ref{line:search-cell}). Doing so ensures that at least
+one tuple in the cell satisfies the upper bound of condition
+\eqref{eq:duration-condition}. Then, we iterate backwards through the cells,
+until we reach a cell whose maximum duration is less than the minimum
+duration of the query. At this point we stop, since
+condition~\eqref{eq:duration-condition} can no longer be satisfied.
+
+Finally, we iterate through tuples of each considered cell by decreasing
+end time, stopping as soon as condition~\ref{eq:start-condition} is no longer
+satisfied (line~\ref{line:inner-break}), reporting all the intervals
+satisfying the query.
 
 \begin{algorithm}[t]
-  \caption{\textsc{Query}$(q))$\label{alg:query}}
-  \KwIn{A range duration query with time range $[\TS, \TE)$
-  and duration range $[\dmin, \dmax]$; An index \Grid with the ancillary arrays \Colbounds, \Cellbounds, \LatestEnds, and \MaxDurations}
+  \caption{\textsc{Query}\label{alg:query}} \KwIn{A range duration query with time range $[\TS, \TE)$ and duration range $[\dmin, \dmax]$; An index \Grid with the ancillary arrays \Colbounds, \Cellbounds, \LatestEnds, and \MaxDurations}
 
   \BlankLine
+	\nllabel{line:search-column}
   \Let{$i$}{$\argmax_{i} \Colboundsi < \TE$}\;
   \While{$i \ge 0 \wedge \TS < \LatestEndsi$} {
+	\nllabel{line:search-cell}
 	\Let{$j$}{$\argmax_{j} \Cellboundsij \le \dmax$}\;
 	\While{$j \ge 0 \wedge \MaxDurationsij \ge \dmin$}{
 		\For{$r \in \Gridij$}{
+			\nllabel{line:inner-break}
 			\If{$\rTE \le \TS$}{
 				\textbf{break}\;
 			}
