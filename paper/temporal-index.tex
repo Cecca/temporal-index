@@ -308,14 +308,10 @@ Our contributions can then be summarized as follows:
 
 \section{Related work}
 
-\ad{The following is newly rewritten:}
-
 The type of selection queries we are studying in this paper are queries with a conjunctive predicate, where one predicate in the conjunction restricts the position of intervals on the time line and the second the duration of intervals. In this section, we review indexing structures that are (partially) suitable for such selection queries, and also review structures similar to our approach that are used for interval joins.
 
 Edelsbrunner's Interval Tree~\cite{edelsbrunner80} is one of the most popular indexing structure for intervals, which is asymptotically optimal for selection queries involving the overlap predicate, and for which also an implementation using standard relational database technology using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00} exists. The shortcoming of this index is that, in contrast to our indexing structure, does not provide a mechanism to restrict the duration of intervals and thus can only solve one part of a range-duration query. A similar indexing structure is the segment tree~\cite{deBerg00}, which builds disjoint segments over intervals at the
 leaf level using all start and end points in a relation, and recursively merges segments in intermediate nodes on the tree. This data structure originally designed for point or time travel queries over intervals, also supports selection queries with the overlap predicate, but similar to the interval tree does not allow to restrict the duration of intervals at the same time.
-
-\ad{This is copy/paste from Period index paper}
 
 % {\color{red}
 % In the past, several data structures that support interval data have been proposed. One of the most popular structures is Edelsbrunner's Interval Tree~\cite{edelsbrunner80}, which is asymptotically optimal for temporal intervals and can be mapped into a relational database using B-tree indexes~\cite{DBLP:conf/vldb/KriegelPS00}. While the interval tree is efficient for range queries, it doesn't take into account the length of intervals.
@@ -338,8 +334,6 @@ distribution of start times, while it assumes a Zipf-like distribution for
 the durations of the intervals. As we shall see, our index structure removes
 this assumption, supporting databases with arbitrary distributions of
 durations.
-
-\ad{The following is newly rewritten:}
 
 In a two dimensional space, intervals can be represented as 2D points, where one dimension is the start point and the second dimension is either the end point or the duration of an interval. In this two dimensional space, a selection query with the overlap predicate corresponds to a selection query over a 2D area. \ad{probably also range-duration query} For this, multidimensional indices can be used to find the relevant intervals. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are multidimensional indices that grouping objects in a multidimensional space using minimum bounding (hyper) rectangles. Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are tree structures that recursively divide the space into partitions and place objects into the best fitting partition according to some criteria. \ad{Here we need to mention the drawbacks with regard to our approach.}
 
@@ -374,8 +368,6 @@ workloads.  Furthermore, we prove bounds on the worst case running
 times for all the operations,
 while~\cite{DBLP:conf/sigmod/NathanDAK20,
   DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
-
-\ad{The following paragraph is newly rewritten:}
 
 In recent years, algorithms for interval joins have been actively studied. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13} process sets of intervals as sorted events list of their start and end points, and compute the interval join by scanning these event lists in an interleaved fashion and thereby keeping and joining with a set of active intervals, i.e., intervals whose start, but not end point has been encountered. To improve the performance of the original linked list data structure to store active intervals, a gapless hash map has been proposed~\cite{DBLP:conf/icde/PiatovHD16} that provides a higher performance for scanning active intervals. The same idea has also been extended for joins over general Allen's predicates~\cite{DBLP:journals/vldb/PiaDHP21} rather than only overlap predicates. The work by Bouros and
 Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} computes an interval join using a forward scan based
