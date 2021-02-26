@@ -338,3 +338,20 @@ table_running_example <- function(query_range, query_duration) {
         int_overlaps(interval(departure, arrival), query_range)
     )
 }
+
+table_running_tourism <- function(query_range, query_duration) {
+  set.seed(1234)
+
+  raw_tourism <- read_csv(".datasets/tourism.csv.gz")
+  raw_tourism %>%
+    filter(year(arrival) == 2016) %>%
+    transmute(
+      start = arrival,
+      end = departure,
+      duration = as.numeric(end - start, "days"),
+      highlighted = F
+    ) %>%
+    filter(duration <= 50) %>%
+    sample_n(10000)
+}
+

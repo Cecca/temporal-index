@@ -476,35 +476,37 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
 }
 
 plot_running_example_plane <- function(data_running_example, query_range, query_duration, grid = FALSE) {
+    cell_size <- 30
+    column_size <- cell_size * cell_size
+
     p <- data_running_example %>%
         mutate(
             duration = as.double(duration)
         ) %>%
         ggplot(aes(
             y = duration,
-            x = departure
+            x = start
         )) +
         geom_point(
-            aes(color = highlighted, size = highlighted),
+            aes(color = highlighted, size = highlighted, alpha = highlighted),
+            position = position_jitter(0.01),
             show.legend = F
-        ) +
-        geom_point(
-            aes(color = highlighted, size = highlighted),
-            data = data_running_example %>% filter(highlighted),
-            show.legend = F
-        )
+        ) 
+        # geom_point(
+        #     aes(color = highlighted, size = highlighted),
+        #     data = data_running_example %>% filter(highlighted),
+        #     show.legend = F
+        # )
 
     # add the grid, if requested
     if (grid) {
         algo_grid <- data_running_example %>%
             ungroup() %>%
-            group_by(
-                col_id = ntile(departure, 5)
-            ) %>%
+            group_by(col_id = ntile(start, n() / column_size)) %>%
             mutate(
-                time_min = min(departure),
-                time_max = max(departure),
-                cell_id = ntile(duration, 5)
+                time_min = min(start),
+                time_max = max(start),
+                cell_id = ntile(desc(duration), n() / cell_size)
             ) %>%
             group_by(col_id, cell_id) %>%
             mutate(
@@ -519,50 +521,53 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
                 aes(xintercept = time_min),
                 data = algo_grid,
                 alpha = 1,
-                color = "steelblue",
-                size = 0.8
+                # color = "#56B4E9",
+                color = "black",
+                size = 0.5
             ) +
             geom_segment(
                 aes(
-                    y = duration_min, yend = duration_min,
+                    y = duration_min + 0.4, yend = duration_min + 0.4,
                     x = time_min, xend = time_max
                 ),
-                color = "steelblue",
+                color = "black",
                 data = algo_grid,
-                size = 0.8,
+                size = 0.5,
                 inherit.aes = F
             )
     }
-    p <- p + annotate(
-        geom = "polygon",
-        y = c(
-            query_duration[1],
-            query_duration[2],
-            query_duration[2],
-            query_duration[1]
-        ),
-        x = c(
-            int_end(query_range),
-            int_end(query_range),
-            int_start(query_range) - 3600 * query_duration[2],
-            int_start(query_range) - 3600 * query_duration[1]
-        ),
-        fill = "red",
-        color = "red",
-        size = 1,
-        alpha = 0.0
-    ) +
-        scale_color_manual(values = c("darkgray", "black")) +
+    p <- p + 
+    # annotate(
+    #     geom = "polygon",
+    #     y = c(
+    #         query_duration[1],
+    #         query_duration[2],
+    #         query_duration[2],
+    #         query_duration[1]
+    #     ),
+    #     x = c(
+    #         int_end(query_range),
+    #         int_end(query_range),
+    #         int_start(query_range) - 3600 * query_duration[2],
+    #         int_start(query_range) - 3600 * query_duration[1]
+    #     ),
+    #     fill = "red",
+    #     color = "red",
+    #     size = 1,
+    #     alpha = 0.0
+    # ) +
+        scale_color_manual(values = c("#56B4E9", "black")) +
         scale_size_manual(values = c(0.5, 2)) +
-        scale_x_datetime(
-            date_labels = "%H:%M",
-            date_breaks = "3 hours"
+        scale_alpha_manual(values = c(0.5, 1)) +
+        scale_x_date(
+            # date_labels = "%H:%M",
+            # date_breaks = "3 hours"
         ) +
         scale_y_continuous(
-            breaks = c(0, 2, 4, 6, 8, 10),
-            labels = scales::number_format()
+            # breaks = c(0, 2, 4, 6, 8, 10),
+            # labels = scales::number_format()
         ) +
-        labs(y = "duration (hours)", x = "departure time") +
+        labs(y = "duration (days)", x = "start time") +
         theme_minimal() +
         theme(
             text = element_text(size = 9),
@@ -574,3 +579,5 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
 
     p
 }
+
+plot_running_example_plane(data, query_range, query_duration, grid = T)

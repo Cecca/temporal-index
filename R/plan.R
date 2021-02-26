@@ -137,24 +137,24 @@ plan <- drake_plan(
     ),
   query_duration = c(2, 4),
 
-  data_running_example = table_running_example(
+  data_running_example = table_running_tourism(
     query_range, query_duration
   ),
 
-  figure_running_example = {
-    tikzDevice::tikz(
-      file = file_out("paper/example.tex"),
-      width = 3.3, height = 1.4
-    )
-    print(plot_running_example(
-      data_running_example, query_range, query_duration
-    ))
-    dev.off()
-  },
+  # figure_running_example = {
+  #   tikzDevice::tikz(
+  #     file = file_out("paper/example.tex"),
+  #     width = 3.3, height = 1.4
+  #   )
+  #   print(plot_running_example(
+  #     data_running_example, query_range, query_duration
+  #   ))
+  #   dev.off()
+  # },
 
-  latex_running_example = data_running_example %>%
-    latex_example() %>%
-    write_file(file_out("paper/example-table.tex")),
+  # latex_running_example = data_running_example %>%
+  #   latex_example() %>%
+  #   write_file(file_out("paper/example-table.tex")),
 
   figure_running_example_plane = {
     tikzDevice::tikz(
