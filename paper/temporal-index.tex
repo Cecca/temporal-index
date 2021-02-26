@@ -1089,12 +1089,12 @@ recently.
 
 In particular, we run the following type of query:
 \begin{lstlisting}[basicstyle=\ttfamily, mathescape=true]
-SELECT COUNT(*) FROM relation
- WHERE $\TS < \bar{t}_{end}$ AND $\bar{t}_{start} < \TE$
-   AND $d_{min} \le |T|$ AND $|T| \le d_max$;
+SELECT COUNT(*) FROM r
+ WHERE $\rTS < \TE$ AND $\TS < \rTE$
+   AND $\dmin \le |\rT|$ AND $|\rT| \le \dmax$;
 \end{lstlisting}
-where $[\bar{t}_{start}, \bar{t}_{end})$ is the range constraint and
-$[d_{min}, d_{max}]$ is the duration constraint.
+where $[\TS, \TE)$ is the range constraint and
+$[\dmin, \dmax]$ is the duration constraint.
 Evaluating a counting query, rather than reporting the matching tuples, allows to measure
 the time to actually retrieve the tuples, rather than the time to print them to screen or
 write them to a file.
@@ -1132,12 +1132,9 @@ In the first set of experiments, we consider both real-world and synthetic datas
 Table~\ref{tbl:overview-qps} reports an overview
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
-For index structures that take parameters, we report on the best configuration
-\mc{The performance of \ours with the two ordering variants is rather similar across
-all datasets. This is because we are reporting the results for the configuration
-with the best page size. For a fixed page size, the difference introduced by the
-ordering of dimensions can be up to three orders of magnitude, as
-will be discussed in Figure~\ref{fig:param-dependency}.}
+For index structures that take parameters, we report on the best configuration.
+In particular, we defer the discussion of the effect of different
+parameterizations of \ours to Section~\ref{sec:param-dep}.
 
 We remark that the overall difference in throughput for different workloads is
 due to the different output sizes: \qdo queries are in general less selective than \qrd queries,
@@ -1176,9 +1173,9 @@ their start time distribution show similar performance.
 		Heatmaps of the performance of index structures against selectivity
 		in the time and duration dimensions.
 		The top row reports the time, in milliseconds, required to answer a query with a given time and duration selectivity (darker is better).
-		The bottom row reports the fraction of intervals (over the total $n=10^7$) examined by each querie. A fraction larger than 1 means that
+		The bottom row reports the fraction of intervals (over the total $n=10^7$) examined by each query. A fraction larger than 1 means that
 		a query examined the same interval more than once.
-		Note that for readability the color scales are binned every
+		For readability the color scales are binned every
 		5 percentiles, therefore the scales are non linear.
 		\label{fig:selectivity-grid}}
 	\Description{Time versus selectivity in two dimensions}
@@ -1204,9 +1201,9 @@ their start time distribution show similar performance.
 We investigate the relationship between the selectivity of queries (i.e. the fraction of the
 input that satisfies them) and the time taken by different data structures to answer them.
 Given that range-duration queries constrain both the time and the duration ranges,
-for a query $q$ we can define the \emph{time selectivity} as the fraction of the input that
-satisfies the time range constraint of $q$, and the \emph{duration selectivity} as the fraction
-of the input satisfying the duration constraint of $q$.
+for a query we can define the \emph{time selectivity} as the fraction of the input that
+satisfies the time range constraint of the query, and the \emph{duration selectivity} as the fraction
+of the input satisfying the duration constraint of the query.
 
 For a given dataset, we build a query set such that queries are uniformly distributed on the
 \emph{time}$\times$\emph{duration} selectivity plan: this way we have queries which are
@@ -1244,8 +1241,11 @@ in the dataset.
 Its worse performance compared to \ours and \algo{grid-file} for queries of a given selectivity
 is explained by the fact that some intervals might be represented multiple times in the index.
 
-Figure~\ref{fig:time-vs-selectivity} reports the performance (in terms of query time) against
+Figure~\ref{fig:time-vs-selectivity} reports the performance against
 the \emph{overall} selectivity of the same queries.
+The performance is assessed in terms of the fraction of the input inspected
+by each query, which are represented as dots whose position along the $x$
+axis encodes their overall selectivity.
 Ideally, a data structure should answer the queries in time linearly dependent on the selectivity,
 irrespective of whether the query is more selective in the time or duration dimension.
 From the figure, we observe that \ours indeed shows the ideal behavior.
@@ -1258,11 +1258,10 @@ As for the \algo{grid-file}, the query times are more scattered: the efficiency 
 in this case is in fact dependent on the density of the cells being considered.
 
 Considering the \algo{b-tree} and \algo{interval-tree}, we have \qro and \qdo respectively
-are answered with the worst performance, as we expect given that they are answered
+are answered with the worst performance (i.e. they score 1 in Figure~\ref{fig:time-vs-selectivity}), as we expect given that they are answered
 by simple enumeration.
 Other queries are answered with varying degrees of efficiency, with queries constraining
 just the dimension on which the index specializes exhibiting a close-to-ideal behavior.
-\mc{Actually this is not strictly true for the \algo{b-tree}, why?}
 
 Finally, \algo{period-index$\star$} answers queries with mixed performance, possibly as an effect of intervals
 being replicated across several cells.
@@ -1271,20 +1270,21 @@ by this data structure.
 
 \begin{wrapfigure}{r}{0.35\columnwidth}
 	\centering
-	\includegraphics[width=0.35\columnwidth]{images/selectivity-dep-inefficient.png}
+	\hspace{-3em}
+	\includegraphics[width=0.4\columnwidth]{images/selectivity-dep-inefficient.png}
+	\vspace{-1em}
 \end{wrapfigure}
 So far, we have reported on the performance of the best configuration
 of \ours{}, observing that under both orderings of dimensions it visits
 a fraction of intervals close to the selectivity of the query,
 i.e. it shows close to optimal behavior.
-The figure at the side reports, under a setting similar to the one of
+The figure at the side reports, in the same scenario of
 Figure~\ref{fig:time-vs-selectivity}, the performance of \ours{}
 with a time-duration ordering and page size 10.
 As we will see in the next section, this configuration is not ideal:
 indeed, for several queries we have to visit more intervals than the
 precision of the query.
 This is especially true for duration-only queries (blue dots).
-\mc{Elaborate on why this is the case.}
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
