@@ -54,7 +54,19 @@
     - Flight
     - Reiterated:
         base: Flight
-        copies: [10, 20, 30, 40, 50]
+        copies: 10
+    - Reiterated:
+        base: Flight
+        copies: 20
+    - Reiterated:
+        base: Flight
+        copies: 30
+    - Reiterated:
+        base: Flight
+        copies: 40
+    - Reiterated:
+        base: Flight
+        copies: 50
 
   queries:
     - Random:
@@ -102,7 +114,19 @@
     - Webkit
     - Reiterated:
         base: Webkit
-        copies: [10, 20, 30, 40, 50]
+        copies: 10
+    - Reiterated:
+        base: Webkit
+        copies: 20
+    - Reiterated:
+        base: Webkit
+        copies: 30
+    - Reiterated:
+        base: Webkit
+        copies: 40
+    - Reiterated:
+        base: Webkit
+        copies: 50
 
   queries:
     - Random:
@@ -147,7 +171,19 @@
     - Tourism
     - Reiterated:
         base: Tourism
-        copies: [10, 20, 30, 40, 50]
+        copies: 10
+    - Reiterated:
+        base: Tourism
+        copies: 20
+    - Reiterated:
+        base: Tourism
+        copies: 30
+    - Reiterated:
+        base: Tourism
+        copies: 40
+    - Reiterated:
+        base: Tourism
+        copies: 50
 
   queries:
     - Random:

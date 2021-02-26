@@ -852,8 +852,8 @@ We now provide guarantees on the time required by all the operations
 supported by our index structure. In this analysis we assume that the index
 is built by partitioning first in the time dimension, and then in the
 duration dimension. The choice of the order of this partitioning affects the
-practical performance, as we will discuss in Section~\ref{sec:experiments}
-(Figure~\ref{fig:param-dependency}). Nonetheless, the results in this
+practical performance, as we will also discuss in Section~\ref{sec:experiments}
+(Figure~\ref{fig:param-dependency}). Nonetheless, the asymptotic results in this
 section hold for both dimension orderings.
 
 \begin{theorem}
@@ -1238,7 +1238,7 @@ The performance is assessed in terms of the fraction of the input inspected
 by each query, which are represented as dots whose position along the $x$
 axis encodes their overall selectivity.
 Ideally, a data structure should answer queries by inspecting just the
-tuples which are parts of the output: such ideal behaviour is represented
+tuples which are parts of the output: such ideal behavior is represented
 by the black diagonal Figure~\ref{fig:time-vs-selectivity}.
 From the figure, we observe that \ours indeed shows the ideal behavior,
 when parameters are configured optimally.
