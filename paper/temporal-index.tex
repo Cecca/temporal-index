@@ -825,9 +825,9 @@ satisfying the query.
 \label{sec:updating-index}
 
 Our index data structure can be extended to support both insertion and
-removals of tuples. For a tuple $r$, with $\rT=[\TS, \TE)$, by
-querying the index for the duration $|\rT|$ and the start time $\TS$,
-we can identify the cell that should contain the tuple $r$.  Inserting
+removals of tuples. For a tuple $r$, we query the index for the start time
+\rTS and the duration $|\rT|$, identifying the cell that should contain $r$.
+Inserting
 new intervals directly into cells might make them grow too large to be
 able to make performance guarantees on the query time.  Therefore, we
 set a threshold $2s^2$ for \emph{light} columns and $2s$ for
@@ -837,18 +837,22 @@ exceed the page size).  If a light column exceeds size $2s^2$ then we
 split the column, if a light cell exceeds size $2s$ then we split the
 cell.
 
-Splitting a column $G_i$ entails finding the median start time $\bar{\TS}$
-among its intervals, and then replacing it
-with two new columns with boundaries $(\TS^{i-1}, \bar{\TS}]$ and 
-$(\bar{\TS},\TS^{i}]$, respectively.
-Each of the two new columns requires the construction of new cell 
-boundaries, which can be done by invoking
+Splitting a column entails first finding the median start time $\bar{\TS}$
+among its intervals.
+Then we define two new columns, containing all the intervals with start time
+strictly less than $\bar{\TS}$ and $\ge \bar{\TS}$, respectively.
+The array \Colbounds is updated by inserting $\bar{\TS}$ at the appropriate
+position, and the array \LatestEnds is updated accordingly.
+Each of the two new columns requires the definition of new cells
+which can be done by invoking
 Algorithm~\ref{alg:next-breakpoint} repeatedly, like in the inner loop of
 index construction.
 
-Similarly, to split a cell we replace it with two new cells with boundaries
-$(\dmax^{i-1}, \bar{|\T|}]$ and $(\bar{|\T|}, \dmax^{i})$, where $\bar{|\T|}$ is
-the median duration in the cell being split. Then the intervals in each of
+Similarly, to split a cell we find its median duration $\bar{|\T|}$ and define
+two new cells, updating \Cellboundsi (for a cell in the $i$-th column)
+so that it contains $\bar{|\T|}$ as a boundary point.
+\MaxDurations is updated similarly.
+Then the intervals in each of
 the two newly created cells are sorted by end time.
 
 As for the removal of a tuple $r$ from the index, we query the index to find
