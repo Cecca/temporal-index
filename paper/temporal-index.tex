@@ -885,7 +885,6 @@ about heavy columns and cells.
 	A heavy cell in a heavy column contains only copies of the same interval.
 \end{lemma}
 \begin{proof}
-	\mc{This is trivial, so we can omit it.}
 	By construction, a heavy column contains only intervals with the same start time.
 	Similarly, a heavy cell contains only intervals with the same duration.
 	Therefore, a heavy cell in a heavy column 
@@ -1366,7 +1365,6 @@ start times are very concentrated on the timeline, the range constraint of a que
 
 Overall, we observe that indexing first by duration has either better or comparable performance compared to indexing by time first.
 Therefore, we recommend to choose the former ordering of dimensions when building an \ours.
-\mc{Move to a more general part at the end of the analysis part}
 
 \section{Scalability with respect to the input size}
 \label{sec:scalability}
