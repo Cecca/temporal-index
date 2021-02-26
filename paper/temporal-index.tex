@@ -1032,25 +1032,38 @@ In a similar way we can prove the following theorem.
 \section{Experimental evaluation}
 \label{sec:experiments}
 
-\begin{figure*}
+\newcommand{\btree}{\algo{B-Tree}\xspace}
+\newcommand{\itree}{\algo{Interval-Tree}\xspace}
+\newcommand{\gfile}{\algo{Grid-File}\xspace}
+\newcommand{\pindex}{\algo{Period-Index$\star$}\xspace}
+\newcommand{\rdtd}{\algo{RD-index-td}}
+\newcommand{\rddt}{\algo{RD-index-dt}}
+
+\begin{figure*}[t]
 	\includegraphics[width=\textwidth]{images/real-distributions.png}
 	\caption{Histograms of the start times (top) and durations (bottom) of the three real-world
 		datasets considered in this paper.\label{fig:data-distributions}}
 \end{figure*}
 
-\mc{Enumerate the competitors and fix the notation for the algorithm}
-In this section we compare experimentally our proposed index with alternative approaches.
-In particular, we aim to answer the following questions:
+In this section we evaluate experimentally our proposed index.
+To frame this evaluation, we consider the following data structures as baselines.
+The implementation of \btree provided by the Rust standard library, which is optimized for CPU cache usage. Intervals are indexed by duration in this case.
+The \itree index~\cite{DBLP:conf/vldb/KriegelPS00}, which we implemented ourselves, indexing intervals by their position on the timeline.
+The \gfile~\cite{DBLP:journals/tods/NievergeltHS84} and \pindex{}~\cite{BehrendDGSVRK_SSTD19_period-index}, which we also implemented, and which index both start times and durations.
+Our proposed data structure will be denoted with \rdtd when start times are indexed before end times, and with \rddt otherwise.
+To account for the potential shortcomings of our implementations, we will also evaluate the relative performance of the data structures with implementation-independent metrics~\cite{DBLP:journals/kais/KriegelSZ17}.
+
+We aim to answer the following questions:
 \begin{enumerate}
-	\item How robust are the indices over different workloads? (Section~\ref{sec:overview})
-	\item How do query times relate with the selectivity of the query? (Section~\ref{sec:query-inspect})
-	\item How does the page size parameter affect the performance of the index? (Section~\ref{sec:param-dep})
-	\item How does the performance scale with respect to the size of the dataset? (Section~\ref{sec:scalability})
+	\item How robust are the indices over different workloads? (\textsection~\ref{sec:overview})
+	\item How do query times relate with the selectivity of the query? (\textsection~\ref{sec:query-inspect})
+	\item How does the page size parameter affect the performance of the index? (\textsection~\ref{sec:param-dep})
+	\item How does the performance scale with respect to the size of the dataset? (\textsection~\ref{sec:scalability})
 \end{enumerate}
 
 \subsection{Setup and datasets}
 
-To this end, we implemented our index, as well as some baseline competitors,
+We implemented our index, as well as baseline competitors,
 using Rust 1.44.1. Our implementation, which is open source and available
 at~\url{https://github.com/Cecca/temporal-index}, allows to easily tune the parameters to explore
 different questions~\cite{DBLP:conf/sisap/AumullerC20}.
@@ -1118,8 +1131,7 @@ write them to a file.
   % period-index++, with the notable exception of duration-only workloads,
   % where it is an order of magnitude slower, although the ranking remains the same.
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
-	\mc{Say the lighter the color the faster}
-		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination:
+		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination, the lighter the color, the faster the data structure:
 		\crule[firstcolor]{.5em}{1em}~first,
 		\crule[secondcolor]{.5em}{1em}~second,
 		\crule[thirdcolor]{.5em}{1em}~third,
@@ -1184,11 +1196,12 @@ their start time distribution show similar performance.
 	\caption{
 		Heatmaps of the performance of index structures against selectivity
 		in the time and duration dimensions.
-		The top row reports the time, in milliseconds, required to answer a query with a given time and duration selectivity (darker is better).
+		The top row reports the time, in milliseconds, required to answer a query with a given time and duration selectivity.
 		The bottom row reports the fraction of intervals (over the total $n=10^7$) examined by each query. A fraction larger than 1 means that
 		a query examined the same interval more than once.
 		For readability the color scales are binned every
 		5 percentiles, therefore the scales are non linear.
+		In both plots, lighter is better.
 		\label{fig:selectivity-grid}}
 	\Description{Time versus selectivity in two dimensions}
 \end{figure*}
@@ -1205,8 +1218,7 @@ their start time distribution show similar performance.
 		The black line represents the ideal behavior, in which only matching
 		intervals are examined.
 		Note that all the plots except for the one related to the 
-		\algo{PeriodIndex*} share the $y$ axis.
-		\mc{mention that the diagonal is the same for all}
+		\algo{PeriodIndex*} share the $y$ axis: in all plots the black diagonal has slope 1.
 		\label{fig:time-vs-selectivity}}
 	\Description{Time versus selectivity}
 \end{figure*}
