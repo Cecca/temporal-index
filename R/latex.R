@@ -2,6 +2,7 @@
 
 latex_best <- function(data_best) {
     palette <- viridisLite::viridis(6, direction = -1)
+    # palette <- RColorBrewer::brewer.pal(6, "Greens")
     lineseps <- c(
         "", "", "", "", "\\addlinespace",
         "", "", "", "", "\\addlinespace",
@@ -43,17 +44,16 @@ latex_best <- function(data_best) {
         ) %>% 
         mutate(
             algorithm_name = case_when(
-                algorithm_name == "period-index++" ~ "PI++",
-                algorithm_name == "BTree" ~ "BT",
-                algorithm_name == "grid-file" ~ "GF",
-                algorithm_name == "period-index-*" ~ "PI*",
-                algorithm_name == "interval-tree" ~ "IT",
-                algorithm_name == "rd-index-td" ~ "RD-TD",
-                algorithm_name == "rd-index-dt" ~ "RD-DT",
+                algorithm_name == "BTree" ~ "\\btree",
+                algorithm_name == "grid-file" ~ "\\gfile",
+                algorithm_name == "period-index-*" ~ "\\pindex",
+                algorithm_name == "interval-tree" ~ "\\itree",
+                algorithm_name == "rd-index-td" ~ "\\rdtd",
+                algorithm_name == "rd-index-dt" ~ "\\rddt",
                 TRUE ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name,
-                levels = c("RD-TD", "RD-DT", "PI++", "GF", "BT", "PI*", "IT"),
+                levels = c("\\rdtd", "\\rddt", "\\gfile", "\\btree", "\\pindex", "\\itree"),
                 ordered = TRUE
             )
         ) %>%
@@ -75,7 +75,7 @@ latex_best <- function(data_best) {
         )) %>%
         arrange(dataset) %>%
         kbl(format = "latex", booktabs = T, escape = F, linesep = lineseps) %>%
-        add_header_above(c(" " = 1, "constraint" = 2, " " = 5))
+        add_header_above(c(" " = 1, "constraint" = 2, "Queries per second" = 6))
 }
 
 latex_example <- function(data_example) {

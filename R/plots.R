@@ -191,6 +191,7 @@ plot_query_focus_precision <- function(data_focus) {
             breaks = breaks,
             labels = labels,
             option = "inferno",
+            direction = -1,
             aesthetics = c("fill", "color")
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
@@ -284,6 +285,7 @@ plot_query_focus <- function(data_focus) {
             breaks = breaks,
             labels = labels,
             option = "viridis",
+            direction = -1,
             aesthetics = c("fill", "color")
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
