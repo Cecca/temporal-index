@@ -572,6 +572,8 @@ $R$ it belongs to.
 \subsection{Index Construction}
 \label{sec:index-construction}
 
+\jg{Now the algorithm is much clearer, at least for me.}
+
 \begin{figure*}
 	\tikzfig{images/partition-example}
 	\caption{
@@ -628,6 +630,7 @@ $R$ it belongs to.
 	}
 
 	\Return \Grid\;
+        \jg{Should probably be \Return (\Grid, \Colbounds, \LatestEnds, \Cellbounds, \MaxDurations)\;}
 \end{algorithm}
 
 \begin{algorithm}[t]
@@ -746,9 +749,10 @@ The last jump defines the third column
 \end{example}
 
 \begin{figure}
-	\input{example-grid.tex}
-  \caption{Adaptive grid dividing the example set of flights into five columns,
-  and further dividing each column in five cells.\label{fig:example-grid}}
+  \input{example-grid.tex}
+  \caption{Adaptive grid dividing the example set of flights into five
+    columns, and further dividing each column in five
+    cells. \jg{It might be nice if we add to this figure the arrays col\_bounds, latest\_end, cell\_bounds, max\_durations along the x- and y-axis. We could even fill in the concrete values, I think.}\label{fig:example-grid}}
 \end{figure}
 
 \begin{example}
