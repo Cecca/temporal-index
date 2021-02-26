@@ -1,0 +1,25 @@
+---
+
+# webkit
+- datasets:
+    - Csv:
+        path: /data/mceccarello/matteo-datasets/webkit/webkit.txt
+        start_column: 0
+        end_column: 1
+        separator: 9
+        has_header: false
+
+  queries: []
+
+  algorithms:
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64, 128]
+        num_levels: [4, 8]
+    - PeriodIndexPlusPlus:
+        page_size: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+
+
