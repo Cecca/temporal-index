@@ -33,6 +33,92 @@ impl RDIndex {
             grid: None,
         }
     }
+
+    pub fn export_example() -> anyhow::Result<()> {
+        use crate::dataset::Dataset;
+        use chrono::prelude::*;
+        use std::fs::File;
+        use std::io::prelude::*;
+        use rand::prelude::*;
+        use rand_xoshiro::Xoshiro256PlusPlus;
+
+        let page_size= 50;
+
+        let full_dataset = crate::dataset::TourismDataset::from_upstream()
+            .unwrap()
+            .get()
+            .unwrap();
+
+        let outdir = std::path::PathBuf::from("example_rdindex");
+        if !outdir.is_dir() {
+            std::fs::create_dir(&outdir)?;
+        }
+
+        let basedate = Utc.ymd(2015, 01, 01);
+        let filter_start = Utc.ymd(2016, 01, 01);
+        let filter_end = Utc.ymd(2016, 12, 31);
+
+        let dataset: Vec<Interval> = full_dataset
+            .into_iter()
+            .filter(|interval| {
+                let d = basedate + chrono::Duration::days(interval.start as i64);
+                filter_start <= d && d <= filter_end
+            })
+            .collect();
+
+        let mut rng = Xoshiro256PlusPlus::seed_from_u64(23684);
+        let dataset: Vec<Interval> = dataset.choose_multiple(&mut rng, 10000).cloned().collect();
+
+        let mut index = RDIndex::new(DimensionOrder::TimeDuration, page_size);
+        index.index(dataset.as_slice());
+        match index.grid.unwrap() {
+            Grid::DurationTime(_) => panic!(),
+            Grid::TimeDuration(columns) => {
+                let mut cinfo = File::create(outdir.join("column_info.csv"))?;
+                writeln!(cinfo, "i,column_bound,latest_end_time")?;
+                for (i, (bound, max_end)) in columns
+                    .min_start_times
+                    .iter()
+                    .zip(columns.max_end_times.iter())
+                    .enumerate()
+                {
+                    let bound = basedate + chrono::Duration::days(*bound as i64);
+                    let max_end = basedate + chrono::Duration::days(*max_end as i64);
+                    writeln!(
+                        cinfo,
+                        "{},{},{}",
+                        i,
+                        bound.format("%Y-%m-%d"),
+                        max_end.format("%Y-%m-%d")
+                    )?;
+                }
+                drop(cinfo);
+                let mut cell_info = File::create(outdir.join("cell_info.csv"))?;
+                writeln!(cell_info, "i,j,cell_bound,max_duration,cell_size,heavy")?;
+                for (i, cells) in columns.values.iter().enumerate() {
+                    for (j, ((min_duration, max_duration), cell)) in cells
+                        .min_durations
+                        .iter()
+                        .zip(cells.max_durations.iter())
+                        .zip(cells.values.iter())
+                        .enumerate()
+                    {
+                        writeln!(cell_info, "{},{},{},{},{},{}", i, j, min_duration, max_duration,
+                        cell.len(), cell.len() > page_size)?;
+                    }
+                }
+                drop(cell_info);
+                let mut data_out = File::create(outdir.join("example_dataset.csv"))?;
+                writeln!(data_out, "start,duration")?;
+                for interval in dataset {
+                    let start = basedate + chrono::Duration::days(interval.start as i64);
+                    writeln!(data_out, "{},{}", start.format("%Y-%m-%d"), interval.duration())?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Algorithm for RDIndex {
@@ -254,7 +340,7 @@ impl Grid {
 
 #[derive(DeepSizeOf)]
 struct TimePartition<V> {
-    max_start_times: Vec<Time>,
+    min_start_times: Vec<Time>,
     max_end_times: Vec<Time>,
     values: Vec<V>,
 }
@@ -276,7 +362,7 @@ impl<V> TimePartition<V> {
 
         while start < intervals.len() {
             let end = next_breakpoint(&intervals, start, block, |interval| interval.start);
-            max_start_times.push(intervals[end].start);
+            max_start_times.push(intervals[start].start);
             max_end_times.push(
                 intervals[start..=end]
                     .iter()
@@ -300,7 +386,7 @@ impl<V> TimePartition<V> {
         }
 
         Self {
-            max_start_times,
+            min_start_times: max_start_times,
             max_end_times,
             values,
         }
@@ -308,9 +394,9 @@ impl<V> TimePartition<V> {
 
     #[allow(dead_code)]
     fn query<F: FnMut(&V)>(&self, range: Interval, mut action: F) {
-        let end = match self.max_start_times.binary_search(&range.end) {
+        let end = match self.min_start_times.binary_search(&range.end) {
             Ok(i) => i, // exact match, equal end time than maximum start time
-            Err(i) => std::cmp::min(i, self.max_start_times.len() - 1),
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
         };
 
         for i in (0..=end).rev() {

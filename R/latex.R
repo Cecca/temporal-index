@@ -81,12 +81,16 @@ latex_best <- function(data_best) {
 latex_example <- function(data_example) {
     data_example %>%
         filter(highlighted) %>%
-        arrange(departure) %>%
-        select(flight, departure, arrival, duration) %>%
+        arrange(start) %>%
         mutate(
-            departure = format(departure, "%H:%M"),
-            arrival = format(arrival, "%H:%M"),
-            duration = scales::number(duration, accuracy = 0.1, suffix = " hours")
+            tuple = str_c("$r_", row_number(start), "$"),
+            end = start + duration
+        ) %>%
+        select(tuple, start, end, duration) %>%
+        mutate(
+            start = format(start, "%Y-%m-%d"),
+            end = format(end, "%Y-%m-%d"),
+            duration = scales::number(duration, suffix = " days")
         ) %>%
         kbl(
             format = "latex",

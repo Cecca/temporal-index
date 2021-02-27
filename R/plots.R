@@ -386,21 +386,21 @@ plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
 }
 
 plot_running_example <- function(data_running_example, query_time, query_duration) {
-    limits <- c(-0.5, 0.5 + nrow(filter(data_running_example, highlighted)))
+    limits <- c(0, 0.5 + nrow(filter(data_running_example, highlighted)))
     data_running_example <- data_running_example %>%
         filter(highlighted) %>%
-        mutate(pos = row_number(desc(departure)))
+        mutate(pos = row_number(start))
 
     ggplot(
         data_running_example,
         aes(
-            x = departure, xend = arrival,
+            x = start, xend = start + duration,
             y = pos, yend = pos
         )
     ) +
         geom_rect(
-            xmin = int_start(query_time),
-            xmax = int_end(query_time),
+            xmin = as_date(int_start(query_time)),
+            xmax = as_date(int_end(query_time)),
             ymin = limits[1],
             ymax = limits[2],
             inherit.aes = F,
@@ -414,48 +414,49 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
         ) +
         geom_vline(
             xintercept = c(
-                int_start(query_time),
-                int_end(query_time)
+                as_date(int_start(query_time)),
+                as_date(int_end(query_time))
             ),
             linetype = "dashed",
             color = "red"
         ) +
-        geom_label(
-            aes(label = flight),
+        geom_text(
+            aes(label = str_c("$r_", pos, "$")),
             size = 3,
-            nudge_y = -0.2,
+            nudge_y = +0.2,
             hjust = 0.3,
-            vjust = 1,
-            label.padding = unit(0.1, "lines"),
-            label.size = 0
+            vjust = 0
+            # label.padding = unit(0.1, "lines"),
+            # label.size = 0
         ) +
         geom_point(
-            aes(x = departure, y = pos + 0.2),
-            color = "gray",
+            aes(x = start, y = pos - 0.2),
+            color = "red",
             alpha = 0.7,
             size = 1
         ) +
         geom_segment(
             aes(
-                x = departure,
-                xend = departure + hours(2),
-                y = pos + 0.2, yend = pos + 0.2
+                x = start,
+                xend = start + days(query_duration[1]),
+                y = pos - 0.2, yend = pos - 0.2
             ),
             alpha = 0.7,
-            size = 1,
-            color = "gray"
+            size = 0.6,
+            color = "red",
+            linetype = "dotted"
         ) +
         geom_segment(
             aes(
-                x = departure + hours(2),
-                xend = departure + hours(4),
-                y = pos + 0.2, yend = pos + 0.2
+                x = start + days(query_duration[1]),
+                xend = start + days(query_duration[2]),
+                y = pos - 0.2, yend = pos - 0.2
             ),
             alpha = 0.7,
-            size = 1.5,
-            color = "forestgreen"
+            size = 0.8,
+            color = "red"
         ) +
-        scale_x_datetime() +
+        scale_x_date(limits = c(ymd("2016-06-05"), ymd("2016-07-20"))) +
         scale_y_continuous(limits = limits) +
         scale_color_manual(values = list(
             "black",
@@ -476,35 +477,37 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
 }
 
 plot_running_example_plane <- function(data_running_example, query_range, query_duration, grid = FALSE) {
+    cell_size <- 30
+    column_size <- cell_size * cell_size
+
     p <- data_running_example %>%
         mutate(
             duration = as.double(duration)
         ) %>%
         ggplot(aes(
             y = duration,
-            x = departure
+            x = start
         )) +
         geom_point(
-            aes(color = highlighted, size = highlighted),
+            aes(color = highlighted, size = highlighted, alpha = highlighted),
+            position = position_jitter(0.01),
             show.legend = F
-        ) +
-        geom_point(
-            aes(color = highlighted, size = highlighted),
-            data = data_running_example %>% filter(highlighted),
-            show.legend = F
-        )
+        ) 
+        # geom_point(
+        #     aes(color = highlighted, size = highlighted),
+        #     data = data_running_example %>% filter(highlighted),
+        #     show.legend = F
+        # )
 
     # add the grid, if requested
     if (grid) {
         algo_grid <- data_running_example %>%
             ungroup() %>%
-            group_by(
-                col_id = ntile(departure, 5)
-            ) %>%
+            group_by(col_id = ntile(start, n() / column_size)) %>%
             mutate(
-                time_min = min(departure),
-                time_max = max(departure),
-                cell_id = ntile(duration, 5)
+                time_min = min(start),
+                time_max = max(start),
+                cell_id = ntile(desc(duration), n() / cell_size)
             ) %>%
             group_by(col_id, cell_id) %>%
             mutate(
@@ -519,50 +522,53 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
                 aes(xintercept = time_min),
                 data = algo_grid,
                 alpha = 1,
-                color = "steelblue",
-                size = 0.8
+                # color = "#56B4E9",
+                color = "black",
+                size = 0.5
             ) +
             geom_segment(
                 aes(
-                    y = duration_min, yend = duration_min,
+                    y = duration_min + 0.4, yend = duration_min + 0.4,
                     x = time_min, xend = time_max
                 ),
-                color = "steelblue",
+                color = "black",
                 data = algo_grid,
-                size = 0.8,
+                size = 0.5,
                 inherit.aes = F
             )
     }
-    p <- p + annotate(
-        geom = "polygon",
-        y = c(
-            query_duration[1],
-            query_duration[2],
-            query_duration[2],
-            query_duration[1]
-        ),
-        x = c(
-            int_end(query_range),
-            int_end(query_range),
-            int_start(query_range) - 3600 * query_duration[2],
-            int_start(query_range) - 3600 * query_duration[1]
-        ),
-        fill = "red",
-        color = "red",
-        size = 1,
-        alpha = 0.0
-    ) +
-        scale_color_manual(values = c("darkgray", "black")) +
+    p <- p + 
+    # annotate(
+    #     geom = "polygon",
+    #     y = c(
+    #         query_duration[1],
+    #         query_duration[2],
+    #         query_duration[2],
+    #         query_duration[1]
+    #     ),
+    #     x = c(
+    #         int_end(query_range),
+    #         int_end(query_range),
+    #         int_start(query_range) - 3600 * query_duration[2],
+    #         int_start(query_range) - 3600 * query_duration[1]
+    #     ),
+    #     fill = "red",
+    #     color = "red",
+    #     size = 1,
+    #     alpha = 0.0
+    # ) +
+        scale_color_manual(values = c("#56B4E9", "black")) +
         scale_size_manual(values = c(0.5, 2)) +
-        scale_x_datetime(
-            date_labels = "%H:%M",
-            date_breaks = "3 hours"
+        scale_alpha_manual(values = c(0.5, 1)) +
+        scale_x_date(
+            # date_labels = "%H:%M",
+            # date_breaks = "3 hours"
         ) +
         scale_y_continuous(
-            breaks = c(0, 2, 4, 6, 8, 10),
-            labels = scales::number_format()
+            # breaks = c(0, 2, 4, 6, 8, 10),
+            # labels = scales::number_format()
         ) +
-        labs(y = "duration (hours)", x = "departure time") +
+        labs(y = "duration (days)", x = "start time") +
         theme_minimal() +
         theme(
             text = element_text(size = 9),
@@ -572,5 +578,69 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
             panel.grid = element_blank()
         )
 
+    p
+}
+
+plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE) {
+    dataset <- read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
+        filter(duration <= 50)
+    columns <- read_csv(here::here("example_rdindex/column_info.csv")) %>%
+        filter(i != 4) %>%
+        arrange(i) %>%
+        mutate(column_end = lead(column_bound)) %>%
+        replace_na(list("column_end" = "2016-12-31"))
+    cells <- read_csv(here::here("example_rdindex/cell_info.csv")) %>%
+        inner_join(columns)
+
+    p <- ggplot(dataset, aes(start, duration)) +
+        geom_point(size=0.1, shape=16, color="gray70") +
+        annotate(
+            geom = "polygon",
+            y = c(
+                query_duration[1],
+                query_duration[2],
+                query_duration[2],
+                query_duration[1]
+            ),
+            x = c(
+                as_date(int_end(query_range)),
+                as_date(int_end(query_range)),
+                as_date(int_start(query_range)) - query_duration[2],
+                as_date(int_start(query_range)) - query_duration[1]
+            ),
+            fill = "red",
+            color = "red",
+            size = 2,
+            alpha = 0.0
+        ) +
+        theme_minimal() +
+        theme(
+            text = element_text(size = 9),
+            axis.ticks = element_line(color = "black"),
+            axis.line.x.bottom = element_line(color = "black"),
+            axis.line.y.left = element_line(color = "black"),
+            panel.grid = element_blank()
+        )
+
+    if (grid) {
+        p <- p +
+            geom_vline(
+                data = columns,
+                mapping = aes(xintercept=column_bound),
+                size = 0.5,
+                color = "forestgreen"
+            ) +
+            geom_linerange(
+                data = cells,
+                mapping = aes(
+                    y = cell_bound - 0.4,
+                    xmin = column_bound,
+                    xmax = column_end
+                ),
+                size = 0.5,
+                color = "forestgreen",
+                inherit.aes = FALSE
+            )
+    }
     p
 }

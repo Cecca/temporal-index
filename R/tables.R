@@ -338,3 +338,30 @@ table_running_example <- function(query_range, query_duration) {
         int_overlaps(interval(departure, arrival), query_range)
     )
 }
+
+table_running_tourism <- function(query_range, query_duration) {
+  set.seed(1234)
+
+  highlighted_data <- tribble(
+    ~start, ~duration,
+    "2016-06-10", 2,
+    "2016-06-20", 15,
+    "2016-06-24", 10,
+    "2016-06-8", 6
+  ) %>%
+  mutate(
+    start = ymd(start),
+    highlighted = TRUE
+  )
+
+  # dataset <- 
+  read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
+    mutate(highlighted = FALSE) %>%
+    bind_rows(highlighted_data) %>%
+    mutate(
+      time_range = interval(start, start+duration),
+      matches = int_overlaps(time_range, query_range) & between(duration, query_duration[1], query_duration[2])
+    ) %>%
+    filter(highlighted)
+}
+

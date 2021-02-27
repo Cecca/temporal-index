@@ -132,12 +132,12 @@ plan <- drake_plan(
   # Running example to be used in the paper
   query_range =
     interval(
-      ymd_hms("2018-08-01T10:00:00"),
-      ymd_hms("2018-08-01T14:00:00")
+      ymd("2016-06-15"),
+      ymd("2016-07-15")
     ),
-  query_duration = c(2, 4),
+  query_duration = c(5, 13),
 
-  data_running_example = table_running_example(
+  data_running_example = table_running_tourism(
     query_range, query_duration
   ),
 
@@ -161,8 +161,8 @@ plan <- drake_plan(
       file = file_out("paper/example-plane.tex"),
       width = 3.3, height = 2.5
     )
-    print(plot_running_example_plane(
-      data_running_example, query_range, query_duration
+    print(plot_running_example_tourism(
+      query_range, query_duration
     ))
     dev.off()
   },
@@ -171,8 +171,8 @@ plan <- drake_plan(
       file = file_out("paper/example-grid.tex"),
       width = 3.3, height = 2.5
     )
-    print(plot_running_example_plane(
-      data_running_example, query_range, query_duration,
+    print(plot_running_example_tourism(
+      query_range, query_duration,
       grid = TRUE
     ))
     dev.off()
