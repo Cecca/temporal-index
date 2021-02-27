@@ -317,7 +317,7 @@ Our contributions can then be summarized as follows:
 
 \begin{example}
   As a running example, we consider a subsets of the tourist stays that we will use in
-  our experimental evaluation. Table~\ref{tab:example} reports five such stays,
+  our experimental evaluation. Table~\ref{tab:example} reports four such stays,
   described by their start and end date, and their duration.
 \end{example}
 
@@ -742,9 +742,10 @@ Finally, tuples in each cell are sorted by the end time.
 
 \begin{figure}
   \input{example-grid.tex}
-  \caption{Adaptive grid dividing the example set of flights into five
-    columns, and further dividing each column in five
-    cells. \jg{It might be nice if we add to this figure the arrays col\_bounds, latest\_end, cell\_bounds, max\_durations along the x- and y-axis. We could even fill in the concrete values, I think.}\label{fig:example-grid}}
+  \caption{Instantiation of \rdindex with page size $s=50$ on the example dataset. 
+    \jg{It might be nice if we add to this figure the arrays col\_bounds, latest\_end, cell\_bounds, max\_durations along the x- and y-axis. We could even fill in the concrete values, I think.}
+	\mc{Yes, it would be nice, I'll think how to do it without cluttering the picture too much. It's already a bit crowded.}
+	\label{fig:example-grid}}
 \end{figure}
 
 \begin{example}
