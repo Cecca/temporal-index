@@ -33,9 +33,9 @@
 %% Algorithms notation
 \newcommand{\Let}[2]{#1 $\leftarrow$ #2}
 \newcommand{\algocomment}[1]{{\hfill$\triangleleft~~${\footnotesize #1}}}
+\newcommand{\rdindex}{\textsc{RDI}}
 
 %% Notations for temporal relations
-
 \newcommand{\domT}{\ensuremath{\Omega^T}}
 \newcommand{\args}[2]{#1_1,\dots,#1_{#2}}
 \newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
@@ -145,12 +145,24 @@
 
 
 \begin{abstract}
-	Temporal information plays a crucial role in many database applications, however support for queries on such data is limited.
-	We present an index structure to support \emph{range-duration queries} over temporal intervals constraining both the \emph{range}, i.e. the position along the timeline, and the \emph{duration} of the interval.
-	Our data structure features provable bounds on the running time of all the operations, allows for a simple implementation, and sports very predictable query performance.
-	We benchmark our implementation on a variety of datasets and query workloads, investigating both the query rate and the behavior of the individual queries.
-	Our experimental evaluation shows that, compared to other data structures, our index indeed better supports range-duration queries.
-	While other data structures are faster on specialized workloads constraining only the duration or only the range, overall our data structure expresses the best compromise across all tested workloads.
+  Temporal information plays a crucial role in many database
+  applications, however support for queries on such data is limited.
+  We present an index structure, termed \rdindex, to support
+  \emph{range-duration queries} over interval timestamped relations,
+  which constrain both the \emph{range} of the tuple's start time
+  along the timeline and its \emph{duration}.  \rdindex is based on a
+  grid structure in the two-dimensional space, representing the
+  timeline and the duration of timestamps, respectively.  It features
+  provable bounds on the running time of all the operations, allows
+  for a simple implementation, and sports very predictable query
+  performance.  We benchmark our implementation on a variety of
+  datasets and query workloads, investigating both the query rate and
+  the behavior of the individual queries.  Our experimental evaluation
+  shows that, compared to other data structures, our index indeed
+  better supports range-duration queries.  While other data structures
+  are faster on specialized workloads constraining only the duration
+  or only the range, overall our data structure expresses the best
+  compromise across all tested workloads.
 \end{abstract}
 
 \maketitle
@@ -190,41 +202,44 @@ All these approaches focus on handling temporal intervals, but concentrate on th
 %
 As a result, index structures to support more general selection queries with constraints on both the duration and the position in time of intervals have been missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17} until recently~\cite{BehrendDGSVRK_SSTD19_period-index}.	
 
-This paper takes as its starting point the observation that in several application both aspects of temporal information are useful to formulate queries.
-For instance, consider the following queries from the tourism application scenarios:
+In many application domains both aspects of temporal information are
+useful to formulate queries.  For instance, consider the following
+queries from the tourism sector:
 \begin{itemize}
 	\item[$Q1$:] \emph{"Find all the tourists who stayed in Bolzano the weekend of pentecost (June 8th--9th) 2019."}
 	\item[$Q2$:] \emph{"Find all the tourists who stayed in Bolzano for a short term (between 1-3 days)."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
-
+%
 % For instance, applications that offer
 % situation awareness~\cite{DBLP:conf/iri/BehrendSGLF15} require fast access
 % both to the duration and the position of events.
+%
+The first query $Q1$ retrieves tuples based on the position of the
+events on the timeline; we call it \emph{range query}.  In contrast,
+query $Q2$ imposes constraints on the duration of matching events, and
+we call it \emph{duration query}.  Finally, query $Q3$ constrains both
+types of information; we call it \emph{range-duration query}.  Similar
+queries can easily be found and have been reported in other
+application scenarios, such as source code repository analysis, or air
+traffic
+analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12},
+where we use the latter as a running example later on. \ad{If we
+  change the running example to tourism data, then we have to change
+  this last sentence.}
 
-The first query 
-$Q1$ retrieves
-tuples based on the position of the events on the timeline; we call it
-\emph{range query}. 
-In contrast, query 
-$Q2$ imposes constraints on the duration of matching events,
-and we call it \emph{duration query}. 
-Finally, query $Q3$ constrains both types of information;
-we call it \emph{range-duration query}.
-Similar queries can easily be found and have been reported in
-other application scenarios, such as source code repository analysis, or air traffic
-analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}, where we use the latter as a running example later on. \ad{If we change the running example to tourism data, then we have to change this last sentence.}
-
-As shown in the above examples, time periods can comprise information about
-their position on the timeline and the length of the period. However, index
-structures over time intervals typically use only one of the two aspects. For
-instance, the well-known relational interval
-tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for efficiently
-determining temporal relationships between intervals but not interval
-lengths. In the worst case, the entire index tree must be traversed if a
-query solely contains restrictions on the interval length. 
-Alternatively, the duration of the intervals can be indexed straighforwardly using a classic data structure such as a B-tree.
-In this case, however, queries constraining only the range of the intervals will need to traverse the entire tree.
+As shown in the above examples, time periods can be constrained in
+their starting position on the timeline and the length of the
+period. However, index structures over time intervals typically use
+only one of the two aspects. For instance, the well-known relational
+interval tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for
+efficiently determining temporal relationships between intervals but
+not interval lengths. In the worst case, the entire index tree must be
+traversed if a query solely contains restrictions on the interval
+length.  Alternatively, the duration of the intervals can be indexed
+straighforwardly using a classic data structure such as a B-tree.  In
+this case, however, queries constraining only the range of the
+intervals will need to traverse the entire tree.
 
 The two aforementioned indexes could be used at the same time, however combining different indexes is typically inefficient, since a query can have different selectivities in the two dimensions.
 %
@@ -413,15 +428,15 @@ $\T$ and $\T'$, which, if not empty, is itself an interval.
 %
 The schema of a temporal relation is given by $R = (\args{A}{m},T)$,
 where $\args{A}{m}$ are the non-temporal attributes with domains
-$\Omega_i$ and $\T$ is the timestamp attribute with domain
+$\Omega_i$ and $T$ is the timestamp attribute with domain
 $\domT \times \domT$ representing, for instance, the tuple's valid
 time.  A temporal relation $\R$ with schema $R$ is a finite set of
 tuples, where each tuple has a value in the appropriate domain for
 each attribute in the schema. We use $r.A_i$ to denote the value of
-attribute $A_i$ in tuple $r$.  We use the abbreviations
-$\A = \{ \args{A}{m} \}$ and $r.\A = (\args{r.A}{m})$.
-In particular, we use $\rT = [\rTS, \rTE)$ to refer to the time interval associated with tuple $r$, and $|\rT|$ to denote its duration.
-
+attribute $A_i$ in tuple $r$, and $\rT = [\rTS, \rTE)$ to refer to its
+time interval.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
+$r.\A = (\args{r.A}{m})$. \jg{Not sure whether these 2 abbreviations
+  are used at all}
 
 \subsection{Temporal Queries}
 
@@ -454,18 +469,17 @@ Our index efficiently supports the three following types of queries (defined as 
 	\]
 \end{definition}
 
-A range query retrieves all tuples whose timestamp intersects
-with the query range.  A duration query retrieves all tuples
-whose timestamp has a duration that is between $d_{min}$ and
-$d_{max}$. A range-duration query is a combination of the former
-two.  
+A range query retrieves all tuples whose timestamp intersects with the
+query range $\T$.  A duration query retrieves all tuples whose
+timestamp has a duration that is between $d_{min}$ and $d_{max}$. A
+range-duration query is a combination of the former two.
 
 \begin{example}\label{example:queries}
   Consider the following range-duration query on our sample database:
-  $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.  The time range is
-  constrained to be between 10:00 and 14:00, and the duration is
-  constrained to be in $[2h, 4h]$.  Figure~\ref{fig:example-intervals}
-  shows a graphical representation, where the timestamps are drawn by
+  $Q(F, [\text{10:00}, \text{14:00}), [2h, 4h])$.  The start time of
+  the result tuples is constrained to be between 10:00 and 14:00, and
+  their duration in $[2h, 4h]$.  Figure~\ref{fig:example-intervals}
+  shows a graphical representation, where the timestamps are drawn as
   horizontal lines.  The red area indicates the constraint on the
   start time.  The gray/green segments on top of each timestamp
   interval denote the duration constraint, where the green part
@@ -476,31 +490,17 @@ two.
   % 
   The only flight matching the query is \texttt{N309AS}.  A range only
   query with the same time range would return the flights
-  \texttt{N309AS} and \texttt{N431AS}.  A duration only query with
-  duration interval $[2h, 4h]$ would return \texttt{N207SY},
-  \texttt{N309AS}, and \texttt{N432YX}.
+  \texttt{N309AS} and \texttt{N431AS}.  A duration only query with the
+  same duration interval $[2h, 4h]$ would return \texttt{N207SY} \jg{I
+    think this is not included}, \texttt{N309AS}, and \texttt{N432YX}.
 \end{example}
 
 \begin{figure}
   \input{example.tex}
-  \caption{Range-duration query on the example
-    table. 
-	\mc{use the same color (either gray or green) and then dashed lines. Constraint thin, tuple thick. Move label at top and constraint at bottom}
-	 % The time range
-    % is constrained to be between 10:00 and 14:00, and the duration
-    % is
-    % constrained to be in $[2h, 4h]$.
-    % The red area denotes the constraint on the start time.
-    % The gray/green segments on top of each interval denote the
-    % duration constraint, with the start
-    % of the green part marking the minimum duration, and the end
-    % denoting the maximum duration.
-    % An interval satisfies the duration constraint only if its end
-    % point is within
-    % the green part of the constraint segment.
-    % The blue interval is the only
-    % one matching both the range and duration
-    % constraints.
+  \caption{Range-duration query on the example table.  \mc{use the
+      same color (either gray or green) and then dashed
+      lines. Constraint thin, tuple thick. Move label at top and
+      constraint at bottom}
     \label{fig:example-intervals}
   }
 \end{figure}
@@ -509,16 +509,22 @@ two.
 
 \subsection{Overview}
 
-\mc{make this clearer}
-An interval can be completely described by its duration and starting
-time, therefore we can represent a set of temporal intervals as a set
-of points in a two dimensional space, with one coordinate being the
-start time and the other the duration.  A range-duration query $q$ in
-such a space is the polygon containing all the solutions, which is
-defined by all points $(t, d)$ (corresponding to the time interval
-$[t, t + d)$) such that
+\mc{make this clearer} An interval can be completely described by its
+duration and starting time, therefore we can represent a set of
+temporal intervals as a set of points in a two dimensional space, with
+one coordinate being the start time and the other the duration.
+% A
+% range-duration query $q$ in such a space is the polygon containing all
+% the solutions, which is defined by all points $(t, d)$ (corresponding
+% to the time interval $[t, t + d)$) such that
+% \begin{align*}
+%   (q.\TS - d < t < q.\TE) \quad \land \quad (q.\dmin \le d \le q.\dmax)
+% \end{align*}
+A range-duration query $Q(\R, \T, \D)$ with $\T = [\TS, \TE)$ and
+$\D = [\dmin, \dmax]$ in such a space is represented by a polygon
+containing all tuples $r \in \R$ such that
 \begin{align*}
-  (q.\TS - d < t < q.\TE) \quad \land \quad (q.\dmin \le d \le q.\dmax)
+  (\TS - d < r.T_s < \TE) \quad \land \quad (\dmin \le |r.T| \le \dmax)
 \end{align*}
 
 \begin{example}
@@ -526,8 +532,8 @@ $[t, t + d)$) such that
   Table~\ref{tab:example} in the two dimensional space, along other
   flights on the same day.  The red polygon represents the query of
   the previous example with query range $[\text{10:00},\text{14:00})$
-  and duration $[\text{2h}, \text{4h}]$.  Note how the points (i.e.,
-  the timestamp intervals of the tuples) are not uniformly
+  and duration $[\text{2h}, \text{4h}]$.  Note how the data points
+  (i.e., the timestamp intervals of the tuples) are not uniformly
   distributed.
 \end{example}
 
@@ -545,8 +551,8 @@ $[t, t + d)$) such that
 Our index is a two-dimenstional grid, partitioning the tuples into
 disjoint buckets according to the start time and the duration of the
 intervals.  The boundaries between cells are defined by using the
-empirical cumulative distribution function of the duration and the
-starting times, so that each cell contains approximately the same
+empirical cumulative distribution function of the tuples' duration and
+the starting times, so that each cell contains approximately the same
 number of intervals, which corresponds to the \emph{page size} $s$ of
 our index.  This allows the index to adapt to the distribution of the
 input and to different scenarios.  In an external memory setting, the
@@ -556,44 +562,50 @@ scenario, it could be set such that a cell fits in a cache line.
 In the following we will focus on the timestamp attribute $\T$ of
 relation $\R$: in the discussion we assume that each interval being
 inserted in the index is associated with a reference to the tuple in
-$R$ it belongs to.
+$\R$ it belongs to.
 
 \subsection{Index Construction}
 \label{sec:index-construction}
 
-\begin{figure*}
-	\tikzfig{images/partition-example}
-	\caption{
-		Example of partitioning a sorted sequence of start times using \textsc{NextBreakpoint}
-		with parameter $b=9$. The invocation results in three groups, of which the
-		second is \emph{heavy}.
-		\label{fig:example-partitioning}
-	}
-	\Description{}
-\end{figure*}
+\begin{figure}
+  \scalebox{.8}{\tikzfig{images/partition-example}}
+  \caption{Partitioning a sorted sequence of start times
+    using \textsc{NextBreakpoint} with parameter $b=9$.
+    % The invocation
+    % results in three groups, of which the second is \emph{heavy}.
+    \label{fig:example-partitioning}
+  }
+  \Description{}
+\end{figure}
 
 \begin{algorithm}[t]
-	\caption{\textsc{NextSubseq}$(\Tuples, h, b, k)$\label{alg:next-breakpoint}}
-	\KwIn{
-		A collection of $\Tuples$, sorted according to the key function $k$;
-	    the current index $h$; 
-		a subsequence size $b$;
-	    a \emph{key} function $k: \Tuples \to \domT$
-	}
-	\KwOut{A subsequence of \Tuples starting from position $h$, either of size $\le b$ or all having the same key}
+  \caption{\textsc{NextSubseq}$(\Tuples, h, b,
+    k)$\label{alg:next-breakpoint}}
+  \KwIn{A collection of $\Tuples$, sorted according to $k$; the
+    current index $h$; a subsequence size $b$; a \emph{key} function
+    $k: \Tuples \to \domT$ }%
+  \KwOut{A subsequence of \Tuples starting from position $h$, either
+    of size $\le b$ or all having the same key}
+
+  \jg{If we want to be very precise, the function $k$ is not correct,
+    as in the case of Duration it is not mapping to $\domT$; might be
+    ok if we don't have a better idea which is still simple} \jg{I
+    think we could get rid of the parameter \Tuples and use $\R$
+    instead. If we state in Alg. 2 that $\R$ is sorted, we could use
+    here expressions such as $k(r_h) = k(r_{h'})$, $k(r_h) = k(r_{h-1})$ or all tuples $r_h,\dots,r_{h'-1}$. I think they are very clear and might look simpler.}
 
 	\BlankLine
 	\Let{$h'$}{$\min\{h + b, |\Tuples|\}$}\;
 	\uIf{$k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
 		\nllabel{line:heavy-bucket}
 		% {\footnotesize look for the last interval with the same key:}\;
-		\lWhile{$h' < |\Tuples| \wedge k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
+		\While{$h' < |\Tuples| \wedge k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
 			\Let{$h'$}{$h'+1$}
 		}
 	} \Else {
 		\nllabel{line:split-bucket}
 		% {\footnotesize look backwards for the first interval with a different key:}\;
-		\lWhile{$h' > h \wedge k(\Tuplesi{h'-1}) = k(\Tuplesi{h'})$} {
+		\While{$h' > h \wedge k(\Tuplesi{h'-1}) = k(\Tuplesi{h'})$} {
 			\Let{$h'$}{$h'-1$}
 		}
 	}
@@ -601,21 +613,29 @@ $R$ it belongs to.
 \end{algorithm}
 
 \begin{algorithm}[t]
-	\caption{\textsc{BuildIndex}$(\Tuples, s)$\label{alg:build-index}}
-	\KwIn{An array of $\Tuples$; the page size parameter $s$}
-	\KwOut{A grid $G$ partitioning intervals first by time, then by duration;
-	a sorted collection of column boundaries $t_s^i$; a sorted collection of cell
-	boundaries $d_{max}^{ij}$ for each column $i$}
+	\caption{\textsc{BuildIndex}$(\R, s)$\label{alg:build-index}}
+	\KwIn{Temporal relation $\R$ and page size parameter $s$}
+        \KwOut{Grid $G$ partitioning $\R$ by start time and duration;
+          column boundaries \Colbounds; cell boundaries \Cellbounds;
+          latest end time \LatestEnds seen so far for each column;
+          maximum duration \MaxDurations in each cell}
 
 	\BlankLine
-	\Let{\Grid}{two-dimensional array of columns and cells}\;
-	\Let{\Colbounds}{array to store bounds between columns}\;
-	\Let{\LatestEnds}{array containing the latest end time in each column and all the preceding ones}\;
-	\Let{\Cellbounds}{two-dimensional array to store bounds between cells in each cell}\;
-	\Let{\MaxDurations}{two-dimensional array storing the maximum duration in each cell}\;
+	% \Let{\Grid}{two-dimensional array of columns and cells}\;
+	% \Let{\Colbounds}{array to store bounds between columns}\;
+	% \Let{\LatestEnds}{array containing the latest end time in each column and all the preceding ones}\;
+	% \Let{\Cellbounds}{two-dimensional array to store bounds between cells in each cell}\;
+	% \Let{\MaxDurations}{two-dimensional array storing the maximum duration in each cell}\;
+	\Let{\Grid}{[][]}\;
+	\Let{\Colbounds}{[]}\;
+	\Let{\LatestEnds}{[]}\;
+	\Let{\Cellbounds}{[][]}\;
+	\Let{\MaxDurations}{[][]}\;
+        \jg{Would it be more intuitive to use: col\_bounds, col\_lend, cell\_bound, cell\_maxdur, making explicit that two refer to cols and 2 refer to cells}
 
 	\BlankLine
-	Sort $\Tuples$ by interval start time\;
+	% Sort $\Tuples$ by interval start time\;
+        \Let{\Tuples}{$\R$ sorted by the tuples' start time}\;
 	\Let{$h$}{$0$} \algocomment{position in \Tuples}\;
 	\Let{$i$}{$0$} \algocomment{column index}\;
 	\While{$h < |\Tuples|$}{

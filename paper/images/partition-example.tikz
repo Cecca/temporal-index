@@ -1,4 +1,4 @@
-\begin{tikzpicture}[xscale=1.4]
+\begin{tikzpicture}[xscale=.8]
 	\begin{pgfonlayer}{nodelayer}
 		\node [style=firstbucket] (2) at (0, 0) {1};
 		\node [style=firstbucket] (4) at (1, 0) {2};
