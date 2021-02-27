@@ -342,16 +342,26 @@ table_running_example <- function(query_range, query_duration) {
 table_running_tourism <- function(query_range, query_duration) {
   set.seed(1234)
 
-  raw_tourism <- read_csv(".datasets/tourism.csv.gz")
-  raw_tourism %>%
-    filter(year(arrival) == 2016) %>%
-    transmute(
-      start = arrival,
-      end = departure,
-      duration = as.numeric(end - start, "days"),
-      highlighted = F
+  highlighted_data <- tribble(
+    ~start, ~duration,
+    "2016-06-10", 2,
+    "2016-06-20", 15,
+    "2016-06-24", 10,
+    "2016-06-8", 6
+  ) %>%
+  mutate(
+    start = ymd(start),
+    highlighted = TRUE
+  )
+
+  # dataset <- 
+  read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
+    mutate(highlighted = FALSE) %>%
+    bind_rows(highlighted_data) %>%
+    mutate(
+      time_range = interval(start, start+duration),
+      matches = int_overlaps(time_range, query_range) & between(duration, query_duration[1], query_duration[2])
     ) %>%
-    filter(duration <= 50) %>%
-    sample_n(10000)
+    filter(highlighted)
 }
 

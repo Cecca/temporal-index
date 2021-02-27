@@ -73,6 +73,14 @@ fn main() -> Result<()> {
         reporter::Reporter::backup(None)?;
         return Ok(());
     }
+    if std::env::args()
+        .nth(1)
+        .map(|s| s.eq("export_example"))
+        .unwrap_or(false)
+    {
+        crate::algorithms::rd_index::RDIndex::export_example()?;
+        return Ok(());
+    }
 
     let cmdline: Cmdline = argh::from_env();
 
