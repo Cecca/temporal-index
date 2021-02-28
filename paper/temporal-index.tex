@@ -73,11 +73,11 @@
 \newcommand{\Cellboundsij}{\texttt{cell\_bounds[i][j]}\xspace}
 \newcommand{\Grid}{\texttt{grid}\xspace}
 \newcommand{\Gridij}{\texttt{grid[i][j]}\xspace}
-\newcommand{\LatestEnds}{\texttt{latest\_end}\xspace}
-\newcommand{\LatestEndsi}{\texttt{latest\_end[i]}\xspace}
-\newcommand{\LatestEndsPrev}{\texttt{latest\_end[i-1]}\xspace}
-\newcommand{\MaxDurations}{\texttt{max\_durations}\xspace}
-\newcommand{\MaxDurationsij}{\texttt{max\_durations[i][j]}\xspace}
+\newcommand{\LatestEnds}{\texttt{col\_lend}\xspace}
+\newcommand{\LatestEndsi}{\texttt{col\_lend[i]}\xspace}
+\newcommand{\LatestEndsPrev}{\texttt{col\_lend[i-1]}\xspace}
+\newcommand{\MaxDurations}{\texttt{cell\_maxdur}\xspace}
+\newcommand{\MaxDurationsij}{\texttt{cell\_maxdur[i][j]}\xspace}
 
 
 
@@ -224,10 +224,7 @@ types of information; we call it \emph{range-duration query}.  Similar
 queries can easily be found and have been reported in other
 application scenarios, such as source code repository analysis, or air
 traffic
-analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12},
-where we use the latter as a running example later on. \ad{If we
-  change the running example to tourism data, then we have to change
-  this last sentence.}
+analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
 
 As shown in the above examples, time periods can be constrained in
 their starting position on the timeline and the length of the
@@ -608,7 +605,7 @@ $\R$ it belongs to.
 \end{algorithm}
 
 \begin{algorithm}[t]
-	\caption{\textsc{BuildIndex}$(\R, s)$\ad{This algorithm is never explicitly referenced.}\label{alg:build-index}}
+	\caption{\textsc{BuildIndex}$(\R, s)$\label{alg:build-index}}
 	\KwIn{Temporal relation $\R$ and page size parameter $s$}
         \KwOut{Grid $G$ partitioning $\R$ by start time and duration;
           column boundaries \Colbounds; cell boundaries \Cellbounds;
@@ -626,13 +623,12 @@ $\R$ it belongs to.
 	\Let{\LatestEnds}{[]}\;
 	\Let{\Cellbounds}{[][]}\;
 	\Let{\MaxDurations}{[][]}\;
-        \jg{Would it be more intuitive to use: col\_bounds, col\_lend, cell\_bound, cell\_maxdur, making explicit that two refer to cols and 2 refer to cells}
 
 	\BlankLine
 	% Sort $\Tuples$ by interval start time\;
         \Let{\Tuples}{$\R$ sorted by the tuples' start time}\;
-	\Let{$h$}{$0$} \algocomment{position in \Tuples}\;
-	\Let{$i$}{$0$} \algocomment{column index}\;
+	\Let{$h$}{$0$} \tcc{position in \Tuples}
+	\Let{$i$}{$0$} \tcc{column index}
 	\While{$h < |\Tuples|$}{
 		\nllabel{line:column-break}
 		\Let{\Column}{\algo{NextSubseq}$(\Tuples, h, s^2, \rT \rightarrow \rTS)$}\;
@@ -644,8 +640,8 @@ $\R$ it belongs to.
 		\BlankLine
 		Sort \Column by duration\;
 
-		\Let{$k$}{$0$} \algocomment{position in \Column}\;
-		\Let{$j$}{$0$} \algocomment{cell index}\;
+		\Let{$k$}{$0$} \tcc{position in \Column}
+		\Let{$j$}{$0$} \tcc{cell index}
 		\While{$k < |\Column|$}{
 			\nllabel{line:cell-break}
 			\Let{\Cell}{\algo{NextSubseq}$(\Column, k, s, \rT \rightarrow |\rT|)$}\;
@@ -708,7 +704,8 @@ The last jump defines the third column
 \end{example}
 
 
-We are now ready to describe the index construction procedure. Let $s$ be the
+We are now ready to describe the index construction procedure, whose pseudocode 
+is reported in Algorithm~\ref{alg:build-index}. Let $s$ be the
 \emph{page size} parameter, and \Tuples be the array of all tuples to be
 indexed. First, we sort \Tuples by increasing start time. Then, we divide the
 intervals into \emph{columns} of $s^2$ tuples based on their start times by
@@ -1066,7 +1063,8 @@ To frame this evaluation, we consider the following data structures as baselines
 The implementation of \btree provided by the Rust standard library, which is optimized for CPU cache usage. Intervals are indexed by duration in this case.
 The \itree index~\cite{DBLP:conf/vldb/KriegelPS00}, which we implemented ourselves, indexing intervals by their position on the timeline.
 The \gfile~\cite{DBLP:journals/tods/NievergeltHS84} and \pindex{}~\cite{BehrendDGSVRK_SSTD19_period-index}, which we also implemented, and which index both start times and durations.
-Our proposed data structure will be denoted with \rdtd when start times are indexed before end times, and with \rddt otherwise. \ad{We should also introduce \ours{}, because later on we are mostly using that instead of \rdtd or \rddt.}
+Our proposed data structure will be denoted with \rdtd when start times are indexed before end times, and with \rddt otherwise. 
+In cases where the order of dimensions is not relevant to the discussion, we will use \ours instead.
 To account for the potential shortcomings of our implementations, we will also evaluate the relative performance of the data structures with implementation-independent metrics~\cite{DBLP:journals/kais/KriegelSZ17}.
 
 We aim to answer the following questions:
@@ -1247,7 +1245,7 @@ satisfies the time range constraint of the query, and the \emph{duration selecti
 of the input satisfying the duration constraint of the query.
 
 For a given dataset, we build a query set such that queries are uniformly distributed on the
-\emph{time}$\times$\emph{duration} selectivity plan\ad{plain?}: this way we have queries which are
+\emph{time}$\times$\emph{duration} selectivity plane: this way we have queries which are
 very selective in only one dimension, or that are very selective in both dimensions, or that are not
 selective at all.
 The goal is to investigate the behavior of each index structure for queries with different characteristics.
@@ -1322,7 +1320,9 @@ with a time-duration ordering and page size 10.
 As we will see in the next section, this configuration is not ideal:
 indeed, for several queries we have to visit more intervals than the
 precision of the query.
-This is especially true for duration-only queries (blue dots). \ad{We should make a concluding statement like: But the index  even with these settings still performs better than the other approaches.}
+This is especially true for duration-only queries (blue dots). 
+Nevertheless, even under this non-optimal setting, \ours still performs better than the other approaches,
+i.e. points are more concentrated towards the diagonal.
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
