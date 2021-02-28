@@ -152,13 +152,13 @@ fn main() -> Result<()> {
 
                         info!("Running queries [batch]");
                         let start = Instant::now();
-                        let _matches = algorithm.run_batch(&queryset_queries);
+                        let matches = algorithm.run_batch(&queryset_queries);
                         let end = Instant::now();
                         let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 
                         info!(
-                            "time for index {}ms, time for query {}ms",
-                            elapsed_index, elapsed_run
+                            "time for index {}ms, time for query {}ms, output size {}",
+                            elapsed_index, elapsed_run, matches
                         );
                         // Clear up the index to free resources
                         algorithm.clear();
