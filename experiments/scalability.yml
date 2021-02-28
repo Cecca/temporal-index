@@ -9,16 +9,63 @@
   datasets:
     - Random:
         seed: [123]
-        n: 
-          - 10000000
-          - 20000000
-          - 30000000
-          - 40000000
-          - 50000000
+        n: [10000000]
         start_times:
           - Uniform: { low: 1, high: 10000000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
+    - Reiterated:
+        copies: 10
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times:
+            - Uniform: { low: 1, high: 10000000 }
+            durations:
+            - Zipf: { n: 10000000, beta: 1 }
+    - Reiterated:
+        copies: 20
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times:
+            - Uniform: { low: 1, high: 10000000 }
+            durations:
+            - Zipf: { n: 10000000, beta: 1 }
+    - Reiterated:
+        copies: 30
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times:
+            - Uniform: { low: 1, high: 10000000 }
+            durations:
+            - Zipf: { n: 10000000, beta: 1 }
+    - Reiterated:
+        copies: 40
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times:
+            - Uniform: { low: 1, high: 10000000 }
+            durations:
+            - Zipf: { n: 10000000, beta: 1 }
+    - Reiterated:
+        copies: 50
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times:
+            - Uniform: { low: 1, high: 10000000 }
+            durations:
+            - Zipf: { n: 10000000, beta: 1 }
+
+
   queries:
     - Random:
         seed: [23512]
