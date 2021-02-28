@@ -1145,13 +1145,6 @@ write them to a file.
   % period-index++, with the notable exception of duration-only workloads,
   % where it is an order of magnitude slower, although the ranking remains the same.
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
-		With \dataset{UZ} we denote interval sets with Uniform distribution of start times and Zipf
-		distribution of durations, with \dataset{UU} we refer to sets of intervals with Uniform distribution
-		for both the start time and the duration, and with \dataset{CZ} we denote intervals with
-		clustered start times and zipf distributed start times.
-		As for the duration, \dataset{U} denotes that duration ranges have endpoints with a uniform distribution.
-		For both time and duration constraints on the query, a dash (-) marks a workload that is not
-		constraining that dimension.
 		The smaller number in parentheses reports the rank of the data structure compared to the others on the same dataset and workload.
 		\label{tbl:overview-qps}}
 	\input{qps.tex}
@@ -1162,6 +1155,14 @@ In the first set of experiments, we consider both real-world and synthetic datas
 Table~\ref{tbl:overview-qps} reports an overview
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
+With \dataset{UZ} we denote interval sets with Uniform distribution of start times and Zipf
+distribution of durations, with \dataset{UU} we refer to sets of intervals with Uniform distribution
+for both the start time and the duration, and with \dataset{CZ} we denote intervals with
+clustered start times and zipf distributed start times.
+As for the duration, \dataset{U} denotes that duration ranges have endpoints with a uniform distribution.
+For both time and duration constraints on the query, a dash (-) marks a workload that is not
+constraining that dimension.
+
 For index structures that take parameters, we report on the best configuration.
 In particular, we defer the discussion of the effect of different
 parameterizations of \ours to Section~\ref{sec:param-dep}.
