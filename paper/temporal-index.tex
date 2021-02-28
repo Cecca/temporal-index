@@ -34,7 +34,6 @@
 %% Algorithms notation
 \newcommand{\Let}[2]{#1 $\leftarrow$ #2}
 \newcommand{\algocomment}[1]{{\hfill$\triangleleft~~${\footnotesize #1}}}
-\newcommand{\rdindex}{\textsc{RDI}}
 
 %% Notations for temporal relations
 \newcommand{\domT}{\ensuremath{\Omega^T}}
@@ -79,7 +78,14 @@
 \newcommand{\MaxDurations}{\texttt{cell\_maxdur}\xspace}
 \newcommand{\MaxDurationsij}{\texttt{cell\_maxdur[i][j]}\xspace}
 
-
+% Index structures ----------------------------
+\newcommand{\btree}{\algo{B-Tree}\xspace}
+\newcommand{\itree}{\algo{Interval-Tree}\xspace}
+\newcommand{\gfile}{\algo{Grid-File}\xspace}
+\newcommand{\pindex}{\algo{Period-Index$\star$}\xspace}
+\newcommand{\rdtd}{\algo{RD-index-td}\xspace}
+\newcommand{\rddt}{\algo{RD-index-dt}\xspace}
+\newcommand{\rd}{\algo{RD-index}\xspace}
 
 \definecolor{firstcolor}{HTML}{FDE725}
 \definecolor{secondcolor}{HTML}{7AD151}
@@ -121,7 +127,7 @@
 \orcid{0000-0003-2783-0218}
 \email{mceccarello@unibz.it}
 \affiliation{
-	\institution{University of Bozen}
+	\institution{University of Bozen-Bolzano}
 	\city{Bolzano}
 	\state{Italy}
 }
@@ -130,7 +136,7 @@
 \email{dignoes@inf.unibz.it}
 \orcid{0000-0002-7621-967X}
 \affiliation{
-	\institution{University of Bozen}
+	\institution{University of Bozen-Bolzano}
 	\city{Bolzano}
 	\state{Italy}
 }
@@ -139,7 +145,7 @@
 \orcid{0000-0002-7128-507X}
 \email{gamper@inf.unibz.it}
 \affiliation{
-	\institution{University of Bozen}
+	\institution{University of Bozen-Bolzano}
 	\city{Bolzano}
 	\state{Italy}
 }
@@ -148,22 +154,27 @@
 \begin{abstract}
   Temporal information plays a crucial role in many database
   applications, however support for queries on such data is limited.
-  We present an index structure, termed \rdindex, to support
+  We present an index structure, termed \rd, to support
   \emph{range-duration queries} over interval timestamped relations,
   which constrain both the \emph{range} of the tuple's start time
-  along the timeline and its \emph{duration}.  \rdindex is based on a
-  grid structure in the two-dimensional space, representing the
-  timeline and the duration of timestamps, respectively.  It features
-  provable bounds on the running time of all the operations, allows
-  for a simple implementation, and sports very predictable query
-  performance.  We benchmark our implementation on a variety of
-  datasets and query workloads, investigating both the query rate and
-  the behavior of the individual queries.  Our experimental evaluation
-  shows that, compared to other data structures, our index indeed
-  better supports range-duration queries.  While other data structures
-  are faster on specialized workloads constraining only the duration
-  or only the range, overall our data structure expresses the best
-  compromise across all tested workloads.
+  along the timeline and its \emph{duration}.  \rd is based on a grid
+  structure in the two-dimensional space, representing the timeline
+  and the duration of timestamps, respectively.  Instead of using a
+  regular grid, we consider the data distribution for the construction
+  of the grid in order to ensure that each grid cell contains
+  approximately the same number of intervals, except for heavily
+  biased data.  It features provable bounds on the running time of all
+  the operations, allows for a simple implementation, and sports very
+  predictable query performance.
+  %
+  We benchmark our implementation on a variety of datasets and query
+  workloads, investigating both the query rate and the behavior of the
+  individual queries.  Our experimental results shows that, compared
+  to other data structures, our index indeed better supports
+  range-duration queries.  While other data structures are faster on
+  specialized workloads constraining only the duration or only the
+  range, the \rd expresses the best compromise across all tested
+  workloads.
 \end{abstract}
 
 \maketitle
@@ -739,7 +750,7 @@ Finally, tuples in each cell are sorted by the end time.
 
 \begin{figure}
   \includegraphics[width=\columnwidth]{images/example-grid.png}
-  \caption{Instantiation of \rdindex with page size $s=50$ on the example dataset. 
+  \caption{Instantiation of \rd with page size $s=50$ on the example dataset. 
     \jg{It might be nice if we add to this figure the arrays col\_bounds, latest\_end, cell\_bounds, max\_durations along the x- and y-axis. We could even fill in the concrete values, I think.}
 	\mc{Yes, it would be nice, I'll think how to do it without cluttering the picture too much. It's already a bit crowded.}
 	\label{fig:example-grid}}
@@ -871,6 +882,9 @@ is built by partitioning first in the time dimension, and then in the
 duration dimension.
 The asymptotic results in this
 section hold for both dimension orderings.
+
+\jg{Should we create subsections, e.g., ``5.1 Index Construction and Update'' and ``5.2 Querying the Index''?}
+
 
 \begin{theorem}
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
@@ -1042,15 +1056,11 @@ In a similar way we can prove the following theorem.
 	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
 \end{theorem}
 
-\section{Experimental evaluation}
+\section{Experimental Evaluation}
 \label{sec:experiments}
 
-\newcommand{\btree}{\algo{B-Tree}\xspace}
-\newcommand{\itree}{\algo{Interval-Tree}\xspace}
-\newcommand{\gfile}{\algo{Grid-File}\xspace}
-\newcommand{\pindex}{\algo{Period-Index$\star$}\xspace}
-\newcommand{\rdtd}{\algo{RD-index-td}\xspace}
-\newcommand{\rddt}{\algo{RD-index-dt}\xspace}
+\jg{We don't have experiments about the construction time of the index (as well as for the index size). Do you think we could provide such an experiment?}
+
 
 \begin{figure*}[t]
 	\includegraphics[width=\textwidth]{images/real-distributions.png}
@@ -1113,11 +1123,14 @@ distribution for $1 \le i \le 10$.
 In both cases, interval durations follow a Zipf distribution with $\beta=1$.
 
 \begin{table*}
-  % The new implementation of rd-index has performance very similar to the previous
-  % period-index++, with the notable exception of duration-only workloads,
-  % where it is an order of magnitude slower, although the ranking remains the same.
-	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
-		The smaller number in parentheses reports the rank of the data structure compared to the others on the same dataset and workload.
+  % The new implementation of rd-index has performance very similar to
+  % the previous
+  % period-index++, with the notable exception of duration-only
+  % workloads,
+  % where it is an order of magnitude slower, although the ranking
+  % remains the same.
+  \caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
+		The smaller number in parentheses reports the rank of the data structure compared to the others on the same dataset and workload. \jg{The column constraint are constraints on the query distribution, isn't it? Sould we write instead Query distribution? Why do we have UZ, CZ in the column time? Shouldn't it be a single letter, U or Z? Not very clear to me.}
 		\label{tbl:overview-qps}}
 	\input{qps.tex}
 \end{table*}
