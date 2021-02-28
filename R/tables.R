@@ -102,6 +102,7 @@ filter_synthetic <- function(data_batch) {
       # Focus on experiments on 10 million intervals, without mixing
       # in experiments about scalability
       str_detect(dataset_params, " n=10000000 "),
+      str_detect(queryset_params, " dur_n=10000000 "),
       # Filter out datasets used in scalability experiments
       !str_detect(dataset_params, "start_high=1000000000 "),
       str_detect(queryset_params, " n=5000 "),
@@ -189,15 +190,18 @@ table_scalability <- function() {
       scale = as.integer(str_match(dataset_params, "copies=(\\d+)")[, 2]),
       queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2]),
       scale = case_when(
-        !is.na(dataset_n) ~ as.integer(dataset_n / 1000000),
         dataset_name %in% c("Flight", "Webkit", "Tourism") ~ as.integer(1),
+        is.na(scale) ~ as.integer(dataset_n / 10000000),
         TRUE ~ scale
       )
     ) %>%
+    # distinct(dataset_n, scale, queryset_params) %>% print(n=10000)
+    filter(scale %in% c(1, 10, 20, 30, 40, 50)) %>%
     filter(
       # Filter synthetic datasets
-      (queryset_n == 5000 &
-        str_detect(queryset_params, "start_high=1000000000")) |
+      (dataset_name == "random-uniform-zipf" & 
+        queryset_n == 10000 &
+        str_detect(queryset_params, "start_high=10000000")) |
         # Filter real datasets
         str_detect(dataset_name, "reiterated") |
         (dataset_name %in% c("Flight", "Webkit", "Tourism") &
@@ -212,7 +216,7 @@ table_scalability <- function() {
     )
 
   batch_data %>%
-    group_by(dataset_id, queryset_id, algorithm_name) %>%
+    group_by(dataset_id, scale, algorithm_name) %>%
     slice_max(qps) %>%
     ungroup()
 }
