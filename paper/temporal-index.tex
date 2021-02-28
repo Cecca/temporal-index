@@ -1066,7 +1066,7 @@ To frame this evaluation, we consider the following data structures as baselines
 The implementation of \btree provided by the Rust standard library, which is optimized for CPU cache usage. Intervals are indexed by duration in this case.
 The \itree index~\cite{DBLP:conf/vldb/KriegelPS00}, which we implemented ourselves, indexing intervals by their position on the timeline.
 The \gfile~\cite{DBLP:journals/tods/NievergeltHS84} and \pindex{}~\cite{BehrendDGSVRK_SSTD19_period-index}, which we also implemented, and which index both start times and durations.
-Our proposed data structure will be denoted with \rdtd when start times are indexed before end times, and with \rddt otherwise.
+Our proposed data structure will be denoted with \rdtd when start times are indexed before end times, and with \rddt otherwise. \ad{We should also introduce \ours{}, because later on we are mostly using that instead of \rdtd or \rddt.}
 To account for the potential shortcomings of our implementations, we will also evaluate the relative performance of the data structures with implementation-independent metrics~\cite{DBLP:journals/kais/KriegelSZ17}.
 
 We aim to answer the following questions:
@@ -1247,7 +1247,7 @@ satisfies the time range constraint of the query, and the \emph{duration selecti
 of the input satisfying the duration constraint of the query.
 
 For a given dataset, we build a query set such that queries are uniformly distributed on the
-\emph{time}$\times$\emph{duration} selectivity plan: this way we have queries which are
+\emph{time}$\times$\emph{duration} selectivity plan\ad{plain?}: this way we have queries which are
 very selective in only one dimension, or that are very selective in both dimensions, or that are not
 selective at all.
 The goal is to investigate the behavior of each index structure for queries with different characteristics.
@@ -1290,7 +1290,7 @@ by each query, which are represented as dots whose position along the $x$
 axis encodes their overall selectivity.
 Ideally, a data structure should answer queries by inspecting just the
 tuples which are parts of the output: such ideal behavior is represented
-by the black diagonal Figure~\ref{fig:time-vs-selectivity}.
+by the black diagonal in Figure~\ref{fig:time-vs-selectivity}.
 From the figure, we observe that \ours indeed shows the ideal behavior,
 when parameters are configured optimally.
 
@@ -1322,7 +1322,7 @@ with a time-duration ordering and page size 10.
 As we will see in the next section, this configuration is not ideal:
 indeed, for several queries we have to visit more intervals than the
 precision of the query.
-This is especially true for duration-only queries (blue dots).
+This is especially true for duration-only queries (blue dots). \ad{We should make a concluding statement like: But the index  even with these settings still performs better than the other approaches.}
 
 \subsection{Dependency on the page size parameter}
 \label{sec:param-dep}
