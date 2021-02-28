@@ -610,7 +610,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             ),
             fill = "red",
             color = "red",
-            size = 2,
+            size = 0.8,
             alpha = 0.0
         ) +
         theme_minimal() +
@@ -627,7 +627,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             geom_vline(
                 data = columns,
                 mapping = aes(xintercept=column_bound),
-                size = 0.5,
+                size = 0.3,
                 color = "forestgreen"
             ) +
             geom_linerange(
@@ -637,7 +637,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
                     xmin = column_bound,
                     xmax = column_end
                 ),
-                size = 0.5,
+                size = 0.3,
                 color = "forestgreen",
                 inherit.aes = FALSE
             )
