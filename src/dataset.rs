@@ -566,6 +566,115 @@ impl Queryset for RandomQueryset {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RandomCappedQueryset {
+    seed: u64,
+    n: usize,
+    /// Caps intervals to this time
+    cap: Time,
+    intervals: Option<(TimeDistribution, TimeDistribution)>,
+    durations: Option<TimeDistribution>,
+}
+
+impl RandomCappedQueryset {
+    pub fn new(
+        seed: u64,
+        n: usize,
+        cap: Time,
+        intervals: Option<(TimeDistribution, TimeDistribution)>,
+        durations: Option<TimeDistribution>,
+    ) -> Self {
+        Self {
+            seed,
+            n,
+            cap,
+            intervals,
+            durations,
+        }
+    }
+}
+
+impl Queryset for RandomCappedQueryset {
+    fn name(&self) -> String {
+        format!(
+            "random-capped-{}-{}",
+            self.intervals
+                .clone()
+                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
+                .unwrap_or("None".to_owned()),
+            self.durations
+                .clone()
+                .map(|pair| format!("{}", pair.name()))
+                .unwrap_or("None".to_owned()),
+        )
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "seed={} n={} cap={} {} {}",
+            self.seed,
+            self.n,
+            self.cap,
+            self.intervals
+                .clone()
+                .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
+                .unwrap_or(String::new()),
+            self.durations
+                .clone()
+                .map(|d| format!("{}", d.parameters("dur_dist_")))
+                .unwrap_or(String::new()),
+        )
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Vec<Query> {
+        use rand::RngCore;
+        use std::collections::BTreeSet;
+        let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
+        let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let mut data = BTreeSet::new();
+        let mut interval_gen = self
+            .intervals
+            .as_ref()
+            .map(move |(start_times, durations)| {
+                (start_times.stream(rng1), durations.stream(rng2))
+            });
+        let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
+        let mut cnt = 0;
+        while data.len() < self.n && cnt < self.n * 2 {
+            let interval = interval_gen.as_mut().map(|(start, duration)| {
+                Interval::new(
+                    start.next().unwrap(), 
+                    std::cmp::min(duration.next().unwrap(), self.cap)
+                )
+            });
+            let duration_range = durations_gen.as_mut().map(|d| {
+                let a = d.next().unwrap();
+                let b = d.next().unwrap();
+                DurationRange::new(std::cmp::min(a, b), std::cmp::max(a, b))
+            });
+            data.insert(Query {
+                range: interval,
+                duration: duration_range,
+            });
+            cnt += 1;
+        }
+        assert!(
+            data.len() == self.n,
+            "Generated too few vectors ({} out of {})",
+            data.len(),
+            self.n,
+        );
+        data.into_iter().collect()
+    }
+}
+
+
 #[derive(Debug)]
 pub struct SystematicQueryset {
     seed: u64,

@@ -315,6 +315,13 @@ pub enum QueryConfiguration {
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorConfig>,
     },
+    RandomCapped {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        cap: Vec<Time>,
+        range: Vec<GeneratorPairConfig>,
+        duration: Vec<GeneratorConfig>,
+    },
     Systematic {
         seed: Vec<u64>,
         n: Vec<usize>,
@@ -356,6 +363,24 @@ impl QueryConfiguration {
                         (None, None) => None,
                         (range, duration) => {
                             Some(Rc::new(RandomQueryset::new(*seed, *n, range, duration))
+                                as Rc<dyn Queryset>)
+                        }
+                    },
+                );
+                Box::new(iter)
+            }
+            Self::RandomCapped {
+                seed,
+                n,
+                cap,
+                range,
+                duration,
+            } => {
+                let iter = iproduct!(seed, n, cap, range, duration).flat_map(
+                    |(seed, n, cap, range, duration)| match (range.get(), duration.get()) {
+                        (None, None) => None,
+                        (range, duration) => {
+                            Some(Rc::new(RandomCappedQueryset::new(*seed, *n, *cap, range, duration))
                                 as Rc<dyn Queryset>)
                         }
                     },

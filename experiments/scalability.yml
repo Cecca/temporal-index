@@ -67,9 +67,10 @@
 
 
   queries:
-    - Random:
+    - RandomCapped:
         seed: [23512]
         n: [10000]
+        cap: [10000000]
         range:
           - Pair: [
               Uniform: { low: 1, high: 10000000 },
