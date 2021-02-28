@@ -4,11 +4,11 @@ latex_best <- function(data_best) {
     palette <- viridisLite::viridis(6, direction = -1)
     # palette <- RColorBrewer::brewer.pal(6, "Greens")
     lineseps <- c(
-        "", "", "", "", "\\addlinespace",
-        "", "", "", "", "\\addlinespace",
-        "", "", "\\addlinespace",
-        "", "", "\\addlinespace",
-        "", "", "\\addlinespace"
+        "", "", "", "\\midrule",
+        "", "", "", "\\midrule",
+        "", "", "\\midrule",
+        "", "", "\\midrule",
+        "", "", "\\midrule"
     )
 
     # TODO come up with a good naming scheme for workloads
@@ -23,24 +23,25 @@ latex_best <- function(data_best) {
         replace_na(list(qps = 0)) %>%
         mutate(
             rank = row_number(desc(qps)),
+            rank_str = str_c(" {\\footnotesize(", rank, ")}"),
             qps_num = qps %>% drop_units(),
-            speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
-            speedup_str = if_else(qps_num == min(qps_num),
-                "",
-                str_c(" {\\footnotesize(x\\,", speedup, ")}")
-            ),
+            # speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
+            # speedup_str = if_else(qps_num == min(qps_num),
+            #     "",
+            #     str_c(" {\\footnotesize(x\\,", speedup, ")}")
+            # ),
             qps = drop_units(qps) %>% scales::number(big.mark = "\\\\,"),
             qps = if_else(qps_num == max(qps_num),
                 str_c("\\underline{", qps, "}"),
                 qps
             ),
-            qps = str_c(qps, speedup_str),
-            qps = cell_spec(qps,
-                background = palette[rank],
-                color = if_else(rank <= 2, "black", "white"),
-                format = "latex",
-                escape = FALSE
-            )
+            qps = str_c(qps, rank_str)
+            # qps = cell_spec(qps,
+            #     background = palette[rank],
+            #     color = if_else(rank <= 2, "black", "white"),
+            #     format = "latex",
+            #     escape = FALSE
+            # )
         ) %>% 
         mutate(
             algorithm_name = case_when(
@@ -74,7 +75,7 @@ latex_best <- function(data_best) {
             ordered = TRUE
         )) %>%
         arrange(dataset) %>%
-        kbl(format = "latex", booktabs = T, escape = F, linesep = lineseps) %>%
+        kbl(format = "latex", booktabs = T, escape = F, linesep = lineseps, align="lllrrrrrr") %>%
         add_header_above(c(" " = 1, "constraint" = 2, "Queries per second" = 6))
 }
 
