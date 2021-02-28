@@ -1145,13 +1145,6 @@ write them to a file.
   % period-index++, with the notable exception of duration-only workloads,
   % where it is an order of magnitude slower, although the ranking remains the same.
 	\caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
-		The color of each cell encodes the ranking of algorithms for a given dataset and workload combination, the lighter the color, the faster the data structure:
-		\crule[firstcolor]{.5em}{1em}~first,
-		\crule[secondcolor]{.5em}{1em}~second,
-		\crule[thirdcolor]{.5em}{1em}~third,
-		\crule[fourthcolor]{.5em}{1em}~fourth,
-		\crule[fifthcolor]{.5em}{1em}~fifth,
-		and \crule[sixthcolor]{.5em}{1em}~last.
 		With \dataset{UZ} we denote interval sets with Uniform distribution of start times and Zipf
 		distribution of durations, with \dataset{UU} we refer to sets of intervals with Uniform distribution
 		for both the start time and the duration, and with \dataset{CZ} we denote intervals with
@@ -1159,8 +1152,7 @@ write them to a file.
 		As for the duration, \dataset{U} denotes that duration ranges have endpoints with a uniform distribution.
 		For both time and duration constraints on the query, a dash (-) marks a workload that is not
 		constraining that dimension.
-		The smaller number in parentheses reports the speedup compared to the slowest index
-		in the ranking.
+		The smaller number in parentheses reports the rank of the data structure compared to the others on the same dataset and workload.
 		\label{tbl:overview-qps}}
 	\input{qps.tex}
 \end{table*}
