@@ -134,6 +134,7 @@ table_best <- function() {
   synth <- filter_synthetic(data)
   real <- filter_real(data)
   bind_rows(synth, real) %>%
+    filter(!str_detect(queryset_name, "capped")) %>%
     filter(algorithm_name != "period-index++") %>%
     group_by(algorithm_name, queryset_id, dataset_id) %>%
     slice_max(qps) %>%
@@ -181,6 +182,7 @@ table_best <- function() {
 table_scalability <- function() {
   batch_data <- table_batch() %>%
     filter(
+      str_detect(queryset_name, "capped"),
       (!str_detect(dataset_name, "Flight")) | (str_detect(queryset_params, "dur_scale=60"))
     ) %>%
     mutate(
@@ -225,6 +227,7 @@ table_scalability <- function() {
 # and page size
 table_parameter_dependency <- function() {
   table_batch() %>%
+    filter(!str_detect(queryset_name, "capped")) %>%
     filter(
       algorithm_name %in% c("rd-index-td", "rd-index-dt"),
       dataset_name %in% c("random-zipf-uniform", "random-uniform-zipf"),
