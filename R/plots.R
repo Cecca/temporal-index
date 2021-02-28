@@ -312,9 +312,9 @@ plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
                 set_units(query_time, "milliseconds") %>% drop_units(),
             precision = examined / 10000000,
             category = case_when(
-                selectivity_time >= 0.99 ~ "duration-only",
-                selectivity_duration >= 0.99 ~ "time-only",
-                TRUE ~ "both"
+                selectivity_time >= 0.99 ~ "duration",
+                selectivity_duration >= 0.99 ~ "range",
+                TRUE ~ "range-duration"
             )
         )
     inner <- function(data) {
@@ -336,15 +336,15 @@ plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
             geom_rangeframe(show.legend = FALSE) +
             facet_wrap(vars(algorithm_name), ncol = 6, scales = "free_y") +
             scale_color_manual(values = c(
-                "both" = "#414141",
-                "duration-only" = "steelblue",
+                "range-duration" = "#414141",
+                "duration" = "steelblue",
                 # "duration-only" = "#00ccff",
-                "time-only" = "#ff5e00"
+                "range" = "#ff5e00"
             )) +
             scale_alpha_manual(values = c(
-                "both" = 0.1,
-                "duration-only" = 1,
-                "time-only" = 1
+                "range-duration" = 0.1,
+                "duration" = 1,
+                "range" = 1
             )) +
             scale_x_continuous(breaks = c(.25, .5, .75, 1)) +
             scale_y_continuous(limits = c(0, NA)) +

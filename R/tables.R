@@ -64,16 +64,21 @@ table_batch <- function() {
     # Tag workloads and distributions
     mutate(
       workload_type = case_when(
-        queryset_name == "random-uniform-zipf-uniform" ~ "both",
-        queryset_name == "random-zipf-uniform-uniform" ~ "both",
-        queryset_name == "random-zipf-uniform-None" ~ "time",
-        queryset_name == "random-clustered-zipf-uniform" ~ "both",
+        queryset_name == "random-uniform-zipf-uniform" ~ "range-duration",
+        queryset_name == "random-zipf-uniform-uniform" ~ "range-duration",
+        queryset_name == "random-zipf-uniform-None" ~ "range",
+        queryset_name == "random-clustered-zipf-uniform" ~ "range-duration",
         queryset_name == "random-None-uniform" ~ "duration",
-        queryset_name == "random-uniform-zipf-None" ~ "time",
-        queryset_name == "random-clustered-zipf-None" ~ "time",
+        queryset_name == "random-uniform-zipf-None" ~ "range",
+        queryset_name == "random-clustered-zipf-None" ~ "range",
         queryset_name == "Mixed" ~ "mixed",
         TRUE ~ "Unknown"
-      )
+      ),
+      workload_type = factor(workload_type, ordered = T, levels = c(
+        "range-duration",
+        "duration",
+        "range"
+      ))
     ) %>%
     mutate(
       start_times_distribution =
