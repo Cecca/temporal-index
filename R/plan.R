@@ -157,24 +157,26 @@ plan <- drake_plan(
     write_file(file_out("paper/example-table.tex")),
 
   figure_running_example_plane = {
-    tikzDevice::tikz(
-      file = file_out("paper/example-plane.tex"),
-      width = 3.3, height = 2.5
-    )
-    print(plot_running_example_tourism(
+    # tikzDevice::tikz(
+    #   file = file_out("paper/example-plane.tex"),
+    #   width = 3.3, height = 2.5
+    # )
+    plot_running_example_tourism(
       query_range, query_duration
-    ))
-    dev.off()
+    )
+    # dev.off()
+    ggsave(file_out("paper/images/example-plane.png"), width = 3.3, height = 2.5, dpi = 300)
   },
   figure_running_example_grid = {
-    tikzDevice::tikz(
-      file = file_out("paper/example-grid.tex"),
-      width = 3.3, height = 2.5
-    )
-    print(plot_running_example_tourism(
+    # tikzDevice::tikz(
+    #   file = file_out("paper/example-grid.tex"),
+    #   width = 3.3, height = 2.5
+    # )
+    plot_running_example_tourism(
       query_range, query_duration,
       grid = TRUE
-    ))
-    dev.off()
+    )
+    # dev.off()
+    ggsave(file_out("paper/images/example-grid.png"), width = 3.3, height = 2.5, dpi = 300)
   },
 )
