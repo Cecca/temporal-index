@@ -924,11 +924,11 @@ about heavy columns and cells.
 	A range-duration query defines a \emph{query polygon} in the start time $\times$ duration space, as depicted in Figure~\ref{fig:example-grid}.
 	For a given cell $\Gridij$, we denote by $k_{ij}$ the number of intervals in $\Gridij$ matching the query.
 
-	The query time is comprised of two parts: first we have to index into the grid to find the correct
+	The query time is comprised of two parts: first we have to index \ad{index?} into the grid to find the correct
 	range of cells to query; second we have to filter the intervals in each cell to retrieve
 	the ones that are part of the answer.
 
-	As for finding the range of cells, we first have to find potential matches the last column by start time, which can be
+	As for finding the range of cells, we first have to find potential matches the last column by start time\ad{I don't understand thus previous sentence}, which can be
 	done by binary search over the $n/s^2$ boundaries between columns in $\BO{\log (n/s^2)}$ time.
 	Iterating backwards through the columns visits at most $\BO{n / s^2}$ columns.
 	In each such column, to find the last cell with intervals satisfying the duration constraint
