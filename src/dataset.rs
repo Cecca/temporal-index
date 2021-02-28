@@ -647,12 +647,19 @@ impl Queryset for RandomCappedQueryset {
         let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
         let mut cnt = 0;
         while data.len() < self.n && cnt < self.n * 2 {
-            let interval = interval_gen.as_mut().map(|(start, duration)| {
-                Interval::new(
-                    start.next().unwrap(), 
-                    std::cmp::min(duration.next().unwrap(), self.cap)
-                )
-            });
+            let interval = interval_gen
+                .as_mut()
+                .map(|(start, duration)| {
+                    Interval::new(start.next().unwrap(), duration.next().unwrap())
+                })
+                .map(|interval| {
+                    if interval.end > self.cap {
+                        assert!(interval.start < self.cap, "interval.start={}, self.cap={}", interval.start, self.cap);
+                        Interval{start: interval.start, end: self.cap}
+                    } else {
+                        interval
+                    }
+                });
             let duration_range = durations_gen.as_mut().map(|d| {
                 let a = d.next().unwrap();
                 let b = d.next().unwrap();
@@ -673,7 +680,6 @@ impl Queryset for RandomCappedQueryset {
         data.into_iter().collect()
     }
 }
-
 
 #[derive(Debug)]
 pub struct SystematicQueryset {

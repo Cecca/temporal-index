@@ -1,7 +1,5 @@
 ---
 
-# FIXME: Run on a linear range of sizes, not exponential
-
 # scalability experiments
 - mode:
     Batch
@@ -117,15 +115,16 @@
         copies: 50
 
   queries:
-    - Random:
+    - RandomCapped:
         seed: [23512]
         n: [10000]
+        cap: [44639] # Maximum start time in the dataset
         # Granularity of days, in minutes
         range:
           - Pair: 
               - Scaled: 
                   inner: {Uniform: { low: 1, high: 666 }}
-                  scale: 1440 # one hour in minutes
+                  scale: 60 # one hour in minutes
               # Up to one month, in hours
               - Scaled:
                   inner: {Uniform: { low: 1, high: 744 }}
@@ -177,9 +176,10 @@
         copies: 50
 
   queries:
-    - Random:
+    - RandomCapped:
         seed: [23512]
         n: [10000]
+        cap: [418857102371] # max start time in the dataset
         range:
           # Granularity of minutes, in milliseconds
           - Pair:
@@ -234,9 +234,10 @@
         copies: 50
 
   queries:
-    - Random:
+    - RandomCapped:
         seed: [23512]
         n: [5000]
+        cap: [2055] # Maximum start time in the dataset
         range:
           - Pair: [
               Uniform: { low: 1, high: 2055 },
