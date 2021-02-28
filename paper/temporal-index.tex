@@ -15,6 +15,9 @@
 \usepackage{multirow}
 \usepackage{array}
 
+\usepackage{caption}
+\usepackage{subcaption}
+
 \theoremstyle{definition}
 \newtheorem{observation}{Observation}
 
@@ -157,24 +160,23 @@
   We present an index structure, termed \rd, to support
   \emph{range-duration queries} over interval timestamped relations,
   which constrain both the \emph{range} of the tuple's start time
-  along the timeline and its \emph{duration}.  \rd is based on a grid
-  structure in the two-dimensional space, representing the timeline
-  and the duration of timestamps, respectively.  Instead of using a
-  regular grid, we consider the data distribution for the construction
-  of the grid in order to ensure that each grid cell contains
-  approximately the same number of intervals, except for heavily
-  biased data.  It features provable bounds on the running time of all
-  the operations, allows for a simple implementation, and sports very
-  predictable query performance.
+  along the timeline and its \emph{duration}.  \rd is a grid structure
+  in the two-dimensional space, representing the timeline and the
+  duration of timestamps, respectively.  Instead of using a regular
+  grid, we consider the data distribution for the construction of the
+  grid in order to ensure that each grid cell contains approximately
+  the same number of intervals, except for heavily biased data.  \rd
+  features provable bounds on the running time of all the operations,
+  allows for a simple implementation, and sports very predictable
+  query performance.
   %
   We benchmark our implementation on a variety of datasets and query
   workloads, investigating both the query rate and the behavior of the
-  individual queries.  Our experimental results shows that, compared
-  to other data structures, our index indeed better supports
-  range-duration queries.  While other data structures are faster on
-  specialized workloads constraining only the duration or only the
-  range, the \rd expresses the best compromise across all tested
-  workloads.
+  individual queries.  The results shows that for range-duration
+  queries our index outperforms existing competitors.  While other
+  approaches are faster on specialized workloads constraining only the
+  duration or only the range, the \rd expresses the best compromise
+  across all tested workloads.
 \end{abstract}
 
 \maketitle
@@ -207,10 +209,19 @@
 
 \section{Introduction}
 
-Temporal information plays a crucial role in many database applications: many database management systems provide indeed automated version control of the data and \emph{time travel} facilities, allowing to access past history efficiently.
-Past research concentrated on the important operators of temporal aggregation~\cite{DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/ssd/PiatovH17}, temporal joins~\cite{DBLP:conf/icde/PiatovHD16}, and time travel~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13}.
-
-All these approaches focus on handling temporal intervals, but concentrate on the \emph{position} of intervals along the timeline, ignoring another important attribute of intervals: their duration.
+Temporal information plays a crucial role in many database
+applications: in fact, many database management systems and the SQL
+standard provide automated version control of the data and \emph{time
+  travel} facilities, allowing to efficiently access past history.
+Past research mainly concentrated on efficient solutions for important
+temporal operators, such as temporal
+aggregation~\cite{DBLP:conf/icde/KlineS95,DBLP:journals/tkde/MoonLI03,DBLP:conf/edbt/BohlenGJ06,DBLP:conf/ssd/PiatovH17},
+temporal joins~\cite{DBLP:conf/icde/PiatovHD16}, and time
+travel~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13} queries.
+%
+All these approaches consider only the \emph{position} of intervals
+along the timeline, ignoring another important aspect: the
+\emph{duration} of intervals.
 %
 As a result, index structures to support more general selection queries with constraints on both the duration and the position in time of intervals have been missing~\cite{DBLP:journals/sigmod/KulkarniM12,DBLP:journals/tods/DignosBGJ16,DBLP:conf/ebiss/BohlenDGJ17} until recently~\cite{BehrendDGSVRK_SSTD19_period-index}.	
 
@@ -237,10 +248,12 @@ application scenarios, such as source code repository analysis, or air
 traffic
 analysis~\cite{DBLP:conf/gis/SchullerBM10,DBLP:conf/adbis/BehrendMSW09,DBLP:conf/adbis/SchullerSB12}.
 
-As shown in the above examples, time periods can be constrained in
-their starting position on the timeline and the length of the
-period. However, index structures over time intervals typically use
-only one of the two aspects. For instance, the well-known relational
+% As shown in the above examples, time periods can be constrained in
+% their starting position on the timeline and the length of the
+% period.
+Existing index structures typically support only one of the two
+aspects, either the position of the interval on the timeline or the
+duration of the interval.  For instance, the well-known relational
 interval tree~\cite{DBLP:conf/vldb/KriegelPS00} is optimized for
 efficiently determining temporal relationships between intervals but
 not interval lengths. In the worst case, the entire index tree must be
@@ -249,33 +262,52 @@ length.  Alternatively, the duration of the intervals can be indexed
 straighforwardly using a classic data structure such as a B-tree.  In
 this case, however, queries constraining only the range of the
 intervals will need to traverse the entire tree.
-
-The two aforementioned indexes could be used at the same time, however combining different indexes is typically inefficient, since a query can have different selectivities in the two dimensions.
 %
-Therefore, to efficiently support queries constraining both the duration and the range of intervals we need to develop a data structure that can index both dimensions at the same time. A first step in this direction is \algo{Period-Index*}~\cite{BehrendDGSVRK_SSTD19_period-index}.
+Combining the two indexes is typically inefficient, since a query can
+have different selectivities in the two dimensions.
+%
+Therefore, to efficiently support queries constraining both the
+duration and the range of intervals we seek a new index structure that
+allows to index both dimensions at the same time.  A first approach in
+this direction is
+\algo{Period-Index*}~\cite{BehrendDGSVRK_SSTD19_period-index}.
 
-\jg{My feeling is that in this paragraph we need to provide a few more details, e.g., about our guarantees} We improve on this previous work by proposing \ours{}, a two
-dimensional data structure that indexes both duration and position on
-the timeline at the same time.  In particular, our data structure
-partitions the intervals in a grid according to their start times and
-durations. Rather than being fixed, the boundaries between the cells
-of the grid are positioned by taking into account the data
-distribution, so to ensure that each cell contains the same number of
-intervals (with the exception of some edge cases, as we shall see in
-the following).  This allows obtain very predictable query times,
-which are proportional to the selectivity of the query.  The data
-structure also lends itself to a rather simple implementation, which
-we use to experimentally validate our approach using such
-implementation, finding that the overhead introduced by the data
-structure is indeed negligible, and that the running time in practice
+In this paper, we improve on this previous
+work~\cite{BehrendDGSVRK_SSTD19_period-index} and propose \rd, a two
+dimensional data structure that indexes time intervals both on
+duration and position on the timeline.  Our index structure partitions
+the intervals in a grid according to their start times and
+durations. Rather than constructing a regular grid, the boundaries
+between the grid cells are determined by taking into account the data
+distribution.  Such a strategy ensures that each cell contains
+approximately the same number of intervals, with the exception of some
+edge cases if the distribution of the intervals is extremely skewed.
+The uniform distribution of the data over all grid cells allows to
+obtain very predictable query times, which are proportional to the
+selectivity of the query.  We prove that the time for answering a
+range-duration query with \rd is
+$O(\frac{n}{s^2} \log \frac{n}{s} + \frac{n}{s} + s^2 + k)$, where $n$
+is the size of the input relation, $k$ is the number of intervals
+matching the query predicate, and $s$ is the page size.  The index can
+be constructed in $O(n \log n)$ time.
+The index structure also lends itself to a rather simple
+implementation.
+%
+We present the results of a detailed experimental evaluation of our
+approach. The results show that the overhead introduced by the data
+structure is indeed negligible and that the running time in practice
 is largely proportional to the selectivity of the query.  This is in
-contrast to the other data structures we compare to.
+contrast to the competitors we compare to.
 
-Our contributions can then be summarized as follows:
+Our contributions can be summarized as follows:
 \begin{itemize}
-	\item We describe \ours{}, an index data structure that supports queries involving both the duration and range components of intervals;
-	\item We prove bounds on its performance, which can be tuned with a single parameter;
-	\item We provide an extensible open source implementation, which we benchmark against several baselines, showing significantly better performance across several workloads.
+\item We describe \rd, a novel index structure that supports queries
+  involving both the duration and the range of time intervals.
+\item We prove bounds on the performance of $\rd$, which can be tuned
+  with a single page size parameter $s$.
+\item We provide an extensible open source implementation, which we
+  benchmark against state-of-the-art competitors, showing
+  significantly better performance across several workloads.
 \end{itemize}
 
 % To tackle this problem, in this paper we propose a new index structure that
@@ -318,16 +350,16 @@ Our contributions can then be summarized as follows:
 % timeline.
 
 
-\begin{table}
-  \caption{Set of tourist stays for our running example.\label{tab:example}}
-	\input{example-table.tex}
-\end{table}
+% \begin{table}
+%   \caption{Set of tourist stays for our running example.\label{tab:example}}
+% 	\input{example-table.tex}
+% \end{table}
 
-\begin{example}
-  As a running example, we consider a subsets of the tourist stays that we will use in
-  our experimental evaluation. Table~\ref{tab:example} reports four such stays,
-  described by their start and end date, and their duration.
-\end{example}
+% \begin{example}
+%   As a running example, we consider a subsets of the tourist stays that we will use in
+%   our experimental evaluation. Table~\ref{tab:example} reports four such stays,
+%   described by their start and end date, and their duration.
+% \end{example}
 
 \section{Related work}
 
@@ -443,9 +475,9 @@ time.  A temporal relation $\R$ with schema $R$ is a finite set of
 tuples, where each tuple has a value in the appropriate domain for
 each attribute in the schema. We use $r.A_i$ to denote the value of
 attribute $A_i$ in tuple $r$, and $\rT = [\rTS, \rTE)$ to refer to its
-time interval.  We use the abbreviations $\A = \{ \args{A}{m} \}$ and
-$r.\A = (\args{r.A}{m})$. \jg{Not sure whether these 2 abbreviations
-  are used at all}
+time interval.
+% We use the abbreviations $\A = \{ \args{A}{m} \}$ and
+% $r.\A = (\args{r.A}{m})$.
 
 \subsection{Temporal Queries}
 
@@ -484,15 +516,19 @@ timestamp has a duration that is between $d_{min}$ and $d_{max}$. A
 range-duration query is a combination of the former two.
 
 \begin{example}\label{example:queries}
-  Consider the following range-duration query on our example relation:
-  the time range is
-  constrained to be between June 15 and July 15, 2016, and the duration is
-  constrained to be between 5 and 13 days.  Figure~\ref{fig:example-intervals}
-  shows a graphical representation, where the timestamps are drawn by
+  As a running example, we consider the temporal relation in
+  Figure~\ref{tab:example}. It stores tourist stays, described by a
+  start date, end date, and the duration of the stay.
+  %
+  Consider the following range-duration query on this relation: the
+  time range is constrained to be between June 15 and July 15, 2016,
+  and the duration is constrained to be between 5 and 13 days.
+  Figure~\ref{fig:example-intervals} shows a graphical representation
+  of the relation and the query, where the timestamps are drawn by
   horizontal lines.  The red area indicates the constraint on the
-  start time.  The red segments on top of each timestamp
-  interval denote the duration constraint, where the solid red part
-  indicates the range of minimum and maximum duration.  That is, an interval
+  start time.  The red segments on top of each timestamp interval
+  denote the duration constraint, where the solid red part indicates
+  the range of minimum and maximum duration.  That is, an interval
   satisfies the range constraint if it intersects with the red area,
   and it satisfies the duration constraint if its end point is within
   the green part.
@@ -501,11 +537,19 @@ range-duration query is a combination of the former two.
 \end{example}
 
 \begin{figure}
-  \input{example.tex}
-  \caption{Range-duration query on the example
-    relation of tourist stays. 
-    \label{fig:example-intervals}
-  }
+  \begin{subfigure}{\columnwidth}
+    \centering
+    \input{example-table.tex}
+    \caption{Relation with tourist stays\label{tab:example}}
+  \end{subfigure}
+
+  \medskip
+  \begin{subfigure}{\columnwidth}
+    \centering
+    \input{example.tex}
+    \caption{Range-duration query\label{fig:example-intervals}}
+  \end{subfigure}
+  \caption{Running example.}
 \end{figure}
 
 \section{Data Structure}
