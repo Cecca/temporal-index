@@ -925,8 +925,7 @@ duration dimension.
 The asymptotic results in this
 section hold for both dimension orderings.
 
-\jg{Should we create subsections, e.g., ``5.1 Index Construction and Update'' and ``5.2 Querying the Index''?}
-
+\subsection{Index Construction and Update}
 
 \begin{theorem}
 	Given a set of $n$ intervals, building the index requires time $\BO{n \log n}$.
@@ -947,6 +946,38 @@ section hold for both dimension orderings.
 	$\BO{n \log n}$ overall,
 	and the theorem follows.
 \end{proof}
+
+\begin{theorem}
+	Inserting a tuple $r$ into the index requires
+	time $\BO{\log n/s + n/s + s^2 \log s}$.
+\end{theorem}
+\begin{proof}
+	Finding the cell that should contain $\rT$ requires time $\BO{\log\frac{n}{s^2}}$ to find the column, and
+	time $\BO{\log\frac{n}{s}}$ to find the cell within the column (as in the worst case all the intervals
+	in the index have the same duration).
+
+  Note that a heavy column or cell does not need to be split, since by definition
+  they can contain more than $s^2$ (resp. $s$) intervals, as long as they all have
+  the same start time (resp. duration).
+  Therefore we consider only the case of splitting a non-heavy column or non-heavy cell.
+	Splitting a column with $2s^2 + 1$ intervals requires to find the median,
+	to sort the newly created columns, and
+	to apply Algorithm~\ref{alg:next-breakpoint} on them
+	operations which require time $\BO{s^2\log s^2}$ overall.
+	Furthermore, inserting the new column boundaries in order in the sorted array of boundaries requires
+	$\BO{\frac{n}{s^2}}$ time.
+	By similar reasoning, splitting a cell with $2s+1$ intervals requires time $\BO{s\log s}$,
+	and updating cell boundaries by inserting in-order requires $\BO{\frac{n}{s}}$
+\end{proof}
+
+In a similar way we can prove the following theorem.
+
+\begin{theorem}
+	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
+\end{theorem}
+
+
+\subsection{Querying the Index}
 
 Before stating our main result, we establish the following fundamental facts
 about heavy columns and cells.
@@ -1046,7 +1077,7 @@ The above theorem exposes a fundamental tradeoff of our data structure:
 using a smaller page size allows to improve the precision of the data structure
 (by looking at fewer intervals that are not part of the query output), while
 at the same time increasing the number of columns that need to be queried.
-\mc{We perform experiments, on the testbeds we found that the best configuraiton is about $100/10^7$ of the for $s$}
+In Section~\ref{sec:param-dep} we investigate experimentally the effect of $s$ on the performance, finding that the the best performance is attained for $n/s^2 \in [50,500]$.
 
 The choice of the order of this partitioning affects the
 practical performance, as we will also discuss in Section~\ref{sec:experiments}
@@ -1067,37 +1098,6 @@ range constraints. Therefore, indexing first by duration might imply that a
 query has to iterate through fewer columns, compared to the case where start
 times are indexed first.
 \end{observation}
-
-
-\begin{theorem}
-	Inserting a tuple $r$ into the index requires
-	time $\BO{\log n/s + n/s + s^2 \log s}$.
-\end{theorem}
-\begin{proof}
-	Finding the cell that should contain $\rT$ requires time $\BO{\log\frac{n}{s^2}}$ to find the column, and
-	time $\BO{\log\frac{n}{s}}$ to find the cell within the column (as in the worst case all the intervals
-	in the index have the same duration).
-
-  Note that a heavy column or cell does not need to be split, since by definition
-  they can contain more than $s^2$ (resp. $s$) intervals, as long as they all have
-  the same start time (resp. duration).
-  Therefore we consider only the case of splitting a non-heavy column or non-heavy cell.
-	Splitting a column with $2s^2 + 1$ intervals requires to find the median,
-	to sort the newly created columns, and
-	to apply Algorithm~\ref{alg:next-breakpoint} on them
-	operations which require time $\BO{s^2\log s^2}$ overall.
-	Furthermore, inserting the new column boundaries in order in the sorted array of boundaries requires
-	$\BO{\frac{n}{s^2}}$ time.
-	By similar reasoning, splitting a cell with $2s+1$ intervals requires time $\BO{s\log s}$,
-	and updating cell boundaries by inserting in-order requires $\BO{\frac{n}{s}}$
-\end{proof}
-
-In a similar way we can prove the following theorem.
-
-\begin{theorem}
-	Removing a tuple $r$ from the index requires time $\BO{\log n/s + n/s}$
-\end{theorem}
-
 \section{Experimental Evaluation}
 \label{sec:experiments}
 
