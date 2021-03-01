@@ -584,6 +584,10 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
 plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE) {
     dataset <- read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
         filter(duration <= 50)
+
+    maxduration <- dataset %>% pull(duration) %>% max()
+    minduration <- dataset %>% pull(duration) %>% min()
+
     columns <- read_csv(here::here("example_rdindex/column_info.csv")) %>%
         filter(i != 4) %>%
         arrange(i) %>%
@@ -624,9 +628,30 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
 
     if (grid) {
         p <- p +
-            geom_vline(
+            annotate(
+                geom="linerange",
+                y=maxduration,
+                xmin = ymd("2016-01-01"),
+                xmax = ymd("2016-12-31"),
+                size = 0.2,
+                color = "forestgreen",
+                linetype = "solid"
+            ) +
+            annotate(
+                geom="linerange",
+                x=ymd("2016-12-31"),
+                ymin = minduration - 0.4,
+                ymax = maxduration,
+                size = 0.2,
+                color = "forestgreen",
+                linetype = "solid"
+            ) +
+            geom_linerange(
                 data = columns,
-                mapping = aes(xintercept=column_bound),
+                mapping = aes(x=column_bound),
+                ymin = minduration - 0.4,
+                ymax = maxduration,
+                inherit.aes = F,
                 size = 0.2,
                 color = "forestgreen",
                 linetype = "solid"
@@ -637,7 +662,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
                     x = column_bound, 
                     label=column_bound
                 ),
-                y = 45,
+                y = maxduration - 0.3,
                 nudge_x = 3,
                 vjust = 1,
                 hjust = 1,
@@ -651,7 +676,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
                     x = column_bound, 
                     label=latest_end_time
                 ),
-                y = 45,
+                y = maxduration - 0.5,
                 nudge_x = 20,
                 vjust = 1,
                 hjust = 1,
