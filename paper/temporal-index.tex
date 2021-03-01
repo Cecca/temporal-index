@@ -1045,6 +1045,7 @@ The above theorem exposes a fundamental tradeoff of our data structure:
 using a smaller page size allows to improve the precision of the data structure
 (by looking at fewer intervals that are not part of the query output), while
 at the same time increasing the number of columns that need to be queried.
+\mc{We perform experiments, on the testbeds we found that the best configuraiton is about $100/10^7$ of the for $s$}
 
 The choice of the order of this partitioning affects the
 practical performance, as we will also discuss in Section~\ref{sec:experiments}
