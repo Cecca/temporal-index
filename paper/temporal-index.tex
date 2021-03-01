@@ -271,7 +271,7 @@ Therefore, to efficiently support queries constraining both the
 duration and the range of intervals we seek a new index structure that
 allows to index both dimensions at the same time.  A first approach in
 this direction is
-\algo{Period-Index*}~\cite{BehrendDGSVRK_SSTD19_period-index}.
+\algo{Period-Index$\star$}~\cite{BehrendDGSVRK_SSTD19_period-index}.
 
 In this paper, we improve on this previous
 work~\cite{BehrendDGSVRK_SSTD19_period-index} and propose \rd, a two
@@ -391,8 +391,7 @@ the durations of the intervals. As we shall see, our index structure removes
 this assumption, supporting databases with arbitrary distributions of
 durations.
 
-In a two dimensional space, intervals can be represented as 2D points, where one dimension is the start point and the second dimension is either the end point or the duration of an interval. In this two dimensional space, a selection query with the overlap predicate corresponds to a selection query over a 2D area. \ad{probably also range-duration query} For this, multidimensional indices can be used to find the relevant intervals. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are multidimensional indices that grouping objects in a multidimensional space using minimum bounding (hyper) rectangles. Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are tree structures that recursively divide the space into partitions and place objects into the best fitting partition according to some criteria. \ad{Here we need to mention the drawbacks with regard to our approach.}
-\mc{This is a tentative:}
+In a two dimensional space, intervals can be represented as 2D points, where one dimension is the start point and the second dimension is either the end point or the duration of an interval. In this two dimensional space, a selection query with the overlap predicate corresponds to a selection query over a 2D area. For this, multidimensional indices can be used to find the relevant intervals. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are multidimensional indices that grouping objects in a multidimensional space using minimum bounding (hyper) rectangles. Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are tree structures that recursively divide the space into partitions and place objects into the best fitting partition according to some criteria.
 All of the aforementioned indexes are linked data structures, which don't play well with modern hardware when implemented in-memory. In contrast we propose a data structure that can be implemented by means of simple arrays, and thus enjoy high cache locality.
 
 % {\color{red}
@@ -427,7 +426,6 @@ workloads.  Furthermore, we prove bounds on the worst case running
 times for all the operations,
 while~\cite{DBLP:conf/sigmod/NathanDAK20,
   DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
-\mc{Talk about this}
 Finally, our approach is arguably simpler, in that it is based just on sorting and iterating through records.
 
 In recent years, algorithms for interval joins have been actively studied. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13} process sets of intervals as sorted events list of their start and end points, and compute the interval join by scanning these event lists in an interleaved fashion and thereby keeping and joining with a set of active intervals, i.e., intervals whose start, but not end point has been encountered. To improve the performance of the original linked list data structure to store active intervals, a gapless hash map has been proposed~\cite{DBLP:conf/icde/PiatovHD16} that provides a higher performance for scanning active intervals. The same idea has also been extended for joins over general Allen's predicates~\cite{DBLP:journals/vldb/PiaDHP21} rather than only overlap predicates. The work by Bouros and
