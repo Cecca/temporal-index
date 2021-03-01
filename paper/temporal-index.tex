@@ -480,13 +480,7 @@ time.  A temporal relation $\R$ with schema $R$ is a finite set of
 tuples, where each tuple has a value in the appropriate domain for
 each attribute in the schema. We use $r.A_i$ to denote the value of
 attribute $A_i$ in tuple $r$, and $\rT = [\rTS, \rTE)$ to refer to its
-<<<<<<< HEAD
-time interval.
-% We use the abbreviations $\A = \{ \args{A}{m} \}$ and
-% $r.\A = (\args{r.A}{m})$.
-=======
 time interval. 
->>>>>>> Remove unused definitions, update scalability
 
 \subsection{Temporal Queries}
 
@@ -795,9 +789,8 @@ Finally, tuples in each cell are sorted by the end time.
 
 \begin{figure}
   \includegraphics[width=\columnwidth]{images/example-grid.png}
-  \caption{Instantiation of \rd with page size $s=50$ on the example dataset. 
-    \jg{It might be nice if we add to this figure the arrays col\_bounds, latest\_end, cell\_bounds, max\_durations along the x- and y-axis. We could even fill in the concrete values, I think.}
-	\mc{Yes, it would be nice, I'll think how to do it without cluttering the picture too much. It's already a bit crowded.}
+  \caption{Instantiation of \rdindex with page size $s=50$ on the example dataset. 
+    Each column is annotated with its boundary (larger date) and latest end time (smaller date).
 	\label{fig:example-grid}}
 \end{figure}
 
@@ -807,9 +800,12 @@ Finally, tuples in each cell are sorted by the end time.
   start times, adapting to the density of the points.
   Within each column, the points are partitioned according the the distribution of durations.
   In particular, since many stays have the same duration, the bottom cells of each column are \emph{heavy}, i.e. they contain more than $s=50$ tuples, all sharing the same duration.
-  
   In contrast, a uniform grid would suffer from a high imbalance in the number of
   tuples in each cell.
+
+  Note that the latest end time of each column is past the beginning of the following column.
+  This is the reason why we maintain the cumulative maximum end times in the array \LatestEnds, rather than the latest end time within each column.
+  Since this information is used to decide when to stop scanning columns at query time, as we shall see in the next section, considering only the latest end time within columns might imply that we stop too early the query, skipping some columns that contain matching tuples.
 \end{example}
 
 \subsection{Querying the Index}

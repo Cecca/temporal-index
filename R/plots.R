@@ -593,7 +593,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
         inner_join(columns)
 
     p <- ggplot(dataset, aes(start, duration)) +
-        geom_point(size=0.1, shape=16, color="gray70") +
+        geom_point(size=0.2, shape=16, color="gray0", alpha=0.7) +
         annotate(
             geom = "polygon",
             y = c(
@@ -610,7 +610,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             ),
             fill = "red",
             color = "red",
-            size = 0.8,
+            size = 0.6,
             alpha = 0.0
         ) +
         theme_minimal() +
@@ -627,8 +627,38 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             geom_vline(
                 data = columns,
                 mapping = aes(xintercept=column_bound),
-                size = 0.3,
-                color = "forestgreen"
+                size = 0.2,
+                color = "forestgreen",
+                linetype = "solid"
+            ) +
+            geom_text(
+                data = columns,
+                mapping = aes(
+                    x = column_bound, 
+                    label=column_bound
+                ),
+                y = 45,
+                nudge_x = 3,
+                vjust = 1,
+                hjust = 1,
+                size = 2.5,
+                angle = 90,
+                inherit.aes = F
+            ) +
+            geom_text(
+                data = columns,
+                mapping = aes(
+                    x = column_bound, 
+                    label=latest_end_time
+                ),
+                y = 45,
+                nudge_x = 20,
+                vjust = 1,
+                hjust = 1,
+                size = 2,
+                color = "gray40",
+                angle = 90,
+                inherit.aes = F
             ) +
             geom_linerange(
                 data = cells,
@@ -637,8 +667,9 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
                     xmin = column_bound,
                     xmax = column_end
                 ),
-                size = 0.3,
+                size = 0.2,
                 color = "forestgreen",
+                linetype = "solid",
                 inherit.aes = FALSE
             )
     }
