@@ -1455,7 +1455,8 @@ The underlying idea is to repeat the temporal patterns of the dataset on a longe
 Figure~\ref{fig:scalability} reports for each scale factor, the performance of the best configuration of each algorithm.
 First, we note that in general the relative performance of the data structures does not change at different dataset scales.
 
-There are some notable exceptions. The performance of \btree degrades by a factor $\approx 10$ going from scale 1 to scale 10. The reason is that the \btree indexes the durations, and under our syntetic construction the number of intervals associated to each duration increases by the same scale of the dataset.
+There are some notable exceptions. The performance of \btree degrades by a factor $\approx 10$ going from scale 1 to scale 10. The reason is that the \btree indexes the durations, and under our synthetic construction the number of intervals associated to each duration increases by the same scale of the dataset.
+For similar reasons, the performance of \rddt degrades, albeit in a much less pronounced way.
 
 On Webkit, the performance of \gfile and \pindex increases with the scale of the dataset: the effect of our synthetic construction in this case is to compensate for the skew in the start times, giving to both data structures the chance of better partitioning the time dimension.
 
