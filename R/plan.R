@@ -152,9 +152,9 @@ plan <- drake_plan(
     dev.off()
   },
 
-  latex_running_example = data_running_example %>%
-    latex_example() %>%
-    write_file(file_out("paper/example-table.tex")),
+  # latex_running_example = data_running_example %>%
+  #   latex_example() %>%
+  #   write_file(file_out("paper/example-table.tex")),
 
   figure_running_example_plane = {
     # tikzDevice::tikz(
