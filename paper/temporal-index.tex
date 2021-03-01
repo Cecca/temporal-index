@@ -1446,27 +1446,28 @@ Therefore, we recommend to choose the former ordering of dimensions when buildin
 \begin{figure*}
 	\includegraphics[width=\textwidth]{images/scalability.png}
 	\caption{Scalability of the index structures for the increasing dataset sizes.
-		Synthetic datasets start from 10 million intervals up to one billion intervals.
-		Each point corresponds to the best configuration of the given data structure for a particular dataset scale.
+		Each point corresponds to the best configuration of the given data structure for a particular dataset scale, up to 50 times the original size.
 		The workload is of range-duration queries.
 		\label{fig:scalability}}
 	\Description{Scalability figure, showing that our proposed approach has superior performance for all tested
 		dataset sizes, and scales gracefully.}
 \end{figure*}
 
-To test the scalability of the index structures, we consider datasets of increasing sizes.
-For synthetic datasets we start with 10 million intervals, scaling by factors of 10 to one billion intervals.
-For real-world datasets, we artificially increase their size as follows.
-Given a dataset and a scale parameter $s$, let $\bar{t}$ the span of time covered by all the intervals in the dataset.
-We make $s$ copies of each interval, and shift copy $i$ in time by $i\cdot \bar{t}$, for $i\in[0, s)$.
-The underlying idea is to repeat the temporal patterns of the dataset on a longer time scale.
+To test the scalability of the index structures, we consider datasets of increasing sizes, while maintaining the output size constant. 
+This allows to assess the influence of the input size on the performance without conflating the results with the time required to iterate over larger outputs.
 
-Figure~\ref{fig:scalability} reports the performance of the best configuration of each algorithm,
-showing that the performance degrades gracefully as the dataset size increases, for all the data structures
-involved in the comparison.
-On synthetic datasets, for all tested sizes, \ours is about one order of magnitude faster than the
-second-best data structure, \algo{grid-file}.
+We consider the three real world datasets, along with a synthetic one with uniform start times and Zipf-distributed durations, which is representative of the distribution of many real world datasets.
+Then, we artificially increase their size as follows.
+Given a dataset and a scale parameter $\eta$, let $\bar{t}$ the span of time covered by all the intervals in the dataset.
+We make $\eta$ copies of each interval, and shift copy $i$ in time by $i\cdot \bar{t}$, for $i\in[0, s)$.
+The underlying idea is to repeat the temporal patterns of the dataset on a longer time scale, simulating the scenario in which the relation grows over time.
 
+Figure~\ref{fig:scalability} reports for each scale factor, the performance of the best configuration of each algorithm.
+First, we note that in general the relative performance of the data structures does not change at different dataset scales.
+
+There are some notable exceptions. The performance of \btree degrades by a factor $\approx 10$ going from scale 1 to scale 10. The reason is that the \btree indexes the durations, and under our syntetic construction the number of intervals associated to each duration increases by the same scale of the dataset.
+
+On Webkit, the performance of \gfile and \pindex increases with the scale of the dataset: the effect of our synthetic construction in this case is to compensate for the skew in the start times, giving to both data structures the chance of better partitioning the time dimension.
 
 % \bibliographystyle{plain}
 \bibliographystyle{ACM-Reference-Format}
