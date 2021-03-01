@@ -16,15 +16,17 @@ latex_best <- function(data_best) {
         ungroup() %>%
         select(
             dataset_name, time_constraint,
-            duration_constraint, algorithm_name, qps
+            duration_constraint, algorithm_name, qps, time_index
         ) %>%
         group_by(dataset_name, time_constraint, duration_constraint) %>%
-        distinct(algorithm_name, qps) %>%
+        distinct(algorithm_name, qps, time_index) %>%
         replace_na(list(qps = 0)) %>%
         mutate(
             rank = row_number(desc(qps)),
             rank_str = str_c(" {\\footnotesize(", rank, ")}"),
             qps_num = qps %>% drop_units(),
+            time_index = time_index %>% set_units("ms") %>% drop_units() %>% scales::number(big.mark = "\\\\,"),
+            time_index_str = str_c(" {\\footnotesize(", time_index, ")}"),
             # speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
             # speedup_str = if_else(qps_num == min(qps_num),
             #     "",
@@ -35,7 +37,7 @@ latex_best <- function(data_best) {
                 str_c("\\underline{", qps, "}"),
                 qps
             ),
-            qps = str_c(qps, rank_str)
+            qps = str_c(qps, time_index_str)
             # qps = cell_spec(qps,
             #     background = palette[rank],
             #     color = if_else(rank <= 2, "black", "white"),
