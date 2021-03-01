@@ -1160,16 +1160,13 @@ distribution for $1 \le i \le 10$.
 In both cases, interval durations follow a Zipf distribution with $\beta=1$.
 
 \begin{table*}
-  % The new implementation of rd-index has performance very similar to
-  % the previous
-  % period-index++, with the notable exception of duration-only
-  % workloads,
-  % where it is an order of magnitude slower, although the ranking
-  % remains the same.
   \caption{Performance attained by the tested indices on different workloads, in terms of queries per second.
 		The smaller number in parentheses report the time to build the index, in milliseconds.
 		\label{tbl:overview-qps}}
-	\input{qps.tex}
+  {
+    %\small
+    \input{qps.tex}
+  }
 \end{table*}
 
 
@@ -1200,6 +1197,7 @@ write them to a file.
 
 \subsection{Robustness of index structures across different workloads}
 \label{sec:overview}
+
 
 In the first set of experiments, we consider both real-world and synthetic datasets
 (with 10 million intervals).
@@ -1247,6 +1245,39 @@ their start time distribution show similar performance.
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
 
+\begin{figure*}
+	\includegraphics[width=\textwidth]{images/query-focus.png}
+	\includegraphics[width=\textwidth]{images/query-focus-precision.png}
+	\caption{
+		Heatmaps of the performance of index structures against selectivity
+		in the time and duration dimensions.
+		The top row reports the time, in milliseconds, required to answer a query with a given time and duration selectivity.
+		The bottom row reports the fraction of intervals (over the total $n=10^7$) examined by each query. A fraction larger than 1 means that
+		a query examined the same interval more than once.
+		For readability the color scales are binned every
+		5 percentiles, therefore the scales are non linear.
+		In both plots, lighter is better.
+		\label{fig:selectivity-grid}}
+	\Description{Time versus selectivity in two dimensions}
+\end{figure*}
+
+\begin{figure*}
+	\includegraphics[width=\textwidth]{images/selectivity-dep.png}
+	\caption{
+		% Note that for the period-index* duration only queries are the worst, because they need
+		% to visit all the buckets. On top of that, most of the queries have to examine
+		% each interval more than once.
+		Number of examined intervals against selectivity of the query.
+		Each point represents a query:
+		red dots are \qro queries, blue dots are \qdo queries.
+		The black line represents the ideal behavior, in which only matching
+		intervals are examined.
+		Note that all the plots except for the one related to the 
+		\algo{PeriodIndex*} share the $y$ axis: in all plots the black diagonal has slope 1.
+		\label{fig:time-vs-selectivity}}
+	\Description{Time versus selectivity}
+\end{figure*}
+
 
 We investigate the relationship between the selectivity of queries (i.e. the fraction of the
 input that satisfies them) and the time taken by different data structures to answer them.
@@ -1277,21 +1308,6 @@ First and foremost, we note that each data structure has similar patterns
 both in the top and the bottom plot, since the time to answer a query is
 tightly related to fraction of intervals inspected.
 
-\begin{figure*}
-	\includegraphics[width=\textwidth]{images/query-focus.png}
-	\includegraphics[width=\textwidth]{images/query-focus-precision.png}
-	\caption{
-		Heatmaps of the performance of index structures against selectivity
-		in the time and duration dimensions.
-		The top row reports the time, in milliseconds, required to answer a query with a given time and duration selectivity.
-		The bottom row reports the fraction of intervals (over the total $n=10^7$) examined by each query. A fraction larger than 1 means that
-		a query examined the same interval more than once.
-		For readability the color scales are binned every
-		5 percentiles, therefore the scales are non linear.
-		In both plots, lighter is better.
-		\label{fig:selectivity-grid}}
-	\Description{Time versus selectivity in two dimensions}
-\end{figure*}
 
 The \algo{interval-tree} plot exhibits vertical bands: the data structure is able to select intervals
 only based on their position on the timeline, therefore for a fixed time selectivity of the query
@@ -1320,24 +1336,6 @@ From the figure, we observe that \ours indeed shows the ideal behavior,
 when parameters are configured optimally.
 
 As for the \algo{grid-file}, since the efficiency in answering a query depends on the density of the cells being considered, the performance is in many cases far from ideal, which can be seen from the fact that several queries are far away from the ideal diagonal.
-
-
-\begin{figure*}
-	\includegraphics[width=\textwidth]{images/selectivity-dep.png}
-	\caption{
-		% Note that for the period-index* duration only queries are the worst, because they need
-		% to visit all the buckets. On top of that, most of the queries have to examine
-		% each interval more than once.
-		Number of examined intervals against selectivity of the query.
-		Each point represents a query:
-		red dots are \qro queries, blue dots are \qdo queries.
-		The black line represents the ideal behavior, in which only matching
-		intervals are examined.
-		Note that all the plots except for the one related to the 
-		\algo{PeriodIndex*} share the $y$ axis: in all plots the black diagonal has slope 1.
-		\label{fig:time-vs-selectivity}}
-	\Description{Time versus selectivity}
-\end{figure*}
 
 Considering the \algo{b-tree} and \algo{interval-tree}, we have \qro and \qdo respectively
 are answered with the worst performance (i.e. they score 1 in Figure~\ref{fig:time-vs-selectivity}), as we expect given that they are answered
@@ -1380,6 +1378,17 @@ i.e. points are more concentrated towards the diagonal.
 		\label{fig:param-dependency}}
 	\Description{}
 \end{figure}
+
+\begin{figure*}[t]
+	\includegraphics[width=\textwidth]{images/scalability.png}
+	\caption{Scalability of the index structures for the increasing dataset sizes.
+		Each point corresponds to the best configuration of the given data structure for a particular dataset scale, up to 50 times the original size.
+		The workload is of range-duration queries.
+		\label{fig:scalability}}
+	\Description{Scalability figure, showing that our proposed approach has superior performance for all tested
+		dataset sizes, and scales gracefully.}
+\end{figure*}
+
 
 To test the dependency of the query time on the \emph{page size} parameter, 
 we consider two datasets with 10 million intervals each. The first datasets has 
@@ -1431,15 +1440,6 @@ Therefore, we recommend to choose the former ordering of dimensions when buildin
 \subsection{Scalability with respect to the input size}
 \label{sec:scalability}
 
-\begin{figure*}
-	\includegraphics[width=\textwidth]{images/scalability.png}
-	\caption{Scalability of the index structures for the increasing dataset sizes.
-		Each point corresponds to the best configuration of the given data structure for a particular dataset scale, up to 50 times the original size.
-		The workload is of range-duration queries.
-		\label{fig:scalability}}
-	\Description{Scalability figure, showing that our proposed approach has superior performance for all tested
-		dataset sizes, and scales gracefully.}
-\end{figure*}
 
 To test the scalability of the index structures, we consider datasets of increasing sizes, while maintaining the output size constant. 
 This allows to assess the influence of the input size on the performance without conflating the results with the time required to iterate over larger outputs.
@@ -1458,7 +1458,6 @@ For similar reasons, the performance of \rddt degrades, albeit in a much less pr
 
 On Webkit, the performance of \gfile and \pindex increases with the scale of the dataset: the effect of our synthetic construction in this case is to compensate for the skew in the start times, giving to both data structures the chance of better partitioning the time dimension.
 
-\FloatBarrier
 
 % \bibliographystyle{plain}
 \bibliographystyle{ACM-Reference-Format}
