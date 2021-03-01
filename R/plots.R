@@ -5,6 +5,11 @@ theme_paper <- function() {
 }
 
 plot_scalability <- function(data_scalability) {
+    data_scalability <- data_scalability %>%
+        mutate(
+            dataset_name = if_else(dataset_name == "random-uniform-zipf", "Random", dataset_name),
+            dataset_name = factor(dataset_name, levels=c("Random", "Flight", "Webkit", "Tourism"), ordered = T)
+        )
     ggplot(data_scalability, aes(
         x = scale,
         y = drop_units(qps),
