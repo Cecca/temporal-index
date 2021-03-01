@@ -104,11 +104,11 @@ filter_synthetic <- function(data_batch) {
   data_batch %>%
     filter(
       str_detect(dataset_name, "random"),
-      # Focus on experiments on 10 million intervals, without mixing
-      # in experiments about scalability
+      # # Focus on experiments on 10 million intervals, without mixing
+      # # in experiments about scalability
       str_detect(dataset_params, " n=10000000 "),
-      str_detect(queryset_params, " dur_n=10000000 "),
-      # Filter out datasets used in scalability experiments
+      (str_detect(queryset_params, " dur_n=10000000 ") | !str_detect(queryset_params, " dur_n=")),
+      # # Filter out datasets used in scalability experiments
       !str_detect(dataset_params, "start_high=1000000000 "),
       str_detect(queryset_params, " n=5000 "),
       !(queryset_params %in% c(
@@ -120,6 +120,7 @@ filter_synthetic <- function(data_batch) {
       dataset_name != "random-zipf-uniform"
     )
 }
+
 
 filter_real <- function(data_batch) {
   data_batch %>%

@@ -4,8 +4,8 @@ latex_best <- function(data_best) {
     palette <- viridisLite::viridis(6, direction = -1)
     # palette <- RColorBrewer::brewer.pal(6, "Greens")
     lineseps <- c(
-        "", "", "", "\\midrule",
-        "", "", "", "\\midrule",
+        "", "", "", "", "\\midrule",
+        "", "", "", "", "\\midrule",
         "", "", "\\midrule",
         "", "", "\\midrule",
         "", "", "\\midrule"
@@ -25,7 +25,12 @@ latex_best <- function(data_best) {
             rank = row_number(desc(qps)),
             rank_str = str_c(" {\\footnotesize(", rank, ")}"),
             qps_num = qps %>% drop_units(),
-            time_index = time_index %>% set_units("ms") %>% drop_units() %>% scales::number(big.mark = "\\\\,"),
+            time_index_num = time_index %>% set_units("ms") %>% drop_units(),
+            time_index = time_index_num %>% scales::number(big.mark = "\\\\,"),
+            time_index = if_else(time_index_num == min(time_index_num),
+                str_c("\\textbf{", time_index,"}"),
+                time_index
+            ),
             time_index_str = str_c(" {\\footnotesize(", time_index, ")}"),
             # speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
             # speedup_str = if_else(qps_num == min(qps_num),
@@ -34,7 +39,7 @@ latex_best <- function(data_best) {
             # ),
             qps = drop_units(qps) %>% scales::number(big.mark = "\\\\,"),
             qps = if_else(qps_num == max(qps_num),
-                str_c("\\underline{", qps, "}"),
+                str_c("\\textbf{", qps, "}"),
                 qps
             ),
             qps = str_c(qps, time_index_str)
@@ -72,13 +77,30 @@ latex_best <- function(data_best) {
             names_from = "algorithm_name",
             values_from = "qps"
         ) %>%
-        mutate(dataset = factor(dataset,
-            levels = c("UZ", "CZ", "Flight", "Webkit", "Tourism"),
-            ordered = TRUE
-        )) %>%
+        mutate(
+            dataset = case_when(
+                dataset == "UZ" ~ "Uniform",
+                dataset == "CZ" ~ "Clustered",
+                TRUE ~ dataset
+            ),
+            dataset = factor(dataset,
+                levels = c("Uniform", "Clustered", "Flight", "Webkit", "Tourism"),
+                ordered = TRUE),
+            time = case_when(
+                time == "UZ" ~ "Uniform",
+                time == "UU" ~ "Uniform",
+                time == "CZ" ~ "Clustered",
+                TRUE ~ time
+            ),
+            duration = case_when(
+                duration == "U" ~ "Uniform",
+                TRUE ~ duration
+            )
+        ) %>%
         arrange(dataset) %>%
-        kbl(format = "latex", booktabs = T, escape = F, linesep = lineseps, align="lllrrrrrr") %>%
-        add_header_above(c(" " = 1, "constraint" = 2, "Queries per second" = 6))
+        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align="lllrrrrrr") %>%
+        collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
+        add_header_above(c(" " = 1, "Query distribution" = 2, "Queries per second (index build time)" = 6))
 }
 
 latex_example <- function(data_example) {
