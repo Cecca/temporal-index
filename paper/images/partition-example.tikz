@@ -43,7 +43,7 @@
 		\draw [style=jump, bend right=75, looseness=1.50] (18) to (20);
 		\draw [style=jump, bend right=75, looseness=1.50] (20) to (19);
 		\draw [style=jump, bend right=75, looseness=1.50] (19) to (21);
-		\draw [style=jump, in=-60, out=-120, looseness=1.50] (10) to (11);
+		\draw [style=jump, bend left=75, looseness=1.50] (10) to (11);
 		\draw [style=jump, bend left=75, looseness=1.50] (11) to (12);
 		\draw (32.center) to (33.center);
 		\draw (30.center) to (31.center);
