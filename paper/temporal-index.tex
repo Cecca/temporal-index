@@ -230,7 +230,7 @@ In many application domains both aspects of temporal information are
 useful to formulate queries.  For instance, consider the following
 queries from the tourism sector:
 \begin{itemize}
-	\item[$Q1$:] \emph{"Find all the tourists who stayed in Bolzano the weekend of pentecost (June 8th--9th) 2019."}
+	\item[$Q1$:] \emph{"Find all the tourists who stayed in Bolzano the weekend of Pentecost (June 8th--9th) 2019."}
 	\item[$Q2$:] \emph{"Find all the tourists who stayed in Bolzano for a short term (between 1-3 days)."}
 	\item[$Q3$:] \emph{"Find all the tourists who stayed in Bolzano between 2 and 4 weeks during August last year."}
 \end{itemize}
@@ -260,7 +260,7 @@ efficiently determining temporal relationships between intervals but
 not interval lengths. In the worst case, the entire index tree must be
 traversed if a query solely contains restrictions on the interval
 length.  Alternatively, the duration of the intervals can be indexed
-straighforwardly using a classic data structure such as a B-tree.  In
+straightforwardly using a classic data structure such as a B-tree.  In
 this case, however, queries constraining only the range of the
 intervals will need to traverse the entire tree.
 %
@@ -597,7 +597,7 @@ containing all tuples $r \in \R$ such that
   }
 \end{figure}
 
-Our index is a two-dimenstional grid, partitioning the tuples into
+Our index is a two-dimensional grid, partitioning the tuples into
 disjoint buckets according to the start time and the duration of the
 intervals.  The boundaries between cells are defined by using the
 empirical cumulative distribution function of the tuples' duration and
@@ -797,7 +797,7 @@ Finally, tuples in each cell are sorted by the end time.
   Figure~\ref{fig:example-grid} shows the grid constructed according to the above
   algorithm on our example relation, with page size parameter $s=50$. Note that the columns, which contain $s^2=2500$ tuples each, span different ranges of
   start times, adapting to the density of the points.
-  Within each column, the points are partitioned according the the distribution of durations.
+  Within each column, the points are partitioned according the distribution of durations.
   In particular, since many stays have the same duration, the bottom cells of each column are \emph{heavy}, i.e. they contain more than $s=50$ tuples, all sharing the same duration.
   In contrast, a uniform grid would suffer from a high imbalance in the number of
   tuples in each cell.
@@ -1075,7 +1075,7 @@ The above theorem exposes a fundamental tradeoff of our data structure:
 using a smaller page size allows to improve the precision of the data structure
 (by looking at fewer intervals that are not part of the query output), while
 at the same time increasing the number of columns that need to be queried.
-In Section~\ref{sec:param-dep} we investigate experimentally the effect of $s$ on the performance, finding that the the best performance is attained for $n/s^2 \in [50,500]$.
+In Section~\ref{sec:param-dep} we investigate experimentally the effect of $s$ on the performance, finding that the best performance is attained for $n/s^2 \in [50,500]$.
 
 The choice of the order of this partitioning affects the
 practical performance, as we will also discuss in Section~\ref{sec:experiments}
@@ -1230,7 +1230,7 @@ Recall that this data structure is rather similar to \ours, the difference being
 that the latter is adaptive to the input distribution.
 This shows the performance benefits of a data structure that takes into account the data distribution.
 
-On \qdo workloads, \algo{b-tree} is always the best performing index, up to one order of
+On \qdo workloads, \btree is always the best performing index, up to one order of
 magnitude faster than \ours.
 However, on \qrd workloads, its performance is much worse.
 As for the \algo{interval-tree} it shows performance comparable to the \algo{grid-file} on \qro
@@ -1274,7 +1274,7 @@ their start time distribution show similar performance.
 		The black line represents the ideal behavior, in which only matching
 		intervals are examined.
 		Note that all the plots except for the one related to the 
-		\algo{PeriodIndex*} share the $y$ axis: in all plots the black diagonal has slope 1.
+		\pindex share the $y$ axis: in all plots the black diagonal has slope 1.
 		\label{fig:time-vs-selectivity}}
 	\Description{Time versus selectivity}
 \end{figure*}
@@ -1297,7 +1297,7 @@ we measure the time taken to repeat a given query 100 consecutive times, which d
 gives an estimate of the time required by the query.
 
 Figure~\ref{fig:selectivity-grid} reports results for such a setup, with 1024 queries arranged in a 32$\times$32
-grid, running on the \dataset{UZ Synthetic} dataset. In the top row of plots, colors encode the time required by queries having
+grid, running on a synthetic dataset with 10 million intervals, with start times uniformly distributed and Zipf distributed durations. In the top row of plots, colors encode the time required by queries having
 a particular combination of selectivity in the time and duration dimensions.
 In the bottom row of plots, colors encode the fraction of the dataset inspected by each query.
 This metric allows a more implementation-independent assessment of the relative performance of different data structures.
@@ -1310,19 +1310,19 @@ both in the top and the bottom plot, since the time to answer a query is
 tightly related to fraction of intervals inspected.
 
 
-The \algo{interval-tree} plot exhibits vertical bands: the data structure is able to select intervals
+The \itree plot exhibits vertical bands: the data structure is able to select intervals
 only based on their position on the timeline, therefore for a fixed time selectivity of the query
 the fraction of intervals inspected (and thus the time to answer the query)
 do not depend on the selectivity in the duration dimension,
 since all the candidate intervals need to be examined.
-For similar reasons, \algo{b-tree} shows horizontal bands.
+For similar reasons, \btree shows horizontal bands.
 Data structures that explicitly index both dimensions, instead, tend to exhibit a more \emph{diagonal}
 pattern, in particular \ours.
-The pattern exhibited by \algo{period-index*} tends to be more similar to the \algo{interval-tree}.
+The pattern exhibited by \pindex tends to be more similar to the \itree.
 This means that this index is more responsive to queries that are selective in the time dimension.
-This is to be expected, since \algo{period-index*} is adaptive to the distribution of start times
+This is to be expected, since \pindex is adaptive to the distribution of start times
 in the dataset.
-Its worse performance compared to \ours and \algo{grid-file} for queries of a given selectivity
+Its worse performance compared to \ours and \gfile for queries of a given selectivity
 is explained by the fact that some intervals might be represented multiple times in the index.
 
 Figure~\ref{fig:time-vs-selectivity} reports the performance against
@@ -1336,15 +1336,15 @@ by the black diagonal in Figure~\ref{fig:time-vs-selectivity}.
 From the figure, we observe that \ours indeed shows the ideal behavior,
 when parameters are configured optimally.
 
-As for the \algo{grid-file}, since the efficiency in answering a query depends on the density of the cells being considered, the performance is in many cases far from ideal, which can be seen from the fact that several queries are far away from the ideal diagonal.
+As for the \gfile, since the efficiency in answering a query depends on the density of the cells being considered, the performance is in many cases far from ideal, which can be seen from the fact that several queries are far away from the ideal diagonal.
 
-Considering the \algo{b-tree} and \algo{interval-tree}, we have \qro and \qdo respectively
+Considering the \btree and \itree, we have \qro and \qdo respectively
 are answered with the worst performance (i.e. they score 1 in Figure~\ref{fig:time-vs-selectivity}), as we expect given that they are answered
 by simple enumeration of the entire dataset.
 Other queries are answered with varying degrees of efficiency, with queries constraining
-just the dimension on which the index specializes (duration for \algo{b-tree} and time for \algo{interval-tree}) exhibiting a the ideal behavior.
+just the dimension on which the index specializes (duration for \btree and time for \itree) exhibiting the ideal behavior.
 
-Finally, \algo{period-index$\star$} inspects the same tuples multiple times for the majority of queries. This is because the index is storing several copies of each tuple.
+Finally, \pindex inspects the same tuples multiple times for the majority of queries. This is because the index is storing several copies of each tuple.
 As we observed previously, queries restricting only the time are the ones answered most efficiently
 by this data structure.
 
