@@ -35,7 +35,7 @@ plot_scalability <- function(data_scalability) {
             name = "queries per second",
             labels = scales::number_format()
         ) +
-        scale_color_tableau(name = "") +
+        scale_color_tableau(name = "", guide = guide_legend(ncol=6)) +
         facet_wrap(vars(dataset_name), ncol = 4, scales="free_y") +
         theme_paper() +
         theme(
@@ -117,21 +117,32 @@ plot_real_distribution <- function(data_start, data_duration) {
     p1 <- ggplot(data_start, aes(x = start_time, weight = count)) +
         geom_histogram(aes(y = stat(count) / sum(count))) +
         facet_wrap(vars(name), scales = "free") +
-        labs(x = "start time") +
-        scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
-        theme_paper() +
-        theme(axis.title.y = element_blank())
-    p2 <- ggplot(data_duration, aes(x = duration, weight = count)) +
-        geom_histogram(aes(y = stat(count) / sum(count))) +
-        facet_wrap(vars(name), scales = "free") +
-        labs(x = "duration") +
+        labs(x = "start time", title="Start time distributions") +
+        scale_x_continuous(breaks = scales::pretty_breaks(3)) +
         scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
         theme_paper() +
         theme(
-            strip.text = element_blank(),
+            plot.title = element_text(size= 12),
+            axis.title = element_text(size = 10),
+            axis.title.y = element_blank(),
+            panel.border = element_rect(fill=NA)
+        )
+    p2 <- ggplot(data_duration, aes(x = duration, weight = count)) +
+        geom_histogram(aes(y = stat(count) / sum(count))) +
+        facet_wrap(vars(name), scales = "free") +
+        labs(x = "duration", title="Duration distributions") +
+        scale_x_continuous(breaks = scales::pretty_breaks(3)) +
+        scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+        theme_paper() +
+        theme(
+            plot.title = element_text(size= 12),
+            axis.title = element_text(size = 10),
+            panel.border = element_rect(fill=NA),
+            # strip.text = element_blank(),
             axis.title.y = element_blank()
         )
-    plot_grid(p1, p2, ncol = 1)
+    # plot_grid(p1, p2, ncol = 1)
+    p1 | p2
 }
 
 plot_query_focus_precision <- function(data_focus) {
