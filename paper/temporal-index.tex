@@ -44,7 +44,7 @@
 \newcommand{\rel}[1]{\ensuremath{\mathbf{\mathsf{#1}}}\xspace}
 \newcommand{\rs}{\rel{s}}
 \newcommand{\dbattset}[1]{\ensuremath{\mathbf{#1}}}
-\newcommand{\R}{\ensuremath{\mathbf{r}}} % temporal relation
+\newcommand{\R}{\ensuremath{\mathbf{r}}\xspace} % temporal relation
 \newcommand{\A}{\dbattset{A}}
 \newcommand{\T}{\ensuremath{t}} % temporal range
 \newcommand{\D}{\ensuremath{d}} % duration range
@@ -64,8 +64,8 @@
 
 % Algorithms ---------------------------
 
-\newcommand{\Tuples}{\texttt{tuples}\xspace}
-\newcommand{\Tuplesi}[1]{\texttt{tuples[#1]}\xspace}
+%\newcommand{\Tuples}{\texttt{tuples}\xspace}
+%\newcommand{\Tuplesi}[1]{\texttt{tuples[#1]}\xspace}
 \newcommand{\Column}{\texttt{column}\xspace}
 \newcommand{\Colbounds}{\texttt{col\_bounds}\xspace}
 \newcommand{\Colboundsi}{\texttt{col\_bounds[i]}\xspace}
@@ -391,6 +391,8 @@ this assumption, supporting databases with arbitrary distributions of
 durations.
 
 In a two dimensional space, intervals can be represented as 2D points, where one dimension is the start point and the second dimension is either the end point or the duration of an interval. In this two dimensional space, a selection query with the overlap predicate corresponds to a selection query over a 2D area. \ad{probably also range-duration query} For this, multidimensional indices can be used to find the relevant intervals. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are multidimensional indices that grouping objects in a multidimensional space using minimum bounding (hyper) rectangles. Quadtrees and octrees~\cite{DBLP:journals/acta/FinkelB74,Ulrich00,Samet05} are tree structures that recursively divide the space into partitions and place objects into the best fitting partition according to some criteria. \ad{Here we need to mention the drawbacks with regard to our approach.}
+\mc{This is a tentative:}
+All of the aforementioned indexes are linked data structures, which don't play well with modern hardware when implemented in-memory. In contrast we propose a data structure that can be implemented by means of simple arrays, and thus enjoy high cache locality.
 
 % {\color{red}
 % Multidimensional indices can be used to index positions of intervals (using their structure or as points in the two-dimensional space) and their duration by using an additional dimension. R-trees~\cite{DBLP:conf/sigmod/BeckmannKSS90,DBLP:journals/talg/ArgeBHY08} are a variant of multidimensional indices that adopt object grouping using minimum bounding rectangles.
@@ -411,10 +413,11 @@ Index~\cite{DBLP:conf/sigmod/KraskaBCDP18} and a variant of decision trees to
 model the position of records of the database, adapting to the distribution
 of the data and of the query workload.
 %
-\mc{This is a dangerous statement. What do you think?}  \jg{To
-  some extend yes, but on the other hand we have some features which
-  distinguish our work (as you explain below); so it should be ok, but
-  we have of course to clearly work out such differences} While our
+%\mc{This is a dangerous statement. What do you think?}  \jg{To
+  %some extend yes, but on the other hand we have some features which
+  %distinguish our work (as you explain below); so it should be ok, but
+  %we have of course to clearly work out such differences} 
+While our
 approach shares some ideas with this line of work, namely adapting to
 the data distribution by means of the conditional cumulative
 distribution function, our index supports both insertions and
@@ -423,6 +426,8 @@ workloads.  Furthermore, we prove bounds on the worst case running
 times for all the operations,
 while~\cite{DBLP:conf/sigmod/NathanDAK20,
   DBLP:journals/corr/abs-2006-13282} provide an empirical evaluation.
+\mc{Talk about this}
+Finally, our approach is arguably simpler, in that it is based just on sorting and iterating through records.
 
 In recent years, algorithms for interval joins have been actively studied. Approaches based on the timeline index~\cite{DBLP:conf/sigmod/KaufmannMVFKFM13} process sets of intervals as sorted events list of their start and end points, and compute the interval join by scanning these event lists in an interleaved fashion and thereby keeping and joining with a set of active intervals, i.e., intervals whose start, but not end point has been encountered. To improve the performance of the original linked list data structure to store active intervals, a gapless hash map has been proposed~\cite{DBLP:conf/icde/PiatovHD16} that provides a higher performance for scanning active intervals. The same idea has also been extended for joins over general Allen's predicates~\cite{DBLP:journals/vldb/PiaDHP21} rather than only overlap predicates. The work by Bouros and
 Mamoulis~\cite{DBLP:journals/pvldb/BourosM17} computes an interval join using a forward scan based
@@ -560,7 +565,7 @@ range-duration query is a combination of the former two.
 
 \subsection{Overview}
 
-\mc{make this clearer} An interval can be completely described by its
+ An interval can be completely described by its
 duration and starting time, therefore we can represent a set of
 temporal intervals as a set of points in a two dimensional space, with
 one coordinate being the start time and the other the duration.
@@ -631,37 +636,29 @@ $\R$ it belongs to.
 \end{figure}
 
 \begin{algorithm}[t]
-  \caption{\textsc{NextSubseq}$(\Tuples, h, b,
+  \caption{\textsc{NextSubseq}$(\R, h, b,
     k)$\label{alg:next-breakpoint}}
-  \KwIn{A collection of $\Tuples$, sorted according to $k$; the
-    current index $h$; a subsequence size $b$; a \emph{key} function
-    $k: \Tuples \to \domT$ }%
-  \KwOut{A subsequence of \Tuples starting from position $h$, either
-    of size $\le b$ or all having the same key}
-
-  \jg{If we want to be very precise, the function $k$ is not correct,
-    as in the case of Duration it is not mapping to $\domT$; might be
-    ok if we don't have a better idea which is still simple} \jg{I
-    think we could get rid of the parameter \Tuples and use $\R$
-    instead. If we state in Alg. 2 that $\R$ is sorted, we could use
-    here expressions such as $k(r_h) = k(r_{h'})$, $k(r_h) = k(r_{h-1})$ or all tuples $r_h,\dots,r_{h'-1}$. I think they are very clear and might look simpler.}
+  \KwIn{A relation $\R$ sorted according to $k$; the
+    current index $h$; a subsequence size $b$; a \emph{key} function}%
+  \KwOut{A subsequence of \R starting from position $h$, either
+    of size $\le b$ or with all tuples all having the same key}
 
 	\BlankLine
-	\Let{$h'$}{$\min\{h + b, |\Tuples|\}$}\;
-	\uIf{$k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
+	\Let{$h'$}{$\min\{h + b, |\R|\}$}\;
+	\uIf{$k(\R_{h}) = k(\R_{h'})$} {
 		\nllabel{line:heavy-bucket}
 		% {\footnotesize look for the last interval with the same key:}\;
-		\While{$h' < |\Tuples| \wedge k(\Tuplesi{h}) = k(\Tuplesi{h'})$} {
+		\While{$h' < |\R| \wedge k(\R_{h}) = k(\R_{h'})$} {
 			\Let{$h'$}{$h'+1$}
 		}
 	} \Else {
 		\nllabel{line:split-bucket}
 		% {\footnotesize look backwards for the first interval with a different key:}\;
-		\While{$h' > h \wedge k(\Tuplesi{h'-1}) = k(\Tuplesi{h'})$} {
+		\While{$h' > h \wedge k(\R_{h'-1}) = k(\R_{h'})$} {
 			\Let{$h'$}{$h'-1$}
 		}
 	}
-	\Return the subsequence of \Tuples from $h$ to $h'$ (excluded)\;
+	\Return the subsequence of \R from $h$ to $h'$ (excluded)\;
 \end{algorithm}
 
 \begin{algorithm}[t]
@@ -685,13 +682,13 @@ $\R$ it belongs to.
 	\Let{\MaxDurations}{[][]}\;
 
 	\BlankLine
-	% Sort $\Tuples$ by interval start time\;
-        \Let{\Tuples}{$\R$ sorted by the tuples' start time}\;
-	\Let{$h$}{$0$} \tcc{position in \Tuples}
+	Sort $\R$ by interval start time\;
+  %\Let{\Tuples}{$\R$ sorted by the tuples' start time}\;
+	\Let{$h$}{$0$} \tcc{position in \R}
 	\Let{$i$}{$0$} \tcc{column index}
-	\While{$h < |\Tuples|$}{
+	\While{$h < |\R|$}{
 		\nllabel{line:column-break}
-		\Let{\Column}{\algo{NextSubseq}$(\Tuples, h, s^2, \rT \rightarrow \rTS)$}\;
+		\Let{\Column}{\algo{NextSubseq}$(\R, h, s^2, \rT \rightarrow \rTS)$}\;
 		\Let{\Colboundsi}{$\min\{\rTS : r \in \Column\}$}\;
 		\Let{\LatestEndsi}{
 			$\max\{\LatestEndsPrev, \{\rTE : r \in \Column\}\}$
@@ -732,7 +729,7 @@ considerations, and proofs also hold with the dimensions swapped.
 Before describing the algorithm to build the index, we describe
 \textsc{NextSubseq}, a subroutine that partitions an array of tuples sorted
 according to a key function. We will use this subroutine to define columns
-and cells of our grid structure. In particular, given an index $h$ and a size
+and cells of our grid structure, by using first start times and then durations as keys. In particular, given an index $h$ and a size
 parameter $b$, \textsc{NextSubseq} returns a subsequence starting at $h$ that
 either contains at most $b$ tuples or contains tuples all sharing the same
 key. Additionally, all the tuples with the same key are part of the same
@@ -766,8 +763,7 @@ The last jump defines the third column
 
 We are now ready to describe the index construction procedure, whose pseudocode 
 is reported in Algorithm~\ref{alg:build-index}. Let $s$ be the
-\emph{page size} parameter, and \Tuples be the array of all tuples to be
-indexed. First, we sort \Tuples by increasing start time. Then, we divide the
+\emph{page size} parameter, and \R be the relation to be indexed. First, we sort \R by increasing start time. Then, we divide the
 intervals into \emph{columns} of $s^2$ tuples based on their start times by
 repeatedly invoking \textsc{NextSubseq} (\ref{line:column-break}). Defining
 columns in this way allows, intuitively, to then further partition each
