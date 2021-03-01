@@ -74,7 +74,7 @@ plan <- drake_plan(
     save_png(
       filename = "paper/images/real-distributions.png",
       width = 10,
-      height = 3
+      height = 2
     ),
 
   # Data for the query focus plot
