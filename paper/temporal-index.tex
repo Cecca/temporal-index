@@ -1205,6 +1205,7 @@ In the first set of experiments, we consider both real-world and synthetic datas
 Table~\ref{tbl:overview-qps} reports an overview
 on the performance, in terms of queries per second, of
 different index structures under the different combinations of dataset/query workload.
+Furthermore, it reports on the time in milliseconds required to build the index.
 In the \emph{dataset} column, with
 \dataset{Uniform} we denote a synthetic dataset with uniformly distributed start times and Zipf distribution of durations, whereas for \dataset{Clustered}
 the start times are clustered.
@@ -1239,9 +1240,13 @@ workloads, but is comparatively much slower on \qrd workloads.
 We can therefore conclude that \ours is the index structure achieving the best compromise
 for all three types of queries: \qrd, \qdo, and \qro.
 
-Finally, we observe that the distribution of start times does not seem to play a crucial role
+Furthermore, we observe that the distribution of start times does not seem to play a crucial role
 in determining the performance of the index structures we tested: similar workloads differing only by
 their start time distribution show similar performance.
+
+Finally, considering the time to build the index, we observe that usually \gfile
+is the fastest to build, being the simplest. Compared to this baseline,
+\rd has comparable build times, while supporting faster queries.
 
 \subsection{Distribution of query times against selectivity}
 \label{sec:query-inspect}
@@ -1373,6 +1378,7 @@ i.e. points are more concentrated towards the diagonal.
 
 \begin{figure}
 	\includegraphics[width=\columnwidth]{images/param_dependency.png}
+	\vspace*{-2em}
 	\caption{Dependency of the performance, in terms of queries per second, on the
 		page size parameter.
 		% \mc{Try also skew-skew and uniform uniform}
