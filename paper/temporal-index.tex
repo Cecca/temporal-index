@@ -1388,6 +1388,7 @@ i.e. points are more concentrated towards the diagonal.
 
 \begin{figure*}[t]
 	\includegraphics[width=\textwidth]{images/scalability.png}
+	\vspace*{-2em}
 	\caption{Scalability of the index structures for the increasing dataset sizes.
 		Each point corresponds to the best configuration of the given data structure for a particular dataset scale, up to 50 times the original size.
 		The workload is of range-duration queries.
@@ -1444,7 +1445,7 @@ start times are very concentrated on the timeline, the range constraint of a que
 Overall, we observe that indexing first by duration has either better or comparable performance compared to indexing by time first.
 Therefore, we recommend to choose the former ordering of dimensions when building an \ours.
 
-\vspace*{-2em}
+% \vspace*{-2em}
 \subsection{Scalability with respect to the input size}
 \label{sec:scalability}
 
