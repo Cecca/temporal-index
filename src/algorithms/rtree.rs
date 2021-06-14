@@ -20,7 +20,7 @@ pub struct RTreeIndex {
 
 impl deepsize::DeepSizeOf for RTreeIndex {
     fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
-        todo!()
+        0
     }
 }
 

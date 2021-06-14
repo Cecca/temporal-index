@@ -28,8 +28,9 @@
               Uniform: { low: 1, high: 10000 }
 
   algorithms:
-    - RDIndex:
-        dimension_order: [DurationTime, TimeDuration]
-        page_size: [100]
-    - PeriodIndexPlusPlus:
-        page_size: [100]
+    - RTree
+    # - RDIndex:
+    #     dimension_order: [DurationTime, TimeDuration]
+    #     page_size: [100]
+    # - PeriodIndexPlusPlus:
+    #     page_size: [100]
