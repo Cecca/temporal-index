@@ -59,6 +59,7 @@ pub enum AlgorithmConfiguration {
     LinearScan,
     BTree,
     IntervalTree,
+    RTree,
 }
 
 impl AlgorithmConfiguration {
@@ -136,6 +137,10 @@ impl AlgorithmConfiguration {
             Self::IntervalTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(interval_tree::IntervalTree::new()));
+                Box::new(Some(algo).into_iter())
+            }
+            Self::RTree => {
+                let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(RTreeIndex::default()));
                 Box::new(Some(algo).into_iter())
             }
         }

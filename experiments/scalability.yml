@@ -79,6 +79,7 @@
               Uniform: { low: 1, high: 10000 }
 
   algorithms:
+    - RTree
     - BTree
     - GridFile:
         side_cells: [50, 100, 200, 300, 400]
@@ -138,6 +139,7 @@
                 scale: 1
 
   algorithms:
+    - RTree
     - BTree
     - GridFile:
         side_cells: [10, 100, 1000]
@@ -196,6 +198,7 @@
               Uniform: { low: 1, high: 94670777924 }
 
   algorithms:
+    - RTree
     - BTree
     - GridFile:
         side_cells: [10, 100, 1000]
@@ -251,6 +254,7 @@
               Uniform: { low: 1, high: 120 }
 
   algorithms:
+    - RTree
     - BTree
     - GridFile:
         side_cells: [10, 100, 1000]
