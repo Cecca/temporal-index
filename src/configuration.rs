@@ -45,7 +45,7 @@ pub enum AlgorithmConfiguration {
     },
     RDIndex {
         dimension_order: Vec<DimensionOrder>,
-        page_size: Vec<usize>
+        page_size: Vec<usize>,
     },
     GridFile {
         side_cells: Vec<usize>,
@@ -59,9 +59,6 @@ pub enum AlgorithmConfiguration {
     LinearScan,
     BTree,
     IntervalTree,
-    EBI,
-    NestedBTree,
-    NestedVecs,
 }
 
 impl AlgorithmConfiguration {
@@ -86,10 +83,12 @@ impl AlgorithmConfiguration {
                 });
                 Box::new(iter)
             }
-            Self::RDIndex { dimension_order, page_size } => {
+            Self::RDIndex {
+                dimension_order,
+                page_size,
+            } => {
                 let iter = iproduct!(dimension_order, page_size).map(|(order, ps)| {
-                    Rc::new(RefCell::new(RDIndex::new(*order, *ps)))
-                        as Rc<RefCell<dyn Algorithm>>
+                    Rc::new(RefCell::new(RDIndex::new(*order, *ps))) as Rc<RefCell<dyn Algorithm>>
                 });
                 Box::new(iter)
             }
@@ -134,23 +133,9 @@ impl AlgorithmConfiguration {
                 let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(btree::BTree::new()));
                 Box::new(Some(algo).into_iter())
             }
-            Self::NestedBTree => {
-                let algo: Rc<RefCell<dyn Algorithm>> =
-                    Rc::new(RefCell::new(NestedBTree::default()));
-                Box::new(Some(algo).into_iter())
-            }
-            Self::NestedVecs => {
-                let algo: Rc<RefCell<dyn Algorithm>> = Rc::new(RefCell::new(NestedVecs::default()));
-                Box::new(Some(algo).into_iter())
-            }
             Self::IntervalTree => {
                 let algo: Rc<RefCell<dyn Algorithm>> =
                     Rc::new(RefCell::new(interval_tree::IntervalTree::new()));
-                Box::new(Some(algo).into_iter())
-            }
-            Self::EBI => {
-                let algo: Rc<RefCell<dyn Algorithm>> =
-                    Rc::new(RefCell::new(ebi::EBIIndex::default()));
                 Box::new(Some(algo).into_iter())
             }
         }
@@ -379,10 +364,9 @@ impl QueryConfiguration {
                 let iter = iproduct!(seed, n, cap, range, duration).flat_map(
                     |(seed, n, cap, range, duration)| match (range.get(), duration.get()) {
                         (None, None) => None,
-                        (range, duration) => {
-                            Some(Rc::new(RandomCappedQueryset::new(*seed, *n, *cap, range, duration))
-                                as Rc<dyn Queryset>)
-                        }
+                        (range, duration) => Some(Rc::new(RandomCappedQueryset::new(
+                            *seed, *n, *cap, range, duration,
+                        )) as Rc<dyn Queryset>),
                     },
                 );
                 Box::new(iter)
