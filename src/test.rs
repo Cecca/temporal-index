@@ -182,6 +182,12 @@ macro_rules! same_result {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(RDIndex::new(DimensionOrder::DurationTime, 1)));
             }
+
+            #[test]
+            fn [<$name _rtree>]() {
+                let (data, queries) = &$value;
+                run_test_same_result(data, queries, Box::new(RTreeIndex::default()));
+            }
         }
     )*
     }
