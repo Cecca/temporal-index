@@ -36,6 +36,7 @@
 
   algorithms:
     - BTree
+    - RTree
     - GridFile:
         side_cells: [10, 100, 1000]
     - IntervalTree
