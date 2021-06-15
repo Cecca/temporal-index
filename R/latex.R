@@ -28,7 +28,7 @@ latex_best <- function(data_best) {
             time_index_num = time_index %>% set_units("ms") %>% drop_units(),
             time_index = time_index_num %>% scales::number(big.mark = "\\\\,"),
             time_index = if_else(time_index_num == min(time_index_num),
-                str_c("\\textbf{", time_index,"}"),
+                str_c("\\textbf{", time_index, "}"),
                 time_index
             ),
             time_index_str = str_c(" {\\footnotesize(", time_index, ")}"),
@@ -49,7 +49,7 @@ latex_best <- function(data_best) {
             #     format = "latex",
             #     escape = FALSE
             # )
-        ) %>% 
+        ) %>%
         mutate(
             algorithm_name = case_when(
                 algorithm_name == "BTree" ~ "\\btree",
@@ -58,10 +58,11 @@ latex_best <- function(data_best) {
                 algorithm_name == "interval-tree" ~ "\\itree",
                 algorithm_name == "rd-index-td" ~ "\\rdtd",
                 algorithm_name == "rd-index-dt" ~ "\\rddt",
+                algorithm_name == "RTree" ~ "\\rtree",
                 TRUE ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name,
-                levels = c("\\rdtd", "\\rddt", "\\gfile", "\\btree", "\\pindex", "\\itree"),
+                levels = c("\\rdtd", "\\rddt", "\\gfile", "\\btree", "\\pindex", "\\itree", "\\rtree"),
                 ordered = TRUE
             )
         ) %>%
@@ -85,7 +86,8 @@ latex_best <- function(data_best) {
             ),
             dataset = factor(dataset,
                 levels = c("Uniform", "Clustered", "Flight", "Webkit", "Tourism"),
-                ordered = TRUE),
+                ordered = TRUE
+            ),
             time = case_when(
                 time == "UZ" ~ "Uniform",
                 time == "UU" ~ "Uniform",
@@ -98,9 +100,9 @@ latex_best <- function(data_best) {
             )
         ) %>%
         arrange(dataset) %>%
-        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align="lllrrrrrr") %>%
+        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "lllrrrrrr") %>%
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
-        add_header_above(c(" " = 1, "Query distribution" = 2, "Queries per second (index build time)" = 6))
+        add_header_above(c(" " = 1, "Query distribution" = 2, "Queries per second (index build time)" = 7))
 }
 
 latex_example <- function(data_example) {

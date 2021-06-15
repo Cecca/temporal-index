@@ -1,46 +1,46 @@
 
-\begin{tabular}[t]{lllrrrrrr}
+\begin{tabular}[t]{lllrrrrrrl}
 \toprule
-\multicolumn{1}{c}{ } & \multicolumn{2}{c}{Query distribution} & \multicolumn{6}{c}{Queries per second (index build time)} \\
-\cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){4-9}
-dataset & time & duration & \rdtd & \rddt & \gfile & \btree & \pindex & \itree\\
+\multicolumn{1}{c}{ } & \multicolumn{2}{c}{Query distribution} & \multicolumn{7}{c}{Queries per second (index build time)} \\
+\cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){4-10}
+dataset & time & duration & \rdtd & \rddt & \gfile & \btree & \pindex & \itree & \rtree\\
 \midrule
- & Uniform & Uniform & 14\,793 {\footnotesize(1\,060)} & \textbf{16\,835} {\footnotesize(\textbf{789})} & 1\,525 {\footnotesize(1\,196)} & 495 {\footnotesize(2\,574)} & 1\,508 {\footnotesize(6\,074)} & 256 {\footnotesize(3\,415)}\\
+ & Uniform & Uniform & 14\,793 {\footnotesize(1\,060)} & \textbf{16\,835} {\footnotesize(\textbf{789})} & 1\,525 {\footnotesize(1\,196)} & 495 {\footnotesize(2\,574)} & 1\,508 {\footnotesize(6\,074)} & 256 {\footnotesize(3\,415)} & 2\,641 {\footnotesize(3\,451)}\\
 
- & Uniform & - & 477 {\footnotesize(1\,026)} & \textbf{608} {\footnotesize(891)} & 469 {\footnotesize(\textbf{455})} & 8 {\footnotesize(2\,597)} & 239 {\footnotesize(2\,803)} & 256 {\footnotesize(3\,335)}\\
+ & Uniform & - & 477 {\footnotesize(1\,026)} & \textbf{608} {\footnotesize(891)} & 469 {\footnotesize(\textbf{455})} & 8 {\footnotesize(2\,597)} & 239 {\footnotesize(2\,803)} & 256 {\footnotesize(3\,335)} & 12 {\footnotesize(3\,390)}\\
 
- & Clustered & Uniform & 13\,263 {\footnotesize(1\,028)} & \textbf{13\,966} {\footnotesize(\textbf{783})} & 1\,337 {\footnotesize(847)} & 433 {\footnotesize(2\,626)} & 1\,248 {\footnotesize(6\,172)} & 183 {\footnotesize(3\,624)}\\
+ & Clustered & Uniform & 13\,263 {\footnotesize(1\,028)} & \textbf{13\,966} {\footnotesize(\textbf{783})} & 1\,337 {\footnotesize(847)} & 433 {\footnotesize(2\,626)} & 1\,248 {\footnotesize(6\,172)} & 183 {\footnotesize(3\,624)} & 2\,096 {\footnotesize(3\,372)}\\
 
- & Clustered & - & 465 {\footnotesize(1\,078)} & \textbf{584} {\footnotesize(891)} & 458 {\footnotesize(\textbf{545})} & 8 {\footnotesize(2\,604)} & 215 {\footnotesize(2\,409)} & 216 {\footnotesize(3\,385)}\\
+ & Clustered & - & 465 {\footnotesize(1\,078)} & \textbf{584} {\footnotesize(891)} & 458 {\footnotesize(\textbf{545})} & 8 {\footnotesize(2\,604)} & 215 {\footnotesize(2\,409)} & 216 {\footnotesize(3\,385)} & 18 {\footnotesize(3\,339)}\\
 
-\multirow{-5}{*}{\raggedright\arraybackslash Uniform} & - & Uniform & 838 {\footnotesize(1\,025)} & 730 {\footnotesize(\textbf{776})} & 76 {\footnotesize(854)} & \textbf{43\,103} {\footnotesize(2\,509)} & 67 {\footnotesize(6\,171)} & 13 {\footnotesize(3\,349)}\\
-\cmidrule{1-9}
- & Uniform & Uniform & 17\,483 {\footnotesize(1\,009)} & \textbf{19\,608} {\footnotesize(798)} & 1\,929 {\footnotesize(\textbf{700})} & 574 {\footnotesize(2\,578)} & 1\,780 {\footnotesize(4\,498)} & 351 {\footnotesize(3\,393)}\\
+\multirow{-5}{*}{\raggedright\arraybackslash Uniform} & - & Uniform & 838 {\footnotesize(1\,025)} & 730 {\footnotesize(\textbf{776})} & 76 {\footnotesize(854)} & \textbf{43\,103} {\footnotesize(2\,509)} & 67 {\footnotesize(6\,171)} & 13 {\footnotesize(3\,349)} & 108 {\footnotesize(3\,337)}\\
+\cmidrule{1-10}
+ & Uniform & Uniform & 17\,483 {\footnotesize(1\,009)} & \textbf{19\,608} {\footnotesize(798)} & 1\,929 {\footnotesize(\textbf{700})} & 574 {\footnotesize(2\,578)} & 1\,780 {\footnotesize(4\,498)} & 351 {\footnotesize(3\,393)} & 3\,143 {\footnotesize(3\,415)}\\
 
- & Uniform & - & 486 {\footnotesize(1\,012)} & \textbf{613} {\footnotesize(905)} & 482 {\footnotesize(\textbf{406})} & 9 {\footnotesize(2\,576)} & 218 {\footnotesize(2\,657)} & 358 {\footnotesize(3\,307)}\\
+ & Uniform & - & 486 {\footnotesize(1\,012)} & \textbf{613} {\footnotesize(905)} & 482 {\footnotesize(\textbf{406})} & 9 {\footnotesize(2\,576)} & 218 {\footnotesize(2\,657)} & 358 {\footnotesize(3\,307)} & 10 {\footnotesize(3\,350)}\\
 
- & Clustered & Uniform & 13\,736 {\footnotesize(1\,009)} & \textbf{15\,244} {\footnotesize(800)} & 1\,415 {\footnotesize(\textbf{709})} & 461 {\footnotesize(2\,568)} & 1\,379 {\footnotesize(4\,542)} & 225 {\footnotesize(3\,186)}\\
+ & Clustered & Uniform & 13\,736 {\footnotesize(1\,009)} & \textbf{15\,244} {\footnotesize(800)} & 1\,415 {\footnotesize(\textbf{709})} & 461 {\footnotesize(2\,568)} & 1\,379 {\footnotesize(4\,542)} & 225 {\footnotesize(3\,186)} & 2\,269 {\footnotesize(3\,364)}\\
 
- & Clustered & - & 362 {\footnotesize(1\,108)} & \textbf{480} {\footnotesize(903)} & 368 {\footnotesize(\textbf{410})} & 8 {\footnotesize(2\,511)} & 173 {\footnotesize(2\,658)} & 274 {\footnotesize(3\,161)}\\
+ & Clustered & - & 362 {\footnotesize(1\,108)} & \textbf{480} {\footnotesize(903)} & 368 {\footnotesize(\textbf{410})} & 8 {\footnotesize(2\,511)} & 173 {\footnotesize(2\,658)} & 274 {\footnotesize(3\,161)} & 12 {\footnotesize(3\,378)}\\
 
-\multirow{-5}{*}{\raggedright\arraybackslash Clustered} & - & Uniform & 839 {\footnotesize(1\,009)} & 742 {\footnotesize(798)} & 77 {\footnotesize(\textbf{691})} & \textbf{42\,735} {\footnotesize(2\,572)} & 68 {\footnotesize(4\,434)} & 16 {\footnotesize(3\,174)}\\
-\cmidrule{1-9}
- & - & Uniform & 4\,227 {\footnotesize(42)} & 4\,207 {\footnotesize(37)} & 3\,799 {\footnotesize(\textbf{20})} & \textbf{666\,667} {\footnotesize(41)} & 543 {\footnotesize(95)} & 685 {\footnotesize(137)}\\
+\multirow{-5}{*}{\raggedright\arraybackslash Clustered} & - & Uniform & 839 {\footnotesize(1\,009)} & 742 {\footnotesize(798)} & 77 {\footnotesize(\textbf{691})} & \textbf{42\,735} {\footnotesize(2\,572)} & 68 {\footnotesize(4\,434)} & 16 {\footnotesize(3\,174)} & 108 {\footnotesize(3\,347)}\\
+\cmidrule{1-10}
+ & - & Uniform & 4\,227 {\footnotesize(42)} & 4\,207 {\footnotesize(37)} & 3\,799 {\footnotesize(\textbf{20})} & \textbf{666\,667} {\footnotesize(41)} & 543 {\footnotesize(95)} & 685 {\footnotesize(137)} & 379 {\footnotesize(229)}\\
 
- & Uniform & - & 55\,249 {\footnotesize(44)} & \textbf{55\,866} {\footnotesize(46)} & 50\,000 {\footnotesize(\textbf{20})} & 2\,746 {\footnotesize(38)} & 14\,925 {\footnotesize(83)} & 52\,356 {\footnotesize(142)}\\
+ & Uniform & - & 55\,249 {\footnotesize(44)} & \textbf{55\,866} {\footnotesize(46)} & 50\,000 {\footnotesize(\textbf{20})} & 2\,746 {\footnotesize(38)} & 14\,925 {\footnotesize(83)} & 52\,356 {\footnotesize(142)} & 4\,907 {\footnotesize(196)}\\
 
-\multirow{-3}{*}{\raggedright\arraybackslash Flight} & Uniform & Uniform & \textbf{238\,095} {\footnotesize(44)} & 217\,391 {\footnotesize(41)} & 185\,185 {\footnotesize(\textbf{23})} & 13\,986 {\footnotesize(40)} & 30\,769 {\footnotesize(94)} & 43\,478 {\footnotesize(137)}\\
-\cmidrule{1-9}
- & - & Uniform & 2\,545 {\footnotesize(114)} & 2\,525 {\footnotesize(100)} & 1\,941 {\footnotesize(\textbf{53})} & \textbf{3\,451} {\footnotesize(305)} & 70 {\footnotesize(549)} & 160 {\footnotesize(277)}\\
+\multirow{-3}{*}{\raggedright\arraybackslash Flight} & Uniform & Uniform & \textbf{238\,095} {\footnotesize(44)} & 217\,391 {\footnotesize(41)} & 185\,185 {\footnotesize(\textbf{23})} & 13\,986 {\footnotesize(40)} & 30\,769 {\footnotesize(94)} & 43\,478 {\footnotesize(137)} & 22\,173 {\footnotesize(200)}\\
+\cmidrule{1-10}
+ & - & Uniform & 2\,545 {\footnotesize(114)} & 2\,525 {\footnotesize(100)} & 1\,941 {\footnotesize(\textbf{53})} & \textbf{3\,451} {\footnotesize(305)} & 70 {\footnotesize(549)} & 160 {\footnotesize(277)} & 247 {\footnotesize(451)}\\
 
- & Uniform & - & 415 {\footnotesize(115)} & \textbf{466} {\footnotesize(117)} & 461 {\footnotesize(\textbf{53})} & 47 {\footnotesize(256)} & 83 {\footnotesize(543)} & 386 {\footnotesize(276)}\\
+ & Uniform & - & 415 {\footnotesize(115)} & \textbf{466} {\footnotesize(117)} & 461 {\footnotesize(\textbf{53})} & 47 {\footnotesize(256)} & 83 {\footnotesize(543)} & 386 {\footnotesize(276)} & 30 {\footnotesize(481)}\\
 
-\multirow{-3}{*}{\raggedright\arraybackslash Webkit} & Uniform & Uniform & \textbf{3\,185} {\footnotesize(114)} & 3\,110 {\footnotesize(100)} & 2\,339 {\footnotesize(\textbf{53})} & 755 {\footnotesize(261)} & 79 {\footnotesize(641)} & 258 {\footnotesize(277)}\\
-\cmidrule{1-9}
- & - & Uniform & 6\,173 {\footnotesize(32)} & 6\,266 {\footnotesize(\textbf{27})} & 5\,171 {\footnotesize(39)} & \textbf{5\,000\,000} {\footnotesize(37)} & 758 {\footnotesize(134)} & 631 {\footnotesize(134)}\\
+\multirow{-3}{*}{\raggedright\arraybackslash Webkit} & Uniform & Uniform & \textbf{3\,185} {\footnotesize(114)} & 3\,110 {\footnotesize(100)} & 2\,339 {\footnotesize(\textbf{53})} & 755 {\footnotesize(261)} & 79 {\footnotesize(641)} & 258 {\footnotesize(277)} & 260 {\footnotesize(465)}\\
+\cmidrule{1-10}
+ & - & Uniform & 6\,173 {\footnotesize(32)} & 6\,266 {\footnotesize(\textbf{27})} & 5\,171 {\footnotesize(39)} & \textbf{5\,000\,000} {\footnotesize(37)} & 758 {\footnotesize(134)} & 631 {\footnotesize(134)} & 728 {\footnotesize(184)}\\
 
- & Uniform & - & 26\,178 {\footnotesize(27)} & \textbf{28\,249} {\footnotesize(29)} & 16\,340 {\footnotesize(\textbf{25})} & 1\,347 {\footnotesize(31)} & 6\,460 {\footnotesize(153)} & 28\,090 {\footnotesize(134)}\\
+ & Uniform & - & 26\,178 {\footnotesize(27)} & \textbf{28\,249} {\footnotesize(29)} & 16\,340 {\footnotesize(\textbf{25})} & 1\,347 {\footnotesize(31)} & 6\,460 {\footnotesize(153)} & 28\,090 {\footnotesize(134)} & 388 {\footnotesize(184)}\\
 
-\multirow{-3}{*}{\raggedright\arraybackslash Tourism} & Uniform & Uniform & 208\,333 {\footnotesize(30)} & \textbf{238\,095} {\footnotesize(\textbf{26})} & 161\,290 {\footnotesize(39)} & 13\,405 {\footnotesize(32)} & 27\,933 {\footnotesize(135)} & 33\,333 {\footnotesize(154)}\\
+\multirow{-3}{*}{\raggedright\arraybackslash Tourism} & Uniform & Uniform & 208\,333 {\footnotesize(30)} & \textbf{238\,095} {\footnotesize(\textbf{26})} & 161\,290 {\footnotesize(39)} & 13\,405 {\footnotesize(32)} & 27\,933 {\footnotesize(135)} & 33\,333 {\footnotesize(154)} & 22\,026 {\footnotesize(184)}\\
 \bottomrule
 \end{tabular}
