@@ -8,10 +8,11 @@ plot_scalability <- function(data_scalability) {
     data_scalability <- data_scalability %>%
         mutate(
             dataset_name = if_else(dataset_name == "random-uniform-zipf", "Random", dataset_name),
-            dataset_name = factor(dataset_name, levels=c("Random", "Flight", "Webkit", "Tourism"), ordered = T),
+            dataset_name = factor(dataset_name, levels = c("Random", "Flight", "Webkit", "Tourism"), ordered = T),
             algorithm_name = case_when(
                 algorithm_name == "interval-tree" ~ "Interval-Tree",
                 algorithm_name == "BTree" ~ "B-Tree",
+                algorithm_name == "RTree" ~ "R-Tree",
                 algorithm_name == "grid-file" ~ "Grid-File",
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
@@ -35,8 +36,8 @@ plot_scalability <- function(data_scalability) {
             name = "queries per second",
             labels = scales::number_format()
         ) +
-        scale_color_tableau(name = "", guide = guide_legend(ncol=6)) +
-        facet_wrap(vars(dataset_name), ncol = 4, scales="free_y") +
+        scale_color_tableau(name = "", guide = guide_legend(ncol = 6)) +
+        facet_wrap(vars(dataset_name), ncol = 4, scales = "free_y") +
         theme_paper() +
         theme(
             legend.position = "top",
@@ -54,9 +55,9 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
         "random-uniform-zipf", 6319382,
         "random-zipf-uniform", 1955006
     ) %>%
-    mutate(
-        threshold = sqrt(distinct_values)
-    )
+        mutate(
+            threshold = sqrt(distinct_values)
+        )
 
     plotdata <- data_parameter_dependency %>%
         mutate(start_times_distribution = case_when(
@@ -88,7 +89,7 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
             geom_line() +
             scale_x_continuous(trans = "log10", limits = c(1, NA)) +
             scale_y_continuous(
-                trans = "identity", 
+                trans = "identity",
                 labels = scales::number_format(accuracy = 0.1, limits = c(NA, NA))
             ) +
             scale_color_tableau() +
@@ -117,27 +118,27 @@ plot_real_distribution <- function(data_start, data_duration) {
     p1 <- ggplot(data_start, aes(x = start_time, weight = count)) +
         geom_histogram(aes(y = stat(count) / sum(count))) +
         facet_wrap(vars(name), scales = "free") +
-        labs(x = "start time", title="Start time distributions") +
+        labs(x = "start time", title = "Start time distributions") +
         scale_x_continuous(breaks = scales::pretty_breaks(3)) +
         scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
         theme_paper() +
         theme(
-            plot.title = element_text(size= 12),
+            plot.title = element_text(size = 12),
             axis.title = element_text(size = 10),
             axis.title.y = element_blank(),
-            panel.border = element_rect(fill=NA)
+            panel.border = element_rect(fill = NA)
         )
     p2 <- ggplot(data_duration, aes(x = duration, weight = count)) +
         geom_histogram(aes(y = stat(count) / sum(count))) +
         facet_wrap(vars(name), scales = "free") +
-        labs(x = "duration", title="Duration distributions") +
+        labs(x = "duration", title = "Duration distributions") +
         scale_x_continuous(breaks = scales::pretty_breaks(3)) +
         scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
         theme_paper() +
         theme(
-            plot.title = element_text(size= 12),
+            plot.title = element_text(size = 12),
             axis.title = element_text(size = 10),
-            panel.border = element_rect(fill=NA),
+            panel.border = element_rect(fill = NA),
             # strip.text = element_blank(),
             axis.title.y = element_blank()
         )
@@ -159,6 +160,7 @@ plot_query_focus_precision <- function(data_focus) {
             algorithm_name = case_when(
                 algorithm_name == "interval-tree" ~ "Interval-Tree",
                 algorithm_name == "BTree" ~ "B-Tree",
+                algorithm_name == "RTree" ~ "R-Tree",
                 algorithm_name == "grid-file" ~ "Grid-File",
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
@@ -166,7 +168,7 @@ plot_query_focus_precision <- function(data_focus) {
                 T ~ algorithm_name
             ),
             algorithm_name == factor(algorithm_name, levels = c(
-                "RD-index-td", "RD-index-dt", "Grid-File", "B-Tree", "Period-Index*", "Interval-Tree"
+                "RD-index-td", "RD-index-dt", "Grid-File", "B-Tree", "R-Tree", "Period-Index*", "Interval-Tree"
             ), ordered = T)
         ) %>%
         mutate(
@@ -235,7 +237,7 @@ plot_query_focus_precision <- function(data_focus) {
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
         scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
-        facet_wrap(vars(algorithm_name), ncol = 6) +
+        facet_wrap(vars(algorithm_name), ncol = 7) +
         labs(
             x = "time selectivity",
             y = "duration selectivity"
@@ -259,6 +261,7 @@ plot_query_focus <- function(data_focus) {
             algorithm_name = case_when(
                 algorithm_name == "interval-tree" ~ "Interval-Tree",
                 algorithm_name == "BTree" ~ "B-Tree",
+                algorithm_name == "RTree" ~ "R-Tree",
                 algorithm_name == "grid-file" ~ "Grid-File",
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
@@ -266,7 +269,7 @@ plot_query_focus <- function(data_focus) {
                 T ~ algorithm_name
             ),
             algorithm_name == factor(algorithm_name, levels = c(
-                "RD-index-td", "RD-index-dt", "Grid-File", "B-Tree", "Period-Index*", "Interval-Tree"
+                "RD-index-td", "RD-index-dt", "Grid-File", "B-Tree", "R-Tree", "Period-Index*", "Interval-Tree"
             ), ordered = T)
         ) %>%
         mutate(
@@ -343,7 +346,7 @@ plot_query_focus <- function(data_focus) {
         ) +
         scale_y_discrete(breaks = c(.25, .5, .75, 1)) +
         scale_x_discrete(breaks = c(.25, .5, .75, 1)) +
-        facet_wrap(vars(algorithm_name), ncol = 6) +
+        facet_wrap(vars(algorithm_name), ncol = 7) +
         labs(
             x = "time selectivity",
             y = "duration selectivity"
@@ -356,7 +359,7 @@ plot_query_focus <- function(data_focus) {
         )
 }
 
-plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
+plot_selectivity_dependency <- function(data_selectivity, bare = FALSE) {
     plotdata <- data_selectivity %>%
         filter(matches > 0) %>%
         filter(!(selectivity_time >= 0.99 & selectivity_duration >= 0.99)) %>%
@@ -387,7 +390,7 @@ plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
             geom_abline(slope = 1, yintercept = 0, inherit.aes = F) +
             geom_point_interactive(size = 0.5) +
             geom_rangeframe(show.legend = FALSE) +
-            facet_wrap(vars(algorithm_name), ncol = 6, scales = "free_y") +
+            facet_wrap(vars(algorithm_name), ncol = 7, scales = "free_y") +
             scale_color_manual(values = c(
                 "range-duration" = "#414141",
                 "duration" = "steelblue",
@@ -420,11 +423,11 @@ plot_selectivity_dependency <- function(data_selectivity, bare=FALSE) {
         cat("Bare plot\n")
         p <- p +
             theme(
-                legend.position="none",
-                strip.text=element_blank(),
+                legend.position = "none",
+                strip.text = element_blank(),
                 plot.margin = margin(0, 0, 0, 0, "mm"),
                 axis.line = element_line(),
-                axis.text = element_text(size=8),
+                axis.text = element_text(size = 8),
                 axis.title = element_blank()
             )
     }
@@ -545,12 +548,12 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
             aes(color = highlighted, size = highlighted, alpha = highlighted),
             position = position_jitter(0.01),
             show.legend = F
-        ) 
-        # geom_point(
-        #     aes(color = highlighted, size = highlighted),
-        #     data = data_running_example %>% filter(highlighted),
-        #     show.legend = F
-        # )
+        )
+    # geom_point(
+    #     aes(color = highlighted, size = highlighted),
+    #     data = data_running_example %>% filter(highlighted),
+    #     show.legend = F
+    # )
 
     # add the grid, if requested
     if (grid) {
@@ -590,26 +593,26 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
                 inherit.aes = F
             )
     }
-    p <- p + 
-    # annotate(
-    #     geom = "polygon",
-    #     y = c(
-    #         query_duration[1],
-    #         query_duration[2],
-    #         query_duration[2],
-    #         query_duration[1]
-    #     ),
-    #     x = c(
-    #         int_end(query_range),
-    #         int_end(query_range),
-    #         int_start(query_range) - 3600 * query_duration[2],
-    #         int_start(query_range) - 3600 * query_duration[1]
-    #     ),
-    #     fill = "red",
-    #     color = "red",
-    #     size = 1,
-    #     alpha = 0.0
-    # ) +
+    p <- p +
+        # annotate(
+        #     geom = "polygon",
+        #     y = c(
+        #         query_duration[1],
+        #         query_duration[2],
+        #         query_duration[2],
+        #         query_duration[1]
+        #     ),
+        #     x = c(
+        #         int_end(query_range),
+        #         int_end(query_range),
+        #         int_start(query_range) - 3600 * query_duration[2],
+        #         int_start(query_range) - 3600 * query_duration[1]
+        #     ),
+        #     fill = "red",
+        #     color = "red",
+        #     size = 1,
+        #     alpha = 0.0
+        # ) +
         scale_color_manual(values = c("#56B4E9", "black")) +
         scale_size_manual(values = c(0.5, 2)) +
         scale_alpha_manual(values = c(0.5, 1)) +
@@ -634,12 +637,16 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
     p
 }
 
-plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE) {
+plot_running_example_tourism <- function(query_range, query_duration, grid = FALSE) {
     dataset <- read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
         filter(duration <= 50)
 
-    maxduration <- dataset %>% pull(duration) %>% max()
-    minduration <- dataset %>% pull(duration) %>% min()
+    maxduration <- dataset %>%
+        pull(duration) %>%
+        max()
+    minduration <- dataset %>%
+        pull(duration) %>%
+        min()
 
     columns <- read_csv(here::here("example_rdindex/column_info.csv")) %>%
         filter(i != 4) %>%
@@ -650,7 +657,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
         inner_join(columns)
 
     p <- ggplot(dataset, aes(start, duration)) +
-        geom_point(size=0.2, shape=16, color="gray0", alpha=0.7) +
+        geom_point(size = 0.2, shape = 16, color = "gray0", alpha = 0.7) +
         annotate(
             geom = "polygon",
             y = c(
@@ -682,8 +689,8 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
     if (grid) {
         p <- p +
             annotate(
-                geom="linerange",
-                y=maxduration,
+                geom = "linerange",
+                y = maxduration,
                 xmin = ymd("2016-01-01"),
                 xmax = ymd("2016-12-31"),
                 size = 0.2,
@@ -691,8 +698,8 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
                 linetype = "solid"
             ) +
             annotate(
-                geom="linerange",
-                x=ymd("2016-12-31"),
+                geom = "linerange",
+                x = ymd("2016-12-31"),
                 ymin = minduration - 0.4,
                 ymax = maxduration,
                 size = 0.2,
@@ -701,7 +708,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             ) +
             geom_linerange(
                 data = columns,
-                mapping = aes(x=column_bound),
+                mapping = aes(x = column_bound),
                 ymin = minduration - 0.4,
                 ymax = maxduration,
                 inherit.aes = F,
@@ -712,8 +719,8 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             geom_text(
                 data = columns,
                 mapping = aes(
-                    x = column_bound, 
-                    label=column_bound
+                    x = column_bound,
+                    label = column_bound
                 ),
                 y = maxduration - 0.3,
                 nudge_x = 3,
@@ -726,8 +733,8 @@ plot_running_example_tourism <- function(query_range, query_duration, grid=FALSE
             geom_text(
                 data = columns,
                 mapping = aes(
-                    x = column_bound, 
-                    label=latest_end_time
+                    x = column_bound,
+                    label = latest_end_time
                 ),
                 y = maxduration - 0.5,
                 nudge_x = 20,
