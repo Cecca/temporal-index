@@ -181,7 +181,7 @@ fn main() -> Result<()> {
                         let allocated_end = get_allocated();
                         let end = Instant::now();
                         let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
-                        let index_size_bytes = algorithm.index_size() as u32;
+                        let index_size_bytes = (allocated_end - allocated_start).0;
                         info!(
                             "Index built in {:?}, allocating {}",
                             end - start,

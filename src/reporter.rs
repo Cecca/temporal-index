@@ -252,7 +252,7 @@ impl Reporter {
         &self,
         elapsed_index: i64,
         elapsed_query: i64,
-        index_size_bytes: u32,
+        index_size_bytes: usize,
     ) -> Result<()> {
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
@@ -305,7 +305,7 @@ impl Reporter {
                         elapsed_index,
                         elapsed_query,
                         qps,
-                        index_size_bytes
+                        index_size_bytes as i64
                     ],
                 )
                 .context("error inserting into main table")?;
@@ -694,6 +694,15 @@ pub fn db_setup() -> Result<()> {
         info!("Cleaning up database");
         conn.execute("VACUUM", NO_PARAMS)?;
         bump(&conn, 10)?;
+    }
+    if version < 11 {
+        Reporter::backup(Some("v11".to_owned()))?;
+        let tx = conn.transaction()?;
+        tx.execute_batch(include_str!("migrations/v11.sql"))?;
+        tx.commit()?;
+        info!("Cleaning up database");
+        conn.execute("VACUUM", NO_PARAMS)?;
+        bump(&conn, 11)?;
     }
 
     info!("database schema up to date");
