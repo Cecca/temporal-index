@@ -217,11 +217,11 @@ impl Algorithm for GridFile {
     }
 
     fn clear(&mut self) {
-        self.inner.clear();
-        self.starts_per_cell.take();
-        self.durations_per_cell.take();
-        self.max_durations.clear();
-        self.duration_anchor.take();
-        self.start_anchor.take();
+        drop(std::mem::replace(&mut self.inner, Vec::new()));
+        drop(std::mem::replace(&mut self.max_durations, Vec::new()));
+        drop(self.starts_per_cell.take());
+        drop(self.durations_per_cell.take());
+        drop(self.duration_anchor.take());
+        drop(self.start_anchor.take());
     }
 }

@@ -235,7 +235,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 
     fn clear(&mut self) {
-        self.index.take();
+        drop(self.index.take());
     }
 }
 

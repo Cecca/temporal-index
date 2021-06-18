@@ -666,6 +666,8 @@ impl Algorithm for PeriodIndexStar {
     }
 
     fn clear(&mut self) {
+        drop(std::mem::replace(&mut self.buckets, Vec::new()));
+        drop(std::mem::replace(&mut self.boundaries, Vec::new()));
         self.buckets.clear();
         self.boundaries.clear();
     }

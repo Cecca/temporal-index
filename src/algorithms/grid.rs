@@ -207,10 +207,13 @@ impl Algorithm for Grid {
     }
 
     fn clear(&mut self) {
-        self.grid.clear();
-        self.start_time_ecdf.clear();
-        self.end_time_ecdf.clear();
-        self.n.take();
+        drop(std::mem::replace(&mut self.grid, Vec::new()));
+        drop(std::mem::replace(
+            &mut self.start_time_ecdf,
+            BTreeMap::new(),
+        ));
+        drop(std::mem::replace(&mut self.end_time_ecdf, BTreeMap::new()));
+        drop(self.n.take());
     }
 }
 
