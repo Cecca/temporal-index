@@ -169,7 +169,7 @@
   grid in order to ensure that each grid cell contains approximately
   the same number of intervals, except for heavily biased data.  \rd
   features provable bounds on the running time of all the operations,
-  allows for a simple implementation, and sports very predictable
+  allows for a simple implementation, and supports very predictable
   query performance.
   %
   We benchmark our implementation on a variety of datasets and query
@@ -770,7 +770,7 @@ which we then deem \emph{heavy}.
 We also keep track of the minimum start time in each column using
 an auxiliary array \Colbounds, together with the cumulative maximum end 
 time in the columns in array \LatestEnds.
-Both this arrays will be used at query time: the first to find the first column
+Both these arrays will be used at query time: the first to find the first column
 to inspect for a given query, the second to determine when to stop iterating
 through columns.
 
@@ -798,7 +798,7 @@ Finally, tuples in each cell are sorted by the end time.
   Figure~\ref{fig:example-grid} shows the grid constructed according to the above
   algorithm on our example relation, with page size parameter $s=50$. Note that the columns, which contain $s^2=2500$ tuples each, span different ranges of
   start times, adapting to the density of the points.
-  Within each column, the points are partitioned according the distribution of durations.
+  Within each column, the points are partitioned according to the distribution of durations.
   In particular, since many stays have the same duration, the bottom cells of each column are \emph{heavy}, i.e. they contain more than $s=50$ tuples, all sharing the same duration.
   In contrast, a uniform grid would suffer from a high imbalance in the number of
   tuples in each cell.
@@ -911,7 +911,7 @@ the two newly created cells are sorted by end time.
 
 As for the removal of a tuple $r$ from the index, we query the index to find
 the cell $\Gridij$ containing $\rT$, removing the interval from the cell. As a
-consequence the cell might be empty, in which case case we remove the cell
+consequence the cell might be empty, in which case we remove the cell
 from the column. Finally, if the removal of the cell results in an empty
 column, we remove the column.
 
@@ -1391,6 +1391,7 @@ i.e. points are more concentrated towards the diagonal.
 	\includegraphics[width=\textwidth]{images/scalability.png}
 	\vspace*{-2em}
 	\caption{Scalability of the index structures for the increasing dataset sizes.
+		Performance is measured in queries per second.
 		Each point corresponds to the best configuration of the given data structure for a particular dataset scale, up to 50 times the original size.
 		The workload is of range-duration queries.
 		\label{fig:scalability}}
