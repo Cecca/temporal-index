@@ -428,7 +428,7 @@ pub fn db_setup() -> Result<()> {
                 query_count       INT64,
                 FOREIGN KEY (sha) REFERENCES raw(sha)
             )",
-            NO_PARAMS,
+            [],
         )?;
 
         conn.execute(
@@ -469,7 +469,7 @@ pub fn db_setup() -> Result<()> {
                 data_id          INTEGER PRIMARY KEY,
                 description      TEXT NOT NULL
             )",
-            NO_PARAMS,
+            [],
         )
         .context("data description table creation")?;
 
@@ -480,7 +480,7 @@ pub fn db_setup() -> Result<()> {
                 count              INTEGER NOT NULL,
                 FOREIGN KEY (data_id) REFERENCES data_description(data_id)
             )",
-            NO_PARAMS,
+            [],
         )
         .context("duration distribution creation")?;
 
@@ -491,7 +491,7 @@ pub fn db_setup() -> Result<()> {
                 count              INTEGER NOT NULL,
                 FOREIGN KEY (data_id) REFERENCES data_description(data_id)
             )",
-            NO_PARAMS,
+            [],
         )
         .context("duration distribution creation")?;
 
@@ -502,7 +502,7 @@ pub fn db_setup() -> Result<()> {
                 count              INTEGER NOT NULL,
                 FOREIGN KEY (data_id) REFERENCES data_description(data_id)
             )",
-            NO_PARAMS,
+            [],
         )
         .context("duration distribution creation")?;
 
@@ -512,17 +512,17 @@ pub fn db_setup() -> Result<()> {
         info!("Appliying changes for version 3");
         // The information introduced with the previous version takes up too much space
         // in the database.
-        conn.execute("DROP TABLE duration_distribution", NO_PARAMS)?;
-        conn.execute("DROP TABLE start_distribution", NO_PARAMS)?;
-        conn.execute("DROP TABLE end_distribution", NO_PARAMS)?;
-        conn.execute("DROP TABLE data_description", NO_PARAMS)?;
+        conn.execute("DROP TABLE duration_distribution", [])?;
+        conn.execute("DROP TABLE start_distribution", [])?;
+        conn.execute("DROP TABLE end_distribution", [])?;
+        conn.execute("DROP TABLE data_description", [])?;
 
         bump(&conn, 3)?;
     }
     if version < 4 {
         // Change the resolution of the clock to nanoseconds, dropping all the old
         // results, which don't have a high enough resolution
-        conn.execute("DROP TABLE query_stats", NO_PARAMS)?;
+        conn.execute("DROP TABLE query_stats", [])?;
         conn.execute(
             "CREATE TABLE query_stats (
                 sha               TEXT NOT NULL,
@@ -531,14 +531,14 @@ pub fn db_setup() -> Result<()> {
                 query_count       INT64,
                 FOREIGN KEY (sha) REFERENCES raw(sha)
             )",
-            NO_PARAMS,
+            [],
         )?;
 
         bump(&conn, 4)?;
     }
     if version < 5 {
         // Also record the number of examined intervals
-        conn.execute("DROP TABLE query_stats", NO_PARAMS)?;
+        conn.execute("DROP TABLE query_stats", [])?;
         conn.execute(
             "CREATE TABLE query_stats (
                 sha               TEXT NOT NULL,
@@ -548,7 +548,7 @@ pub fn db_setup() -> Result<()> {
                 query_examined    INT64,
                 FOREIGN KEY (sha) REFERENCES raw(sha)
             )",
-            NO_PARAMS,
+            [],
         )?;
 
         bump(&conn, 5)?;
@@ -560,14 +560,14 @@ pub fn db_setup() -> Result<()> {
             bucket_index    INT,
             count           INT64 
         )",
-            NO_PARAMS,
+            [],
         )?;
         bump(&conn, 6)?;
     }
     if version < 7 {
         conn.execute(
             "ALTER TABLE raw ADD COLUMN is_estimate BOOLEAN DEFAULT FALSE",
-            NO_PARAMS,
+            [],
         )?;
         bump(&conn, 7)?;
     }
@@ -597,7 +597,7 @@ pub fn db_setup() -> Result<()> {
             time_query_ms      INT64 NOT NULL,
             index_size_bytes   INT NOT NULL, 
             is_estimate BOOLEAN DEFAULT FALSE)",
-                NO_PARAMS,
+                [],
             )?;
             tx.execute(
                 "CREATE TABLE query_stats_new (
@@ -607,7 +607,7 @@ pub fn db_setup() -> Result<()> {
             query_count       INT64,
             query_examined    INT64,
             FOREIGN KEY (id) REFERENCES raw_new(id))",
-                NO_PARAMS,
+                [],
             )?;
             info!(" . Copy data to the new tables");
             tx.execute(
@@ -617,31 +617,28 @@ pub fn db_setup() -> Result<()> {
                    queryset_version, algorithm, algorithm_params, algorithm_version,
                    time_index_ms, time_query_ms, index_size_bytes, is_estimate
             from raw",
-                NO_PARAMS,
+                [],
             )?;
             tx.execute(
                 "insert into query_stats_new
             select id, query_index, query_time_ns, query_count, query_examined
             from query_stats natural join (select rowid as id, sha from raw)",
-                NO_PARAMS,
+                [],
             )?;
             // Now drop everything old
             info!(" . Drop old tables and views");
-            tx.execute("drop view main", NO_PARAMS)?;
-            tx.execute("drop view top_queryset_version", NO_PARAMS)?;
-            tx.execute("drop view top_algorithm_version", NO_PARAMS)?;
-            tx.execute("drop view top_dataset_version", NO_PARAMS)?;
-            tx.execute("drop table period_index_buckets", NO_PARAMS)?;
-            tx.execute("drop table query_stats", NO_PARAMS)?;
-            tx.execute("drop table raw", NO_PARAMS)?;
+            tx.execute("drop view main", [])?;
+            tx.execute("drop view top_queryset_version", [])?;
+            tx.execute("drop view top_algorithm_version", [])?;
+            tx.execute("drop view top_dataset_version", [])?;
+            tx.execute("drop table period_index_buckets", [])?;
+            tx.execute("drop table query_stats", [])?;
+            tx.execute("drop table raw", [])?;
 
             // rename the new tables
             info!(" . Rename new tables");
-            tx.execute("alter table raw_new rename to raw", NO_PARAMS)?;
-            tx.execute(
-                "alter table query_stats_new rename to query_stats",
-                NO_PARAMS,
-            )?;
+            tx.execute("alter table raw_new rename to raw", [])?;
+            tx.execute("alter table query_stats_new rename to query_stats", [])?;
 
             // And recreate the views
             info!(" . Recreate the views");
@@ -674,15 +671,15 @@ pub fn db_setup() -> Result<()> {
             tx.commit()?;
         }
         info!(" . Clean up and reclaim space");
-        conn.execute("VACUUM", NO_PARAMS)?;
+        conn.execute("VACUUM", [])?;
         bump(&conn, 8)?;
     }
     if version < 9 {
         Reporter::backup(Some("v9".to_owned()))?;
         info!("Dropping table query_stats");
-        conn.execute("DROP TABLE query_stats;", NO_PARAMS)?;
+        conn.execute("DROP TABLE query_stats;", [])?;
         info!(" . Clean up and reclaim space");
-        conn.execute("VACUUM", NO_PARAMS)?;
+        conn.execute("VACUUM", [])?;
         bump(&conn, 9)?;
     }
     if version < 10 {
@@ -692,7 +689,7 @@ pub fn db_setup() -> Result<()> {
         tx.execute_batch(include_str!("migrations/v10.sql"))?;
         tx.commit()?;
         info!("Cleaning up database");
-        conn.execute("VACUUM", NO_PARAMS)?;
+        conn.execute("VACUUM", [])?;
         bump(&conn, 10)?;
     }
     if version < 11 {
@@ -701,7 +698,7 @@ pub fn db_setup() -> Result<()> {
         tx.execute_batch(include_str!("migrations/v11.sql"))?;
         tx.commit()?;
         info!("Cleaning up database");
-        conn.execute("VACUUM", NO_PARAMS)?;
+        conn.execute("VACUUM", [])?;
         bump(&conn, 11)?;
     }
 

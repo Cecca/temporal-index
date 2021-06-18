@@ -278,6 +278,7 @@ impl Bucket {
         cnt
     }
 
+    #[allow(dead_code)]
     fn count_empty_cells(&self) -> usize {
         self.cells
             .iter()
@@ -290,6 +291,7 @@ impl Bucket {
             .sum()
     }
 
+    #[allow(dead_code)]
     fn count_cells(&self) -> usize {
         self.cells.iter().map(|level| level.len()).sum()
     }
@@ -521,7 +523,6 @@ pub struct PeriodIndexStar {
     boundaries: Vec<Time>,
     num_buckets: u32,
     num_levels: u32,
-    n: usize,
 }
 
 impl PeriodIndexStar {
@@ -529,7 +530,6 @@ impl PeriodIndexStar {
         Ok(Self {
             num_buckets,
             num_levels,
-            n: 0,
             buckets: Vec::new(),
             boundaries: Vec::new(),
         })
