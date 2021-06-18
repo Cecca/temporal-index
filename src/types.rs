@@ -1,9 +1,8 @@
-use deepsize::DeepSizeOf;
 use progress_logger::ProgressLogger;
 
 pub type Time = u64;
 
-#[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq, DeepSizeOf)]
+#[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Interval {
     pub start: Time,
     pub end: Time,
@@ -46,7 +45,7 @@ impl Interval {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, DeepSizeOf)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DurationRange {
     pub min: Time,
     pub max: Time,
@@ -68,7 +67,7 @@ impl DurationRange {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeepSizeOf)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Query {
     pub range: Option<Interval>,
     pub duration: Option<DurationRange>,
@@ -160,7 +159,7 @@ pub struct FocusResult {
     pub query_time: std::time::Duration,
 }
 
-pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
+pub trait Algorithm: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
@@ -276,10 +275,6 @@ pub trait Algorithm: std::fmt::Debug + DeepSizeOf {
         }
         pl.stop();
         result
-    }
-
-    fn index_size(&self) -> usize {
-        self.deep_size_of()
     }
 
     fn reporter_hook(&self, _reporter: &crate::reporter::Reporter) -> anyhow::Result<()> {

@@ -1,7 +1,5 @@
 use crate::types::*;
-use deepsize::DeepSizeOf;
 
-#[derive(DeepSizeOf)]
 pub struct GridFile {
     side_cells: usize,
     /// index by duration (first dimension) and then by start time

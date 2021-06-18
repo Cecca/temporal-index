@@ -1,7 +1,5 @@
 use crate::types::*;
-use deepsize::DeepSizeOf;
 
-#[derive(DeepSizeOf)]
 pub struct IntervalTree {
     n: usize,
     root: Option<Box<Node>>,
@@ -127,12 +125,6 @@ impl Algorithm for IntervalTree {
         intervals.sort_by_key(|interval| interval.middle());
         self.root = Some(Box::new(Node::new(&intervals)));
         self.n = intervals.len();
-        let size = self.deep_size_of();
-        info!(
-            "Allocated for index: {} bytes ({} Mb)",
-            size,
-            size / (1024 * 1024)
-        );
     }
 
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
@@ -190,7 +182,6 @@ impl Algorithm for IntervalTree {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct Node {
     pub middle: Time,
     pub upper: Vec<Interval>,

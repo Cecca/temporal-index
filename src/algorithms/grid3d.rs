@@ -1,6 +1,5 @@
 use super::grid::Grid;
 use crate::types::*;
-use deepsize::DeepSizeOf;
 use std::collections::BTreeMap;
 use std::ops::Bound::{Included, Unbounded};
 use std::ops::RangeInclusive;
@@ -86,15 +85,6 @@ impl Grid3D {
             duration_ecdf: BTreeMap::new(),
             n: None,
         }
-    }
-}
-
-impl DeepSizeOf for Grid3D {
-    fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
-        // I actually don't know the overhead of the BTReeMap
-        self.duration_ecdf.iter().fold(0, |sum, (key, val)| {
-            sum + key.deep_size_of_children(context) + val.deep_size_of_children(context)
-        }) + self.grid.deep_size_of()
     }
 }
 

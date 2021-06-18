@@ -1,8 +1,6 @@
 use crate::types::*;
-use deepsize::DeepSizeOf;
 use std::iter::FromIterator;
 
-#[derive(DeepSizeOf)]
 pub struct PeriodIndexPlusPlus {
     page_size: usize,
     index: Option<SortedBlockIndex<SortedBlockIndex<Vec<Interval>>>>,
@@ -67,13 +65,6 @@ impl Algorithm for PeriodIndexPlusPlus {
         );
 
         self.index.replace(index);
-
-        let size = self.deep_size_of();
-        info!(
-            "Allocated for index: {} bytes ({} Mb)",
-            size,
-            size / (1024 * 1024)
-        );
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
@@ -248,7 +239,6 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct SortedBlockIndex<V> {
     boundaries: Vec<Time>,
     values: Vec<V>,

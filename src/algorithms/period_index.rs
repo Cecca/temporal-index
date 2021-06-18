@@ -1,8 +1,6 @@
 use crate::types::*;
 use anyhow::Result;
-use deepsize::DeepSizeOf;
 
-#[derive(DeepSizeOf)]
 struct Cell {
     time_range: Interval,
     duration_range: DurationRange,
@@ -104,7 +102,6 @@ impl Cell {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct Bucket {
     time_range: Interval,
     /// Two dimensional arrangement of cells: each level holds cells
@@ -310,7 +307,6 @@ impl Bucket {
     }
 }
 
-#[derive(DeepSizeOf)]
 pub struct PeriodIndex {
     num_buckets: usize,
     num_levels: u32,
@@ -452,18 +448,6 @@ impl Algorithm for PeriodIndex {
         for bucket in self.buckets.iter_mut() {
             bucket.fix_levels();
         }
-        let size = self.deep_size_of();
-        let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
-        let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
-        info!(
-            "Allocated for index: {} bytes ({} Mb) - {} buckets ({}/{} empty cells)",
-            size,
-            size / (1024 * 1024),
-            self.buckets.len(),
-            empty_cells,
-            num_cells
-        );
-
         debug!(
             "bucket starts {:?}",
             self.buckets
@@ -529,7 +513,6 @@ impl Algorithm for PeriodIndex {
     }
 }
 
-#[derive(DeepSizeOf)]
 pub struct PeriodIndexStar {
     /// Buckets wof different widths, sorted by their end times so that we can
     /// make binary search for start times on them.
@@ -640,20 +623,6 @@ impl Algorithm for PeriodIndexStar {
         for bucket in self.buckets.iter_mut() {
             bucket.fix_levels();
         }
-
-        let size = self.deep_size_of();
-        let empty_cells: usize = self.buckets.iter().map(|b| b.count_empty_cells()).sum();
-        let num_cells: usize = self.buckets.iter().map(|b| b.count_cells()).sum();
-        let perc_empty = (empty_cells as f64) / (num_cells as f64) * 100.0;
-        info!(
-            "Allocated for index: {} bytes ({} Mb) - {} buckets - {} empty over {} cells ({:.2}%)",
-            size,
-            size / (1024 * 1024),
-            self.buckets.len(),
-            empty_cells,
-            num_cells,
-            perc_empty
-        );
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
