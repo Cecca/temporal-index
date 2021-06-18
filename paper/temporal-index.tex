@@ -1231,7 +1231,7 @@ From the table we can see that \ours has in general a better performance compare
 structures.
 In particular, it is up to one order of magnitude faster than the second-ranked baseline.
 
-We also observe that the \algo{grid-file} ranks second in several cases.
+We also observe that the \algo{grid-file} ranks second or third in several cases.
 Recall that this data structure is rather similar to \ours, the difference being
 that the latter is adaptive to the input distribution.
 This shows the performance benefits of a data structure that takes into account the data distribution.
@@ -1239,8 +1239,10 @@ This shows the performance benefits of a data structure that takes into account 
 On \qdo workloads, \btree is always the best performing index, up to one order of
 magnitude faster than \ours.
 However, on \qrd workloads, its performance is much worse.
-As for the \algo{interval-tree} it shows performance comparable to the \algo{grid-file} on \qro
+As for the \itree it shows performance comparable to the \gfile on \qro
 workloads, but is comparatively much slower on \qrd workloads.
+The \rtree index performs rather well on \qrd workloads, often faring better than \gfile.
+Its performance relative to the others however degrades on \qro workloads.
 
 We can therefore conclude that \ours is the index structure achieving the best compromise
 for all three types of queries: \qrd, \qdo, and \qro.
@@ -1327,7 +1329,7 @@ do not depend on the selectivity in the duration dimension,
 since all the candidate intervals need to be examined.
 For similar reasons, \btree shows horizontal bands.
 Data structures that explicitly index both dimensions, instead, tend to exhibit a more \emph{diagonal}
-pattern, in particular \ours.
+pattern, in particular \ours{}, with a milder effect for \gfile and \rtree.
 The pattern exhibited by \pindex tends to be more similar to the \itree.
 This means that this index is more responsive to queries that are selective in the time dimension.
 This is to be expected, since \pindex is adaptive to the distribution of start times
