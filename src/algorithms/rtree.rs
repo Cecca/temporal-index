@@ -18,12 +18,6 @@ pub struct RTreeIndex {
     max_duration: Time,
 }
 
-impl deepsize::DeepSizeOf for RTreeIndex {
-    fn deep_size_of_children(&self, context: &mut deepsize::Context) -> usize {
-        0
-    }
-}
-
 impl Algorithm for RTreeIndex {
     fn name(&self) -> String {
         "RTree".to_owned()

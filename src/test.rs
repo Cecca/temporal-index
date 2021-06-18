@@ -94,18 +94,6 @@ macro_rules! same_result {
             }
 
             #[test]
-            fn [<$name _nested_btree>]() {
-                let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(NestedBTree::default()));
-            }
-
-            #[test]
-            fn [<$name _nested_vecs>]() {
-                let (data, queries) = &$value;
-                run_test_same_result(data, queries, Box::new(NestedVecs::default()));
-            }
-
-            #[test]
             fn [<$name _grid_file>]() {
                 let (data, queries) = &$value;
                 run_test_same_result(data, queries, Box::new(GridFile::new(10)));

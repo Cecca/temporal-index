@@ -1,13 +1,11 @@
 use crate::types::*;
-use deepsize::DeepSizeOf;
 
-#[derive(DeepSizeOf, Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
     TimeDuration,
     DurationTime,
 }
 
-#[derive(DeepSizeOf)]
 pub struct RDIndex {
     dimension_order: DimensionOrder,
     page_size: usize,
@@ -37,12 +35,12 @@ impl RDIndex {
     pub fn export_example() -> anyhow::Result<()> {
         use crate::dataset::Dataset;
         use chrono::prelude::*;
-        use std::fs::File;
-        use std::io::prelude::*;
         use rand::prelude::*;
         use rand_xoshiro::Xoshiro256PlusPlus;
+        use std::fs::File;
+        use std::io::prelude::*;
 
-        let page_size= 50;
+        let page_size = 50;
 
         let full_dataset = crate::dataset::TourismDataset::from_upstream()
             .unwrap()
@@ -103,8 +101,16 @@ impl RDIndex {
                         .zip(cells.values.iter())
                         .enumerate()
                     {
-                        writeln!(cell_info, "{},{},{},{},{},{}", i, j, min_duration, max_duration,
-                        cell.len(), cell.len() > page_size)?;
+                        writeln!(
+                            cell_info,
+                            "{},{},{},{},{},{}",
+                            i,
+                            j,
+                            min_duration,
+                            max_duration,
+                            cell.len(),
+                            cell.len() > page_size
+                        )?;
                     }
                 }
                 drop(cell_info);
@@ -112,7 +118,12 @@ impl RDIndex {
                 writeln!(data_out, "start,duration")?;
                 for interval in dataset {
                     let start = basedate + chrono::Duration::days(interval.start as i64);
-                    writeln!(data_out, "{},{}", start.format("%Y-%m-%d"), interval.duration())?;
+                    writeln!(
+                        data_out,
+                        "{},{}",
+                        start.format("%Y-%m-%d"),
+                        interval.duration()
+                    )?;
                 }
             }
         }
@@ -201,7 +212,6 @@ fn next_breakpoint<F: Fn(&Interval) -> Time>(
     }
     end
 }
-#[derive(DeepSizeOf)]
 enum Grid {
     TimeDuration(TimePartition<DurationPartition<Vec<Interval>>>),
     DurationTime(DurationPartition<TimePartition<Vec<Interval>>>),
@@ -338,7 +348,6 @@ impl Grid {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct TimePartition<V> {
     min_start_times: Vec<Time>,
     max_end_times: Vec<Time>,
@@ -414,7 +423,6 @@ impl<V> TimePartition<V> {
     }
 }
 
-#[derive(DeepSizeOf)]
 struct DurationPartition<V> {
     max_durations: Vec<Time>,
     min_durations: Vec<Time>,

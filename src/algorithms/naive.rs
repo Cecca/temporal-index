@@ -1,7 +1,5 @@
 use crate::types::*;
-use deepsize::DeepSizeOf;
 
-#[derive(DeepSizeOf)]
 pub struct LinearScan {
     dataset: Vec<Interval>,
 }
@@ -35,12 +33,6 @@ impl Algorithm for LinearScan {
     fn index(&mut self, dataset: &[Interval]) {
         self.dataset.clear();
         self.dataset.extend(dataset.iter().cloned());
-        let size = self.deep_size_of();
-        info!(
-            "Space taken by intervals: {} bytes ({} Mb)",
-            size,
-            size / (1024 * 1024)
-        );
     }
 
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
