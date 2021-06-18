@@ -55,6 +55,7 @@ impl Algorithm for LinearScan {
     }
 
     fn clear(&mut self) {
-        self.dataset.clear();
+        let dataset = std::mem::replace(&mut self.dataset, Vec::new());
+        drop(dataset);
     }
 }

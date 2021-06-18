@@ -176,17 +176,10 @@ fn main() -> Result<()> {
                         let mut algorithm = experiment.algorithm.borrow_mut();
                         info!("Building index");
                         let start = Instant::now();
-                        let allocated_start = get_allocated();
                         algorithm.index(&dataset_intervals);
-                        let allocated_end = get_allocated();
                         let end = Instant::now();
                         let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
-                        let index_size_bytes = (allocated_end - allocated_start).0;
-                        info!(
-                            "Index built in {:?}, allocating {}",
-                            end - start,
-                            allocated_end - allocated_start
-                        );
+                        info!("Index built in {:?}", end - start);
 
                         info!("Running queries [batch]");
                         let start = Instant::now();
@@ -198,8 +191,12 @@ fn main() -> Result<()> {
                             "time for index {}ms, time for query {}ms, output size {}",
                             elapsed_index, elapsed_run, matches
                         );
-                        // Clear up the index to free resources
+                        // Clear up the index to free resources, and measure the space it took up
+                        let allocated_start = get_allocated();
                         algorithm.clear();
+                        let allocated_end = get_allocated();
+                        assert!(allocated_start.0 > allocated_end.0);
+                        let index_size_bytes = (allocated_start - allocated_end).0;
                         (elapsed_index, elapsed_run, index_size_bytes)
                     };
 

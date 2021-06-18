@@ -169,8 +169,8 @@ impl Algorithm for Grid3D {
     }
 
     fn clear(&mut self) {
-        self.grid.clear();
-        self.duration_ecdf.clear();
-        self.n.take();
+        drop(std::mem::replace(&mut self.grid, Vec::new()));
+        drop(std::mem::replace(&mut self.duration_ecdf, BTreeMap::new()));
+        drop(self.n.take());
     }
 }
