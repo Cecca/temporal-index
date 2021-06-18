@@ -1,4 +1,5 @@
 install_symbolic_unit("records")
+Sys.setlocale("LC_ALL", "en_US")
 
 real_sizes <- tribble(
   ~dataset, ~dataset_n,
@@ -82,8 +83,8 @@ plan <- drake_plan(
     file_in("temporal-index-results.sqlite")
     table_query_focus() %>%
       filter(
-          dataset_name == "random-uniform-zipf",
-          str_detect(dataset_params, "n=10000000 ")
+        dataset_name == "random-uniform-zipf",
+        str_detect(dataset_params, "n=10000000 ")
       )
   },
 
@@ -121,7 +122,7 @@ plan <- drake_plan(
     ),
 
   figure_selectivity_dependency_inefficient = table_query_focus_inefficient() %>%
-    plot_selectivity_dependency(bare=TRUE) %>%
+    plot_selectivity_dependency(bare = TRUE) %>%
     save_png(
       "paper/images/selectivity-dep-inefficient.png",
       width = 2,
