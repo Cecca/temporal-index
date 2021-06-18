@@ -196,6 +196,7 @@ fn main() -> Result<()> {
                         algorithm.clear();
                         let allocated_end = get_allocated();
                         assert!(allocated_start.0 > allocated_end.0);
+                        info!("Size of the index was {}", allocated_start - allocated_end);
                         let index_size_bytes = (allocated_start - allocated_end).0;
                         (elapsed_index, elapsed_run, index_size_bytes)
                     };
