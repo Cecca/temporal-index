@@ -18,6 +18,37 @@ use argh::FromArgs;
 use std::path::PathBuf;
 use sysinfo::{System, SystemExt};
 
+use std::alloc::{GlobalAlloc, Layout, System as SystemAlloc};
+use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+
+/// We wrap the system allocator in order to count the number of bytes that are allocated,
+/// so to instrument the size of the indices
+struct CountingAllocator;
+
+static ALLOCATED: AtomicUsize = AtomicUsize::new(0);
+
+unsafe impl GlobalAlloc for CountingAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        let ret = SystemAlloc.alloc(layout);
+        if !ret.is_null() {
+            ALLOCATED.fetch_add(layout.size(), SeqCst);
+        }
+        return ret;
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        SystemAlloc.dealloc(ptr, layout);
+        ALLOCATED.fetch_sub(layout.size(), SeqCst);
+    }
+}
+
+#[global_allocator]
+static A: CountingAllocator = CountingAllocator;
+
+pub fn get_allocated() -> Bytes {
+    Bytes(ALLOCATED.load(SeqCst))
+}
+
 #[derive(FromArgs)]
 /// run experiments on temporal indices
 struct Cmdline {
@@ -145,10 +176,17 @@ fn main() -> Result<()> {
                         let mut algorithm = experiment.algorithm.borrow_mut();
                         info!("Building index");
                         let start = Instant::now();
+                        let allocated_start = get_allocated();
                         algorithm.index(&dataset_intervals);
+                        let allocated_end = get_allocated();
                         let end = Instant::now();
                         let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
                         let index_size_bytes = algorithm.index_size() as u32;
+                        info!(
+                            "Index built in {:?}, allocating {}",
+                            end - start,
+                            allocated_end - allocated_start
+                        );
 
                         info!("Running queries [batch]");
                         let start = Instant::now();
@@ -193,4 +231,44 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+// Implementation below taken from https://github.com/rust-analyzer/rust-analyzer/blob/b988c6f84e06bdc5562c70f28586b9eeaae3a39c/crates/profile/src/memory_usage.rs
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub struct Bytes(usize);
+
+impl Bytes {
+    pub fn megabytes(self) -> usize {
+        self.0 / 1024 / 1024
+    }
+}
+
+impl std::fmt::Display for Bytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let bytes = self.0;
+        let mut value = bytes;
+        let mut suffix = "b";
+        if value > 4096 {
+            value /= 1024;
+            suffix = "kb";
+            if value > 4096 {
+                value /= 1024;
+                suffix = "mb";
+            }
+        }
+        f.pad(&format!("{}{}", value, suffix))
+    }
+}
+
+impl std::ops::AddAssign<usize> for Bytes {
+    fn add_assign(&mut self, x: usize) {
+        self.0 += x;
+    }
+}
+
+impl std::ops::Sub for Bytes {
+    type Output = Bytes;
+    fn sub(self, rhs: Bytes) -> Bytes {
+        Bytes(self.0 - rhs.0)
+    }
 }

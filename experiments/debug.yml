@@ -10,7 +10,7 @@
           - 100000000
         start_times:
           - Uniform: { low: 1, high: 10000000 }
-          - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
+          # - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
         durations:
           - Zipf: { n: 10000000, beta: 1 }
 
@@ -32,5 +32,5 @@
     # - RDIndex:
     #     dimension_order: [DurationTime, TimeDuration]
     #     page_size: [100]
-    # - PeriodIndexPlusPlus:
-    #     page_size: [100]
+    - PeriodIndexPlusPlus:
+        page_size: [100]
