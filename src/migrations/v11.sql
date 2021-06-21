@@ -6,4 +6,4 @@ ALTER TABLE
 ALTER TABLE
 	batch_raw
 ADD
-	COLUMN index_size_bytes INT64 NOT NULL;
+	COLUMN index_size_bytes INT64 NOT NULL DEFAULT 0;
