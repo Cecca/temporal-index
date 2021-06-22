@@ -16,10 +16,10 @@ latex_best <- function(data_best) {
         ungroup() %>%
         select(
             dataset_name, time_constraint,
-            duration_constraint, algorithm_name, qps, time_index
+            duration_constraint, algorithm_name, qps, time_index, bytes_per_interval
         ) %>%
         group_by(dataset_name, time_constraint, duration_constraint) %>%
-        distinct(algorithm_name, qps, time_index) %>%
+        distinct(algorithm_name, qps, time_index, bytes_per_interval) %>%
         replace_na(list(qps = 0)) %>%
         mutate(
             rank = row_number(desc(qps)),
@@ -31,7 +31,13 @@ latex_best <- function(data_best) {
                 str_c("\\textbf{", time_index, "}"),
                 time_index
             ),
-            time_index_str = str_c(" {\\footnotesize(", time_index, ")}"),
+            time_index_str = str_c(
+                " {\\footnotesize$\\big|$\\stackanchor{",
+                time_index,
+                "}{",
+                scales::number(bytes_per_interval, accuracy = 0.1),
+                "}}"
+            ),
             # speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
             # speedup_str = if_else(qps_num == min(qps_num),
             #     "",
@@ -100,7 +106,8 @@ latex_best <- function(data_best) {
             )
         ) %>%
         arrange(dataset) %>%
-        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "lllrrrrrr") %>%
+        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "lllrrrrrrrr") %>%
+        # row_spec(c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19), background = "lightgray") %>%
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
         add_header_above(c(" " = 1, "Query distribution" = 2, "Queries per second (index build time)" = 7))
 }

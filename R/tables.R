@@ -58,6 +58,7 @@ table_batch <- function() {
     mutate(
       time_queries = set_units(time_query_ms, "ms"),
       time_index = set_units(time_index_ms, "ms"),
+      # index_size = as.double(index_size_bytes) / (1024 * 1024), # in megabytes. The `units` library does not support this use case well
       qps = set_units(qps, "1/s")
     ) %>%
     select(-time_query_ms, -time_index_ms) %>%
@@ -94,6 +95,15 @@ table_batch <- function() {
         str_detect(algorithm_params, "DurationTime") ~ str_c(algorithm_name, "-dt"),
         TRUE ~ algorithm_name
       )
+    ) %>%
+    mutate(
+      dataset_size = case_when(
+        dataset_name == "Flight" ~ 684838,
+        dataset_name == "Tourism" ~ 835071,
+        dataset_name == "Webkit" ~ 1547419,
+        T ~ as.double(str_match(dataset_params, " n=(\\d+)")[, 2])
+      ),
+      bytes_per_interval = index_size_bytes / dataset_size
     )
 
   dbDisconnect(conn)
@@ -131,12 +141,13 @@ filter_real <- function(data_batch) {
       str_detect(queryset_params, "dur_scale=60") ~ TRUE,
       TRUE ~ FALSE
     ))
-    # filter((dataset_name != "Flight") |
-    #         (str_detect(queryset_params, "dur_scale=60")))
+  # filter((dataset_name != "Flight") |
+  #         (str_detect(queryset_params, "dur_scale=60")))
 }
 
 table_best <- function() {
-  data <- table_batch()
+  data <- table_batch() %>%
+    filter(index_size_bytes > 0)
   synth <- filter_synthetic(data)
   real <- filter_real(data)
   bind_rows(synth, real) %>%
@@ -144,7 +155,7 @@ table_best <- function() {
     filter(algorithm_name != "period-index++") %>%
     group_by(algorithm_name, queryset_id, dataset_id) %>%
     slice_max(qps) %>%
-    # if there are multiple entries with the exact 
+    # if there are multiple entries with the exact
     # same queries per second, just return the first
     slice(1) %>%
     ungroup() %>%
@@ -207,7 +218,7 @@ table_scalability <- function() {
     filter(scale %in% c(1, 10, 20, 30, 40, 50)) %>%
     filter(
       # Filter synthetic datasets
-      (dataset_name == "random-uniform-zipf" & 
+      (dataset_name == "random-uniform-zipf" &
         queryset_n == 10000 &
         str_detect(queryset_params, "start_high=10000000")) |
         # Filter real datasets
@@ -357,19 +368,18 @@ table_running_tourism <- function(query_range, query_duration) {
     "2016-06-24", 10,
     "2016-06-8", 6
   ) %>%
-  mutate(
-    start = ymd(start),
-    highlighted = TRUE
-  )
+    mutate(
+      start = ymd(start),
+      highlighted = TRUE
+    )
 
-  # dataset <- 
+  # dataset <-
   read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
     mutate(highlighted = FALSE) %>%
     bind_rows(highlighted_data) %>%
     mutate(
-      time_range = interval(start, start+duration),
+      time_range = interval(start, start + duration),
       matches = int_overlaps(time_range, query_range) & between(duration, query_duration[1], query_duration[2])
     ) %>%
     filter(highlighted)
 }
-
