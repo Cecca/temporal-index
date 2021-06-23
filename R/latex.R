@@ -31,11 +31,15 @@ latex_best <- function(data_best) {
                 str_c("\\textbf{", time_index, "}"),
                 time_index
             ),
+            bytes_per_interval = if_else(bytes_per_interval == min(bytes_per_interval),
+                str_c("\\textbf{", scales::number(bytes_per_interval, accuracy = 0.1), "}"),
+                scales::number(bytes_per_interval, accuracy = 0.1)
+            ),
             time_index_str = str_c(
                 " {\\footnotesize$\\big|$\\stackanchor{",
                 time_index,
                 "}{",
-                scales::number(bytes_per_interval, accuracy = 0.1),
+                bytes_per_interval,
                 "}}"
             ),
             # speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
@@ -109,7 +113,10 @@ latex_best <- function(data_best) {
         kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "lllrrrrrrrr") %>%
         # row_spec(c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19), background = "lightgray") %>%
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
-        add_header_above(c(" " = 1, "Query distribution" = 2, "Queries per second (index build time)" = 7))
+        add_header_above(
+            c(" " = 1, "Query distribution" = 2, "Queries per second$\\big|${\\small\\stackanchor{index build time}{index size}} " = 7),
+            escape = F
+        )
 }
 
 latex_example <- function(data_example) {
