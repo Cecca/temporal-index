@@ -24,7 +24,13 @@ plan <- drake_plan(
   }),
 
   # Format the table to a latex file
-  latex_batch = latex_best(best_batch) %>%
+  latex_batch = best_batch %>%
+    filter(
+      dataset_name %in% c("UZ", "Flight", "Webkit", "Tourism"),
+      time_constraint %in% c("UZ", "UU", "-"),
+      duration_constraint %in% c("U", "-")
+    ) %>%
+    latex_best() %>%
     write_file(file_out("paper/qps.tex")),
 
   # Export the table as a csv, to use it with D3

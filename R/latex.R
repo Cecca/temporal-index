@@ -11,7 +11,6 @@ latex_best <- function(data_best) {
         "", "", "\\midrule"
     )
 
-    # TODO come up with a good naming scheme for workloads
     data_best %>%
         ungroup() %>%
         select(
@@ -42,11 +41,6 @@ latex_best <- function(data_best) {
                 bytes_per_interval,
                 "}}"
             ),
-            # speedup = scales::number(qps_num / min(qps_num), accuracy = 1),
-            # speedup_str = if_else(qps_num == min(qps_num),
-            #     "",
-            #     str_c(" {\\footnotesize(x\\,", speedup, ")}")
-            # ),
             qps = drop_units(qps) %>% scales::number(big.mark = "\\\\,"),
             qps = if_else(qps_num == max(qps_num),
                 str_c("\\textbf{", qps, "}"),
@@ -84,37 +78,43 @@ latex_best <- function(data_best) {
             algorithm_name,
             qps
         ) %>%
+        mutate(
+            query_type = case_when(
+                time == "UZ" && duration == "U" ~ "range-duration",
+                time == "UU" && duration == "U" ~ "range-duration",
+                time == "-" && duration == "U" ~ "duration",
+                time == "UZ" && duration == "-" ~ "range",
+                time == "UU" && duration == "-" ~ "range",
+                T ~ "unknown"
+            ),
+            query_type = factor(query_type, levels = c("range", "duration", "range-duration"), ordered = T)
+        ) %>%
+        ungroup() %>%
+        select(
+            dataset,
+            query = query_type,
+            algorithm_name,
+            qps
+        ) %>%
         pivot_wider(
             names_from = "algorithm_name",
             values_from = "qps"
         ) %>%
         mutate(
             dataset = case_when(
-                dataset == "UZ" ~ "Uniform",
-                dataset == "CZ" ~ "Clustered",
+                dataset == "UZ" ~ "Random",
                 TRUE ~ dataset
             ),
             dataset = factor(dataset,
-                levels = c("Uniform", "Clustered", "Flight", "Webkit", "Tourism"),
+                levels = c("Random", "Flight", "Webkit", "Tourism"),
                 ordered = TRUE
-            ),
-            time = case_when(
-                time == "UZ" ~ "Uniform",
-                time == "UU" ~ "Uniform",
-                time == "CZ" ~ "Clustered",
-                TRUE ~ time
-            ),
-            duration = case_when(
-                duration == "U" ~ "Uniform",
-                TRUE ~ duration
             )
         ) %>%
-        arrange(dataset) %>%
-        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "lllrrrrrrrr") %>%
-        # row_spec(c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19), background = "lightgray") %>%
+        arrange(dataset, query) %>%
+        kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "llrrrrrrrr") %>%
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
         add_header_above(
-            c(" " = 1, "Query distribution" = 2, "Queries per second$\\big|${\\small\\stackanchor{index build time}{index size}} " = 7),
+            c(" " = 2, "Queries per second$\\big|${\\small\\stackanchor{index build time}{index size}} " = 7),
             escape = F
         )
 }
