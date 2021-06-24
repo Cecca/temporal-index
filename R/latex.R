@@ -46,13 +46,13 @@ latex_best <- function(data_best) {
                 str_c("\\textbf{", qps, "}"),
                 qps
             ),
-            qps = str_c(qps, time_index_str)
-            # qps = cell_spec(qps,
-            #     background = palette[rank],
-            #     color = if_else(rank <= 2, "black", "white"),
-            #     format = "latex",
-            #     escape = FALSE
-            # )
+            qps = str_c(qps, time_index_str),
+            qps = cell_spec(qps,
+                background = if_else(qps_num == max(qps_num), "lightgray", "white"),
+                # color = if_else(rank <= 2, "black", "white"),
+                format = "latex",
+                escape = FALSE
+            )
         ) %>%
         mutate(
             algorithm_name = case_when(
