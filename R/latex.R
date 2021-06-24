@@ -48,7 +48,7 @@ latex_best <- function(data_best) {
             ),
             qps = str_c(qps, time_index_str),
             qps = cell_spec(qps,
-                background = if_else(qps_num == max(qps_num), "lightgray", "white"),
+                background = if_else(qps_num == max(qps_num), "#e9e9e9", "white"),
                 # color = if_else(rank <= 2, "black", "white"),
                 format = "latex",
                 escape = FALSE
