@@ -66,7 +66,15 @@ latex_best <- function(data_best) {
                 TRUE ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name,
-                levels = c("\\rdtd", "\\rddt", "\\gfile", "\\btree", "\\pindex", "\\itree", "\\rtree"),
+                levels = c(
+                    "\\rdtd",
+                    "\\rddt",
+                    "\\gfile",
+                    "\\pindex",
+                    "\\itree",
+                    "\\rtree",
+                    "\\btree"
+                ),
                 ordered = TRUE
             )
         ) %>%
