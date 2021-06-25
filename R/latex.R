@@ -71,8 +71,8 @@ latex_best <- function(data_best) {
                     "\\rddt",
                     "\\gfile",
                     "\\pindex",
-                    "\\itree",
                     "\\rtree",
+                    "\\itree",
                     "\\btree"
                 ),
                 ordered = TRUE

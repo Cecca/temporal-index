@@ -18,7 +18,16 @@ plot_scalability <- function(data_scalability) {
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
                 T ~ algorithm_name
-            )
+            ),
+            algorithm_name = factor(algorithm_name, ordered = T, levels = c(
+                "RD-index-td",
+                "RD-index-dt",
+                "Grid-File",
+                "Period-Index*",
+                "R-Tree",
+                "Interval-Tree",
+                "B-Tree"
+            ))
         )
     ggplot(data_scalability, aes(
         x = scale,
@@ -167,8 +176,14 @@ plot_query_focus_precision <- function(data_focus) {
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
                 T ~ algorithm_name
             ),
-            algorithm_name == factor(algorithm_name, levels = c(
-                "RD-index-td", "RD-index-dt", "Grid-File", "B-Tree", "R-Tree", "Period-Index*", "Interval-Tree"
+            algorithm_name = factor(algorithm_name, levels = c(
+                "RD-index-td",
+                "RD-index-dt",
+                "Grid-File",
+                "Period-Index*",
+                "R-Tree",
+                "Interval-Tree",
+                "B-Tree"
             ), ordered = T)
         ) %>%
         mutate(
@@ -268,8 +283,14 @@ plot_query_focus <- function(data_focus) {
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
                 T ~ algorithm_name
             ),
-            algorithm_name == factor(algorithm_name, levels = c(
-                "RD-index-td", "RD-index-dt", "Grid-File", "B-Tree", "R-Tree", "Period-Index*", "Interval-Tree"
+            algorithm_name = factor(algorithm_name, levels = c(
+                "RD-index-td",
+                "RD-index-dt",
+                "Grid-File",
+                "Period-Index*",
+                "R-Tree",
+                "Interval-Tree",
+                "B-Tree"
             ), ordered = T)
         ) %>%
         mutate(
@@ -363,6 +384,27 @@ plot_selectivity_dependency <- function(data_selectivity, bare = FALSE) {
     plotdata <- data_selectivity %>%
         filter(matches > 0) %>%
         filter(!(selectivity_time >= 0.99 & selectivity_duration >= 0.99)) %>%
+        mutate(
+            algorithm_name = case_when(
+                algorithm_name == "interval-tree" ~ "Interval-Tree",
+                algorithm_name == "BTree" ~ "B-Tree",
+                algorithm_name == "RTree" ~ "R-Tree",
+                algorithm_name == "grid-file" ~ "Grid-File",
+                algorithm_name == "period-index-*" ~ "Period-Index*",
+                algorithm_name == "rd-index-dt" ~ "RD-index-dt",
+                algorithm_name == "rd-index-td" ~ "RD-index-td",
+                T ~ algorithm_name
+            ),
+            algorithm_name = factor(algorithm_name, levels = c(
+                "RD-index-td",
+                "RD-index-dt",
+                "Grid-File",
+                "Period-Index*",
+                "R-Tree",
+                "Interval-Tree",
+                "B-Tree"
+            ), ordered = T)
+        ) %>%
         mutate(
             query_time =
                 set_units(query_time, "milliseconds") %>% drop_units(),
