@@ -88,14 +88,14 @@ latex_best <- function(data_best) {
         ) %>%
         mutate(
             query_type = case_when(
-                time == "UZ" && duration == "U" ~ "range-duration",
-                time == "UU" && duration == "U" ~ "range-duration",
-                time == "-" && duration == "U" ~ "duration",
-                time == "UZ" && duration == "-" ~ "range",
-                time == "UU" && duration == "-" ~ "range",
+                time == "UZ" && duration == "U" ~ "\\qrd",
+                time == "UU" && duration == "U" ~ "\\qrd",
+                time == "-" && duration == "U" ~ "\\qdo",
+                time == "UZ" && duration == "-" ~ "\\qro",
+                time == "UU" && duration == "-" ~ "\\qro",
                 T ~ "unknown"
             ),
-            query_type = factor(query_type, levels = c("range", "duration", "range-duration"), ordered = T)
+            query_type = factor(query_type, levels = c("\\qro", "\\qdo", "\\qrd"), ordered = T)
         ) %>%
         ungroup() %>%
         select(
