@@ -10,3 +10,5 @@ report.html
 temporal-index-*.gz
 /.datasets
 /check
+paper/__latexindent_temp.pdf
+notes.md
