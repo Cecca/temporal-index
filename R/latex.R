@@ -11,6 +11,32 @@ latex_best <- function(data_best) {
         "", "", "\\midrule"
     )
 
+    fgcolor <- c(
+        "white",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black"
+    )
+    bgcolors <- c(
+        "3572B9",
+        # "7FABD3",
+        "C0DBEC",
+        "FFFFFF",
+        "FFFFFF",
+        "FFFFFF",
+        "FFFFFF",
+        "FFFFFF",
+        "FFFFFF",
+        "FFFFFF"
+    )
+
     data_best %>%
         ungroup() %>%
         select(
@@ -21,7 +47,8 @@ latex_best <- function(data_best) {
         distinct(algorithm_name, qps, time_index, bytes_per_interval) %>%
         replace_na(list(qps = 0)) %>%
         mutate(
-            rank = row_number(desc(qps)),
+            # rank = row_number(desc(qps)),
+            rank = dense_rank(desc(qps)),
             rank_str = str_c(" {\\footnotesize(", rank, ")}"),
             qps_num = qps %>% drop_units(),
             time_index_num = time_index %>% set_units("ms") %>% drop_units(),
@@ -42,17 +69,18 @@ latex_best <- function(data_best) {
                 "}}"
             ),
             qps = drop_units(qps) %>% scales::number(big.mark = "\\\\,"),
-            qps = if_else(qps_num == max(qps_num),
-                str_c("\\textbf{", qps, "}"),
-                qps
-            ),
+            # qps = if_else(qps_num == max(qps_num),
+            #     str_c("\\textbf{", qps, "}"),
+            #     qps
+            # ),
+            qps = str_c("\\colorbox[HTML]{", bgcolors[rank], "}{\\color{", fgcolor[rank], "}", qps, "}"),
             qps = str_c(qps, time_index_str),
-            qps = cell_spec(qps,
-                background = if_else(qps_num == max(qps_num), "#e9e9e9", "white"),
-                # color = if_else(rank <= 2, "black", "white"),
-                format = "latex",
-                escape = FALSE
-            )
+            # qps = cell_spec(qps,
+            #     background = if_else(qps_num == max(qps_num), "#e9e9e9", "white"),
+            #     # color = if_else(rank <= 2, "black", "white"),
+            #     format = "latex",
+            #     escape = FALSE
+            # )
         ) %>%
         mutate(
             algorithm_name = case_when(
