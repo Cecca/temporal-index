@@ -172,7 +172,7 @@ plan <- drake_plan(
       query_range, query_duration
     )
     # dev.off()
-    ggsave(file_out("paper/images/example-plane.png"), width = 3.3, height = 2.5, dpi = 300)
+    ggsave(file_out("paper/images/example-plane.pdf"), width = 3.3, height = 2.5, dpi = 300)
   },
   figure_running_example_grid = {
     # tikzDevice::tikz(
@@ -184,6 +184,6 @@ plan <- drake_plan(
       grid = TRUE
     )
     # dev.off()
-    ggsave(file_out("paper/images/example-grid.png"), width = 3.3, height = 2.5, dpi = 300)
+    ggsave(file_out("paper/images/example-grid.pdf"), width = 3.3, height = 2.5, dpi = 300)
   },
 )
