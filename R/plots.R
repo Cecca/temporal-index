@@ -503,21 +503,21 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
             ymax = limits[2],
             inherit.aes = F,
             fill = "red",
-            alpha = 0.01
+            alpha = 0.02
         ) +
         geom_segment(
             aes(color = matches),
             size = 1.5,
             show.legend = F
         ) +
-        geom_vline(
-            xintercept = c(
-                as_date(int_start(query_time)),
-                as_date(int_end(query_time))
-            ),
-            linetype = "dashed",
-            color = "red"
-        ) +
+        # geom_vline(
+        #     xintercept = c(
+        #         as_date(int_start(query_time)),
+        #         as_date(int_end(query_time))
+        #     ),
+        #     linetype = "dashed",
+        #     color = "red"
+        # ) +
         geom_text(
             aes(label = str_c("$r_", pos, "$")),
             size = 3,
@@ -541,8 +541,7 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
             ),
             alpha = 0.7,
             size = 0.6,
-            color = "red",
-            linetype = "dotted"
+            color = "red"
         ) +
         geom_segment(
             aes(
@@ -552,7 +551,8 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
             ),
             alpha = 0.7,
             size = 0.8,
-            color = "red"
+            color = "red",
+            linetype = "dotted"
         ) +
         scale_x_date(limits = c(ymd("2016-06-05"), ymd("2016-07-20"))) +
         scale_y_continuous(limits = limits) +
