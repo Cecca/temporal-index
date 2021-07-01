@@ -380,7 +380,7 @@ plot_query_focus <- function(data_focus) {
         )
 }
 
-plot_selectivity_dependency <- function(data_selectivity, bare = FALSE) {
+plot_selectivity_dependency <- function(data_selectivity, bare = FALSE, strip = TRUE, legend = TRUE) {
     plotdata <- data_selectivity %>%
         filter(matches > 0) %>%
         filter(!(selectivity_time >= 0.99 & selectivity_duration >= 0.99)) %>%
@@ -448,7 +448,7 @@ plot_selectivity_dependency <- function(data_selectivity, bare = FALSE) {
             scale_y_continuous(limits = c(0, NA)) +
             labs(
                 x = "selectivity",
-                y = "fraction of intervals examined",
+                y = "fraction of intervals",
                 color = "category of query"
             ) +
             guides(
@@ -472,6 +472,12 @@ plot_selectivity_dependency <- function(data_selectivity, bare = FALSE) {
                 axis.text = element_text(size = 8),
                 axis.title = element_blank()
             )
+    }
+    if (!strip) {
+        p <- p + theme(strip.text = element_blank())
+    }
+    if (!legend) {
+        p <- p + theme(legend.position = "none")
     }
     p
     # p1 <- plotdata %>%

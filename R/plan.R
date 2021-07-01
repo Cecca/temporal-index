@@ -128,7 +128,7 @@ plan <- drake_plan(
     ),
 
   figure_selectivity_dependency_inefficient = table_query_focus_inefficient() %>%
-    plot_selectivity_dependency(bare = TRUE) %>%
+    plot_selectivity_dependency(bare = FALSE, strip = FALSE, legend = FALSE) %>%
     save_png(
       "paper/images/selectivity-dep-inefficient.png",
       width = 2,
