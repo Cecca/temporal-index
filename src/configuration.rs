@@ -175,6 +175,7 @@ pub enum DataConfiguration {
     Flight,
     Webkit,
     Tourism,
+    MimicIII,
 }
 
 impl DataConfiguration {
@@ -190,6 +191,10 @@ impl DataConfiguration {
             }
             Self::Tourism => {
                 let d = Rc::new(TourismDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
+                Box::new(Some(d).into_iter())
+            }
+            Self::MimicIII => {
+                let d = Rc::new(MimicIIIDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
             }
             Self::Reiterated { base, copies } => {

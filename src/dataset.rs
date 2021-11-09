@@ -654,8 +654,16 @@ impl Queryset for RandomCappedQueryset {
                 })
                 .map(|interval| {
                     if interval.end > self.cap {
-                        assert!(interval.start < self.cap, "interval.start={}, self.cap={}", interval.start, self.cap);
-                        Interval{start: interval.start, end: self.cap}
+                        assert!(
+                            interval.start < self.cap,
+                            "interval.start={}, self.cap={}",
+                            interval.start,
+                            self.cap
+                        );
+                        Interval {
+                            start: interval.start,
+                            end: self.cap,
+                        }
                     } else {
                         interval
                     }
@@ -1264,6 +1272,83 @@ impl Dataset for WebkitDataset {
                 Interval { start, end }
             })
             .collect())
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+}
+
+/// Subset of the medical dataset Mimic III
+#[derive(Debug)]
+pub struct MimicIIIDataset {
+    csv_path: PathBuf,
+}
+
+impl MimicIIIDataset {
+    pub fn from_upstream() -> Result<Self> {
+        let dir = PathBuf::from(".datasets");
+        if !dir.is_dir() {
+            std::fs::create_dir(&dir)?;
+        }
+        let cache = dir.join("mimic-III.csv.gz");
+        maybe_download(
+            "https://dl.dropboxusercontent.com/s/8avhvpqlpb877og/MIMICIII-prescriptions.csv.gz?dl=0",
+            cache.clone(),
+        )?;
+        Ok(Self { csv_path: cache })
+    }
+}
+
+impl Dataset for MimicIIIDataset {
+    fn name(&self) -> String {
+        "MimicIII".to_owned()
+    }
+
+    fn parameters(&self) -> String {
+        "".to_owned()
+    }
+
+    fn get(&self) -> Result<Vec<Interval>> {
+        use flate2::read::GzDecoder;
+        let gzip_reader = GzDecoder::new(std::fs::File::open(&self.csv_path)?);
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .delimiter(b',')
+            .from_reader(gzip_reader);
+
+        let header = reader.headers()?;
+        let start_idx = 0;
+        let end_idx = 1;
+
+        let mut intervals = Vec::new();
+
+        for record in reader.records() {
+            let record = record?;
+            let start = record.get(start_idx).context("start")?.parse::<u64>()?;
+            let end = record.get(end_idx).context("start")?.parse::<u64>()?;
+            intervals.push(Interval { start, end });
+        }
+
+        // There is an outlier interval with start time 0, we remove it.
+        let intervals: Vec<Interval> = intervals.into_iter().filter(|i| i.start != 0).collect();
+
+        // And now we shift all the other intervals
+        let min_start = intervals
+            .iter()
+            .map(|i| i.start)
+            .min()
+            .context("min on empty collection")?;
+
+        let intervals: Vec<Interval> = intervals
+            .into_iter()
+            .map(|i| Interval {
+                start: i.start - min_start,
+                end: i.end - min_start,
+            })
+            .collect();
+
+        Ok(intervals)
     }
 
     fn version(&self) -> u8 {
