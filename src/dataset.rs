@@ -1317,7 +1317,6 @@ impl Dataset for MimicIIIDataset {
             .delimiter(b',')
             .from_reader(gzip_reader);
 
-        let header = reader.headers()?;
         let start_idx = 0;
         let end_idx = 1;
 
