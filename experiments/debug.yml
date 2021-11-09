@@ -29,8 +29,6 @@
 
   algorithms:
     - RTree
-    - BTree
-    - IntervalTree
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
         page_size: [10, 50, 100, 150]

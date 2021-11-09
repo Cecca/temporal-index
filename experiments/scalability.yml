@@ -266,3 +266,60 @@
         dimension_order: [TimeDuration, DurationTime]
         page_size: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000]
 
+
+- mode: 
+    Batch
+
+  datasets:
+    - MimicIII
+    - Reiterated:
+        base: MimicIII
+        copies: 10
+    - Reiterated:
+        base: MimicIII
+        copies: 20
+    - Reiterated:
+        base: MimicIII
+        copies: 30
+    - Reiterated:
+        base: MimicIII
+        copies: 40
+    - Reiterated:
+        base: MimicIII
+        copies: 50
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Free
+          - Pair: 
+              - Scaled: 
+                  inner: {Uniform: { low: 1, high:  40251}}
+                  scale: 1
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 40251}}
+                  scale: 1
+          
+        duration:
+          - Free
+          - Single: 
+              Scaled:
+                inner: {Uniform: { low: 1, high: 100}}
+                scale: 1
+
+  algorithms:
+    - RTree
+    - BTree
+    - GridFile:
+        side_cells: [10, 100, 1000]
+    - IntervalTree
+    - PeriodIndexStar:
+        num_buckets: [32, 64, 128, 256, 512]
+        num_levels: [4, 8, 16, 32]
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000]
+
+
