@@ -11,7 +11,7 @@
         seed: [23512]
         n: [10000]
         range:
-          #- Free
+          - Free
           - Pair: 
               - Scaled: 
                   inner: {Uniform: { low: 1, high:  40251}}
@@ -21,10 +21,10 @@
                   scale: 1
           
         duration:
-          #- Free
+          - Free
           - Single: 
               Scaled:
-                inner: {Uniform: { low: 1, high: 100}}
+                inner: {Uniform: { low: 1, high: 200}}
                 scale: 1
 
   algorithms:
