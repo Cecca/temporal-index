@@ -306,7 +306,7 @@
           - Free
           - Single: 
               Scaled:
-                inner: {Uniform: { low: 1, high: 100}}
+                inner: {Uniform: { low: 1, high: 200}}
                 scale: 1
 
   algorithms:
