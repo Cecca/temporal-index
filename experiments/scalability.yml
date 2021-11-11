@@ -289,11 +289,11 @@
         copies: 50
 
   queries:
-    - Random:
+    - RandomCapped:
         seed: [23512]
         n: [10000]
+        cap: [40151]
         range:
-          - Free
           - Pair: 
               - Scaled: 
                   inner: {Uniform: { low: 1, high:  40251}}
@@ -303,7 +303,6 @@
                   scale: 1
           
         duration:
-          - Free
           - Single: 
               Scaled:
                 inner: {Uniform: { low: 1, high: 200}}
