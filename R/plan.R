@@ -152,7 +152,7 @@ plan <- drake_plan(
   figure_running_example = {
     tikzDevice::tikz(
       file = file_out("paper/example.tex"),
-      width = 3.3, height = 1.4
+      width = 3.3, height = 1.0
     )
     print(plot_running_example(
       data_running_example, query_range, query_duration

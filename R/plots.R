@@ -490,7 +490,7 @@ plot_selectivity_dependency <- function(data_selectivity, bare = FALSE, strip = 
 }
 
 plot_running_example <- function(data_running_example, query_time, query_duration) {
-    limits <- c(0, 0.5 + nrow(filter(data_running_example, highlighted)))
+    limits <- c(0.5, 0.6 + nrow(filter(data_running_example, highlighted)))
     data_running_example <- data_running_example %>%
         filter(highlighted) %>%
         mutate(pos = row_number(start))
@@ -527,7 +527,7 @@ plot_running_example <- function(data_running_example, query_time, query_duratio
         geom_text(
             aes(label = str_c("$r_", pos, "$")),
             size = 3,
-            nudge_y = +0.2,
+            nudge_y = +0.3,
             hjust = 0.3,
             vjust = 0
             # label.padding = unit(0.1, "lines"),
