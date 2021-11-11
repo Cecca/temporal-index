@@ -6,6 +6,7 @@ real_sizes <- tribble(
   "Flight", 684838,
   "Tourism", 835071,
   "Webkit", 1547419,
+  "MimicIII", 4134909
 )
 
 # TODO:
@@ -26,7 +27,7 @@ plan <- drake_plan(
   # Format the table to a latex file
   latex_batch = best_batch %>%
     filter(
-      dataset_name %in% c("UZ", "Flight", "Webkit", "Tourism"),
+      dataset_name %in% c("UZ", "Flight", "Webkit", "MimicIII"),
       time_constraint %in% c("UZ", "UU", "-"),
       duration_constraint %in% c("U", "-")
     ) %>%

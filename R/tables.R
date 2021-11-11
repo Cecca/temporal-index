@@ -101,6 +101,7 @@ table_batch <- function() {
         dataset_name == "Flight" ~ 684838,
         dataset_name == "Tourism" ~ 835071,
         dataset_name == "Webkit" ~ 1547419,
+        dataset_name == "MimicIII" ~ 4134909,
         T ~ as.double(str_match(dataset_params, " n=(\\d+)")[, 2])
       ),
       bytes_per_interval = index_size_bytes / dataset_size
@@ -134,7 +135,7 @@ filter_synthetic <- function(data_batch) {
 
 filter_real <- function(data_batch) {
   data_batch %>%
-    filter(dataset_name %in% c("Flight", "Webkit", "Tourism")) %>%
+    filter(dataset_name %in% c("Flight", "Webkit", "Tourism", "MimicIII")) %>%
     filter(case_when(
       dataset_name != "Flight" ~ TRUE,
       queryset_name == "random-None-uniform-scaled" ~ TRUE,

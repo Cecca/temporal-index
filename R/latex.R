@@ -62,7 +62,7 @@ latex_best <- function(data_best) {
                 scales::number(bytes_per_interval, accuracy = 0.1)
             ),
             time_index_str = str_c(
-                " {\\footnotesize$\\big|$\\stackanchor{",
+                " {\\scriptsize$\\big|$\\stackanchor{",
                 time_index,
                 "}{",
                 bytes_per_interval,
@@ -142,7 +142,7 @@ latex_best <- function(data_best) {
                 TRUE ~ dataset
             ),
             dataset = factor(dataset,
-                levels = c("Random", "Flight", "Webkit", "Tourism"),
+                levels = c("Random", "Flight", "Webkit", "MimicIII"),
                 ordered = TRUE
             )
         ) %>%
@@ -150,7 +150,7 @@ latex_best <- function(data_best) {
         kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "llrrrrrrrr") %>%
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
         add_header_above(
-            c(" " = 2, "Queries per second$\\big|${\\small\\stackanchor{index build time}{index size}} " = 7),
+            c(" " = 2, "Queries per second$\\\\big|${\\\\scriptsize\\\\stackanchor{index build time}{index size}} " = 7),
             escape = F
         )
 }
