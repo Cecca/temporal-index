@@ -32,7 +32,8 @@ plot_scalability <- function(data_scalability) {
     ggplot(data_scalability, aes(
         x = scale,
         y = drop_units(qps),
-        color = algorithm_name
+        color = algorithm_name,
+        shape = algorithm_name
     )) +
         geom_point() +
         geom_line() +
@@ -45,9 +46,18 @@ plot_scalability <- function(data_scalability) {
             name = "queries per second",
             labels = scales::number_format()
         ) +
-        scale_color_tableau(name = "", guide = guide_legend(ncol = 6)) +
+        scale_color_tableau(name = "") +
+        # scale_color_tableau(name = "", guide = guide_legend(ncol = 6)) +
         facet_wrap(vars(dataset_name), ncol = 4, scales = "free_y") +
-        guides(colour = guide_legend(nrow = 1)) +
+        guides(
+            color = guide_legend(nrow = 1),
+            shape = guide_legend(nrow = 1)
+        ) +
+        # guides(
+        #     colour = guide_legend(nrow = 1),
+        #     shape = guide_legend(name = "", nrow = 1)
+        # ) +
+        labs(shape = "") +
         theme_paper() +
         theme(
             legend.position = "top",
