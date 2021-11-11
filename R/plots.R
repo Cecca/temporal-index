@@ -47,6 +47,7 @@ plot_scalability <- function(data_scalability) {
         ) +
         scale_color_tableau(name = "", guide = guide_legend(ncol = 6)) +
         facet_wrap(vars(dataset_name), ncol = 4, scales = "free_y") +
+        guides(colour = guide_legend(nrow = 1)) +
         theme_paper() +
         theme(
             legend.position = "top",
@@ -456,7 +457,7 @@ plot_selectivity_dependency <- function(data_selectivity, bare = FALSE, strip = 
                 alpha = FALSE
             ) +
             theme_paper() +
-            theme(legend.position = "top")
+            theme(legend.position = "none")
     }
 
 

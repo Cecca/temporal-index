@@ -117,7 +117,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/selectivity-dep.png",
       width = 10,
-      height = 3
+      height = 2.5
     ),
 
   figure_query_focus_inefficient_precision = table_query_focus_inefficient() %>%
