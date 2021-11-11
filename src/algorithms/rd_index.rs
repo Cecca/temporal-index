@@ -40,9 +40,9 @@ impl RDIndex {
         use std::fs::File;
         use std::io::prelude::*;
 
-        let page_size = 50;
+        let page_size = 70;
 
-        let full_dataset = crate::dataset::TourismDataset::from_upstream()
+        let full_dataset = crate::dataset::MimicIIIDataset::from_upstream()
             .unwrap()
             .get()
             .unwrap();
@@ -52,7 +52,7 @@ impl RDIndex {
             std::fs::create_dir(&outdir)?;
         }
 
-        let basedate = Utc.ymd(2015, 01, 01);
+        let basedate = Utc.ymd(2016, 01, 01);
         let filter_start = Utc.ymd(2016, 01, 01);
         let filter_end = Utc.ymd(2016, 12, 31);
 
@@ -62,10 +62,11 @@ impl RDIndex {
                 let d = basedate + chrono::Duration::days(interval.start as i64);
                 filter_start <= d && d <= filter_end
             })
+            .filter(|interval| interval.duration() <= 50)
             .collect();
 
-        let mut rng = Xoshiro256PlusPlus::seed_from_u64(23684);
-        let dataset: Vec<Interval> = dataset.choose_multiple(&mut rng, 10000).cloned().collect();
+        // let mut rng = Xoshiro256PlusPlus::seed_from_u64(23684);
+        // let dataset: Vec<Interval> = dataset.choose_multiple(&mut rng, 10000).cloned().collect();
 
         let mut index = RDIndex::new(DimensionOrder::TimeDuration, page_size);
         index.index(dataset.as_slice());

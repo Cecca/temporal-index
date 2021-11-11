@@ -769,7 +769,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 data = columns,
                 mapping = aes(
                     x = column_bound,
-                    label = column_bound
+                    label = strftime(column_bound, "%b, %d")
                 ),
                 y = maxduration - 0.3,
                 nudge_x = 3,
@@ -783,7 +783,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 data = columns,
                 mapping = aes(
                     x = column_bound,
-                    label = latest_end_time
+                    label = strftime(latest_end_time, "%b %d")
                 ),
                 y = maxduration - 0.5,
                 nudge_x = 20,
