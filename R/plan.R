@@ -145,7 +145,7 @@ plan <- drake_plan(
     ),
   query_duration = c(5, 13),
 
-  data_running_example = table_running_tourism(
+  data_running_example = table_running_mimic(
     query_range, query_duration
   ),
 
@@ -169,7 +169,7 @@ plan <- drake_plan(
     #   file = file_out("paper/example-plane.tex"),
     #   width = 3.3, height = 2.5
     # )
-    plot_running_example_tourism(
+    plot_running_example_mimic(
       query_range, query_duration
     )
     # dev.off()
@@ -180,7 +180,7 @@ plan <- drake_plan(
     #   file = file_out("paper/example-grid.tex"),
     #   width = 3.3, height = 2.5
     # )
-    plot_running_example_tourism(
+    plot_running_example_mimic(
       query_range, query_duration,
       grid = TRUE
     )

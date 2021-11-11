@@ -685,7 +685,7 @@ plot_running_example_plane <- function(data_running_example, query_range, query_
     p
 }
 
-plot_running_example_tourism <- function(query_range, query_duration, grid = FALSE) {
+plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE) {
     dataset <- read_csv(here::here("example_rdindex/example_dataset.csv")) %>%
         filter(duration <= 50)
 
@@ -725,6 +725,7 @@ plot_running_example_tourism <- function(query_range, query_duration, grid = FAL
             size = 0.6,
             alpha = 0.0
         ) +
+        scale_x_date(date_labels = "%b") +
         theme_minimal() +
         theme(
             text = element_text(size = 9),

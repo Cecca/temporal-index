@@ -359,7 +359,7 @@ table_running_example <- function(query_range, query_duration) {
     )
 }
 
-table_running_tourism <- function(query_range, query_duration) {
+table_running_mimic <- function(query_range, query_duration) {
   set.seed(1234)
 
   highlighted_data <- tribble(
