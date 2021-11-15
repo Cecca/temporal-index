@@ -201,7 +201,8 @@ table_scalability <- function() {
   batch_data <- table_batch() %>%
     filter(
       str_detect(queryset_name, "capped"),
-      (!str_detect(dataset_name, "Flight")) | (str_detect(queryset_params, "dur_scale=60"))
+      (!str_detect(dataset_name, "Flight")) | (str_detect(queryset_params, "dur_scale=60")),
+      (!str_detect(dataset_name, "Tourism"))
     ) %>%
     mutate(
       # For synthetic datasets
@@ -210,7 +211,7 @@ table_scalability <- function() {
       scale = as.integer(str_match(dataset_params, "copies=(\\d+)")[, 2]),
       queryset_n = as.integer(str_match(queryset_params, "n=(\\d+)")[, 2]),
       scale = case_when(
-        dataset_name %in% c("Flight", "Webkit", "Tourism") ~ as.integer(1),
+        dataset_name %in% c("Flight", "Webkit", "MimicIII") ~ as.integer(1),
         is.na(scale) ~ as.integer(dataset_n / 10000000),
         TRUE ~ scale
       )
@@ -224,7 +225,7 @@ table_scalability <- function() {
         str_detect(queryset_params, "start_high=10000000")) |
         # Filter real datasets
         str_detect(dataset_name, "reiterated") |
-        (dataset_name %in% c("Flight", "Webkit", "Tourism"))
+        (dataset_name %in% c("Flight", "Webkit", "MimicIII"))
     ) %>%
     mutate(
       dataset_name = str_remove(dataset_name, "reiterated-")

@@ -8,7 +8,7 @@ plot_scalability <- function(data_scalability) {
     data_scalability <- data_scalability %>%
         mutate(
             dataset_name = if_else(dataset_name == "random-uniform-zipf", "Random", dataset_name),
-            dataset_name = factor(dataset_name, levels = c("Random", "Flight", "Webkit", "Tourism"), ordered = T),
+            dataset_name = factor(dataset_name, levels = c("Random", "Flight", "Webkit", "MimicIII"), ordered = T),
             algorithm_name = case_when(
                 algorithm_name == "interval-tree" ~ "Interval-Tree",
                 algorithm_name == "BTree" ~ "B-Tree",
@@ -29,6 +29,7 @@ plot_scalability <- function(data_scalability) {
                 "B-Tree"
             ))
         )
+    print(distinct(data_scalability, dataset_name))
     ggplot(data_scalability, aes(
         x = scale,
         y = drop_units(qps),
