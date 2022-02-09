@@ -136,9 +136,11 @@ plot_parameter_dependency <- function(data_parameter_dependency) {
 }
 
 plot_real_distribution <- function(data_start, data_duration) {
+    data_start <- filter(data_start, name != "Tourism")
+    data_duration <- filter(data_duration, name != "Tourism")
     p1 <- ggplot(data_start, aes(x = start_time, weight = count)) +
         geom_histogram(aes(y = stat(count) / sum(count))) +
-        facet_wrap(vars(name), scales = "free") +
+        facet_wrap(vars(name), ncol = 3, scales = "free") +
         labs(x = "start time", title = "Start time distributions") +
         scale_x_continuous(breaks = scales::pretty_breaks(3)) +
         scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
@@ -151,7 +153,7 @@ plot_real_distribution <- function(data_start, data_duration) {
         )
     p2 <- ggplot(data_duration, aes(x = duration, weight = count)) +
         geom_histogram(aes(y = stat(count) / sum(count))) +
-        facet_wrap(vars(name), scales = "free") +
+        facet_wrap(vars(name), ncol = 3, scales = "free") +
         labs(x = "duration", title = "Duration distributions") +
         scale_x_continuous(breaks = scales::pretty_breaks(3)) +
         scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +

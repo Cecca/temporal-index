@@ -132,8 +132,8 @@ plan <- drake_plan(
     plot_selectivity_dependency(bare = FALSE, strip = FALSE, legend = FALSE) %>%
     save_png(
       "paper/images/selectivity-dep-inefficient.png",
-      width = 2,
-      height = 2
+      width = 4,
+      height = 4
     ),
 
   ######################################################################
