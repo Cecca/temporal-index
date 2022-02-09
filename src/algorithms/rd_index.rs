@@ -349,6 +349,9 @@ impl Grid {
     }
 }
 
+// TODO: Add a method to query if the partition is heavy or light. You can do it by looking at the start times.
+// TODO: In the experiments, count the number of restructurings that are needed
+// TODO: We also need a function to get the size of a column/cell
 struct TimePartition<V> {
     min_start_times: Vec<Time>,
     max_end_times: Vec<Time>,
