@@ -384,33 +384,10 @@ impl Grid {
 
                 let column_size = grid.values[i].size;
                 if column_size + 1 > 2 * page_size * page_size {
-                    // Split the column directly
-                    // First get all the intervals to restructure
-                    let mut intervals = Vec::with_capacity(column_size + 1);
-                    intervals.push(interval);
-                    grid.values[i].for_each(|cell| intervals.extend(cell.into_iter()));
-
-                    let mut new_columns =
-                        TimePartition::new(&mut intervals, page_size * page_size, |column| {
-                            DurationPartition::new(column, page_size, |cell| {
-                                cell.sort_unstable_by_key(|interval| interval.end);
-                                Vec::from_iter(cell.iter().cloned())
-                            })
-                        });
-
-                    // Remove the old column
-                    grid.min_start_times.remove(i);
-                    grid.max_end_times.remove(i);
-                    grid.values.remove(i);
-
-                    // Add the new columns
-                    insert_many(
+                    grid.replace(
                         i,
-                        &mut grid.min_start_times,
-                        &mut new_columns.min_start_times,
+                        time_columns(&mut grid.values[i].all_intervals(), page_size),
                     );
-                    insert_many(i, &mut grid.max_end_times, &mut new_columns.max_end_times);
-                    insert_many(i, &mut grid.values, &mut new_columns.values);
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
@@ -418,23 +395,8 @@ impl Grid {
 
                     let cell_size = column.values[j].len();
                     if cell_size + 1 > 2 * page_size {
-                        // Split the cell
-                        let intervals = &mut column.values[j];
-                        intervals.push(interval);
-                        let mut new_cells = DurationPartition::new(intervals, page_size, |cell| {
-                            cell.sort_unstable_by_key(|interval| interval.end);
-                            Vec::from_iter(cell.iter().cloned())
-                        });
-
-                        // Remove old cells
-                        column.min_durations.remove(j);
-                        column.max_durations.remove(j);
-                        column.values.remove(j);
-
-                        // Add new cells
-                        insert_many(j, &mut column.min_durations, &mut new_cells.min_durations);
-                        insert_many(j, &mut column.max_durations, &mut new_cells.max_durations);
-                        insert_many(j, &mut column.values, &mut new_cells.values);
+                        let mut new_cells = column.values[j].all_intervals();
+                        column.replace(j, duration_cells(&mut new_cells, page_size));
                     } else {
                         column.values[j].push(interval);
                         column.values[j].sort_unstable_by_key(|i| i.end);
@@ -450,91 +412,30 @@ impl Grid {
                     let mut new_columns = DurationPartition::new(
                         &mut vec![interval],
                         page_size * page_size,
-                        |column| {
-                            TimePartition::new(column, page_size, |cell| {
-                                cell.sort_unstable_by_key(|interval| interval.end);
-                                Vec::from_iter(cell.iter().cloned())
-                            })
-                        },
+                        |column| TimePartition::new(column, page_size, cell_builder),
                     );
                     std::mem::swap(grid, &mut new_columns);
                     return;
                 }
 
                 // First find the column that could hold the element
-                let mut i = 0;
-                if grid.min_durations[i] <= interval.duration() {
-                    // ^ this handles the case where the interval is shorter than any in the index
-                    while i < grid.min_durations.len() {
-                        if grid.min_durations[i] <= interval.duration() {
-                            break;
-                        }
-                        i += 1;
-                    }
-                }
+                let i = find_pos(&grid.min_durations, |d| d <= interval.duration());
 
                 let column_size = grid.values[i].size;
                 if column_size + 1 > 2 * page_size * page_size {
-                    // Split the column directly
-                    // First get all the intervals to restructure
-                    let mut intervals = Vec::with_capacity(column_size + 1);
-                    intervals.push(interval);
-                    grid.values[i].for_each(|cell| intervals.extend(cell.into_iter()));
-
-                    let mut new_columns =
-                        DurationPartition::new(&mut intervals, page_size * page_size, |column| {
-                            TimePartition::new(column, page_size, |cell| {
-                                cell.sort_unstable_by_key(|interval| interval.end);
-                                Vec::from_iter(cell.iter().cloned())
-                            })
-                        });
-
-                    // Remove the old column
-                    grid.min_durations.remove(i);
-                    grid.max_durations.remove(i);
-                    grid.values.remove(i);
-
-                    // Add the new columns
-                    insert_many(i, &mut grid.min_durations, &mut new_columns.min_durations);
-                    insert_many(i, &mut grid.max_durations, &mut new_columns.max_durations);
-                    insert_many(i, &mut grid.values, &mut new_columns.values);
+                    grid.replace(
+                        i,
+                        duration_columns(&mut grid.values[i].all_intervals(), page_size),
+                    );
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
-                    let mut j = 0;
-                    if column.min_start_times[j] <= interval.start {
-                        // ^ This handles the case of the interval during less than any in the column
-                        while j < column.min_start_times.len() {
-                            if column.min_start_times[j] <= interval.start {
-                                break;
-                            }
-                            j += 1;
-                        }
-                    }
+                    let j = find_pos(&column.min_start_times, |d| d <= interval.duration());
 
                     let cell_size = column.values[j].len();
                     if cell_size + 1 > 2 * page_size {
-                        // Split the cell
-                        let intervals = &mut column.values[j];
-                        intervals.push(interval);
-                        let mut new_cells = TimePartition::new(intervals, page_size, |cell| {
-                            cell.sort_unstable_by_key(|interval| interval.end);
-                            Vec::from_iter(cell.iter().cloned())
-                        });
-
-                        // Remove old cells
-                        column.min_start_times.remove(j);
-                        column.max_end_times.remove(j);
-                        column.values.remove(j);
-
-                        // Add new cells
-                        insert_many(
-                            j,
-                            &mut column.min_start_times,
-                            &mut new_cells.min_start_times,
-                        );
-                        insert_many(j, &mut column.max_end_times, &mut new_cells.max_end_times);
-                        insert_many(j, &mut column.values, &mut new_cells.values);
+                        let mut new_cells = column.values[j].all_intervals();
+                        column.replace(j, time_cells(&mut new_cells, page_size));
                     } else {
                         column.values[j].push(interval);
                         column.values[j].sort_unstable_by_key(|i| i.end);
@@ -644,6 +545,12 @@ impl Grid {
     }
 }
 
+fn cell_builder(cell: &mut [Interval]) -> Vec<Interval> {
+    use std::iter::FromIterator;
+    cell.sort_unstable_by_key(|interval| interval.end);
+    Vec::from_iter(cell.iter().cloned())
+}
+
 /// Find the first position satisfying the given predicate on time, assuming that the times are sorted.
 fn find_pos(v: &[Time], pred: impl Fn(Time) -> bool) -> usize {
     let mut i = 0;
@@ -659,6 +566,35 @@ fn find_pos(v: &[Time], pred: impl Fn(Time) -> bool) -> usize {
     } else {
         return 0;
     }
+}
+
+fn time_columns(
+    intervals: &mut [Interval],
+    page_size: usize,
+) -> TimePartition<DurationPartition<Vec<Interval>>> {
+    TimePartition::new(intervals, page_size * page_size, |column| {
+        DurationPartition::new(column, page_size, cell_builder)
+    })
+}
+
+fn time_cells(intervals: &mut [Interval], page_size: usize) -> TimePartition<Vec<Interval>> {
+    TimePartition::new(intervals, page_size, cell_builder)
+}
+
+fn duration_columns(
+    intervals: &mut [Interval],
+    page_size: usize,
+) -> DurationPartition<TimePartition<Vec<Interval>>> {
+    DurationPartition::new(intervals, page_size * page_size, |column| {
+        TimePartition::new(column, page_size, cell_builder)
+    })
+}
+
+fn duration_cells(
+    intervals: &mut [Interval],
+    page_size: usize,
+) -> DurationPartition<Vec<Interval>> {
+    DurationPartition::new(intervals, page_size, cell_builder)
 }
 
 struct TimePartition<V> {
@@ -714,6 +650,18 @@ impl<V> TimePartition<V> {
             values,
             size: intervals.len(),
         }
+    }
+
+    fn replace(&mut self, i: usize, mut other: Self) {
+        // Remove the old column
+        self.min_start_times.remove(i);
+        self.max_end_times.remove(i);
+        self.values.remove(i);
+
+        // Add the new columns
+        insert_many(i, &mut self.min_start_times, &mut other.min_start_times);
+        insert_many(i, &mut self.max_end_times, &mut other.max_end_times);
+        insert_many(i, &mut self.values, &mut other.values);
     }
 
     #[allow(dead_code)]
@@ -791,6 +739,18 @@ impl<V> DurationPartition<V> {
         }
     }
 
+    fn replace(&mut self, i: usize, mut other: Self) {
+        // Remove the old column
+        self.min_durations.remove(i);
+        self.max_durations.remove(i);
+        self.values.remove(i);
+
+        // Add the new columns
+        insert_many(i, &mut self.min_durations, &mut other.min_durations);
+        insert_many(i, &mut self.max_durations, &mut other.max_durations);
+        insert_many(i, &mut self.values, &mut other.values);
+    }
+
     fn for_each<F: FnMut(&V)>(&self, mut action: F) {
         for v in &self.values {
             action(v);
@@ -801,5 +761,36 @@ impl<V> DurationPartition<V> {
 fn insert_many<T>(i: usize, v: &mut Vec<T>, to_insert: &mut Vec<T>) {
     while let Some(new) = to_insert.pop() {
         v.insert(i, new);
+    }
+}
+
+trait AllIntervals {
+    fn all_intervals_i(&self, out: &mut Vec<Interval>);
+    fn all_intervals(&self) -> Vec<Interval> {
+        let mut out = Vec::new();
+        self.all_intervals_i(&mut out);
+        return out;
+    }
+}
+
+impl AllIntervals for Vec<Interval> {
+    fn all_intervals_i(&self, out: &mut Vec<Interval>) {
+        out.extend(self);
+    }
+}
+
+impl<V: AllIntervals> AllIntervals for TimePartition<V> {
+    fn all_intervals_i(&self, out: &mut Vec<Interval>) {
+        self.for_each(|v| {
+            v.all_intervals_i(out);
+        });
+    }
+}
+
+impl<V: AllIntervals> AllIntervals for DurationPartition<V> {
+    fn all_intervals_i(&self, out: &mut Vec<Interval>) {
+        self.for_each(|v| {
+            v.all_intervals_i(out);
+        });
     }
 }
