@@ -35,8 +35,6 @@ impl RDIndex {
     pub fn export_example() -> anyhow::Result<()> {
         use crate::dataset::Dataset;
         use chrono::prelude::*;
-        use rand::prelude::*;
-        use rand_xoshiro::Xoshiro256PlusPlus;
         use std::fs::File;
         use std::io::prelude::*;
 
@@ -347,6 +345,102 @@ impl Grid {
         }
         examined
     }
+
+    pub fn insert(&mut self, interval: Interval, page_size: usize) {
+        use std::iter::FromIterator;
+        // TODO: handle the case of empty grid
+        // TODO: handle the case of a start time falling before the first cell, or a duration doing something similar
+
+        match self {
+            Grid::TimeDuration(grid) => {
+                // First find the column that could hold the element
+                // TODO: use binary search to do it
+                let mut i = 0;
+                while i < grid.min_start_times.len() {
+                    if grid.min_start_times[i] <= interval.start {
+                        break;
+                    }
+                    i += 1;
+                }
+
+                let column_size = grid.values[i].size;
+                if column_size + 1 > 2 * page_size * page_size {
+                    // Split the column directly
+                    // First get all the intervals to restructure
+                    let mut intervals = Vec::with_capacity(column_size + 1);
+                    intervals.push(interval);
+                    grid.values[i].for_each(|cell| intervals.extend(cell.into_iter()));
+
+                    let mut new_columns =
+                        TimePartition::new(&mut intervals, page_size * page_size, |column| {
+                            DurationPartition::new(column, page_size, |cell| {
+                                cell.sort_unstable_by_key(|interval| interval.end);
+                                Vec::from_iter(cell.iter().cloned())
+                            })
+                        });
+
+                    // Remove the old column
+                    grid.min_start_times.remove(i);
+                    grid.max_end_times.remove(i);
+                    grid.values.remove(i);
+
+                    // Add the new columns
+                    while !new_columns.values.is_empty() {
+                        grid.min_start_times
+                            .insert(i, new_columns.min_start_times.pop().unwrap());
+                        grid.max_end_times
+                            .insert(i, new_columns.max_end_times.pop().unwrap());
+                        grid.values.insert(i, new_columns.values.pop().unwrap());
+                    }
+                } else {
+                    // Find the right cell and insert, possibly splitting
+                    let column = &mut grid.values[i];
+                    let mut j = 0;
+                    while j < column.min_durations.len() {
+                        if column.min_durations[j] <= interval.duration() {
+                            break;
+                        }
+                        j += 1;
+                    }
+
+                    let cell_size = column.values[j].len();
+                    if cell_size + 1 > 2 * page_size {
+                        // Split the cell
+                        let intervals = &mut column.values[j];
+                        intervals.push(interval);
+                        let mut new_cells = DurationPartition::new(intervals, page_size, |cell| {
+                            cell.sort_unstable_by_key(|interval| interval.end);
+                            Vec::from_iter(cell.iter().cloned())
+                        });
+
+                        // Remove old cells
+                        column.min_durations.remove(j);
+                        column.max_durations.remove(j);
+                        column.values.remove(j);
+
+                        // Add new cells
+                        while !new_cells.values.is_empty() {
+                            column
+                                .min_durations
+                                .insert(i, new_cells.min_durations.pop().unwrap());
+                            column
+                                .max_durations
+                                .insert(i, new_cells.max_durations.pop().unwrap());
+                            column.values.insert(i, new_cells.values.pop().unwrap());
+                        }
+                    } else {
+                        column.values[j].push(interval);
+                        column.values[j].sort_unstable_by_key(|i| i.end);
+                    }
+
+                    column.size += 1;
+                }
+
+                grid.size += 1;
+            }
+            Grid::DurationTime(grid) => todo!(),
+        }
+    }
 }
 
 // TODO: Add a method to query if the partition is heavy or light. You can do it by looking at the start times.
@@ -356,6 +450,7 @@ struct TimePartition<V> {
     min_start_times: Vec<Time>,
     max_end_times: Vec<Time>,
     values: Vec<V>,
+    size: usize,
 }
 
 impl<V> TimePartition<V> {
@@ -402,6 +497,7 @@ impl<V> TimePartition<V> {
             min_start_times: max_start_times,
             max_end_times,
             values,
+            size: intervals.len(),
         }
     }
 
@@ -431,6 +527,7 @@ struct DurationPartition<V> {
     max_durations: Vec<Time>,
     min_durations: Vec<Time>,
     values: Vec<V>,
+    size: usize,
 }
 
 impl<V> DurationPartition<V> {
@@ -460,6 +557,7 @@ impl<V> DurationPartition<V> {
             max_durations,
             min_durations,
             values,
+            size: intervals.len(),
         }
     }
 
