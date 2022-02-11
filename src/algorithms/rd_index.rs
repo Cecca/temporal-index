@@ -186,6 +186,21 @@ impl Algorithm for RDIndex {
     }
 }
 
+impl Updatable for RDIndex {
+    fn insert(&mut self, x: Interval) {
+        if let Some(grid) = self.grid.as_mut() {
+            grid.insert(x, self.page_size);
+        } else {
+            self.grid
+                .replace(Grid::new(&mut [x], self.page_size, self.dimension_order));
+        }
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
+}
+
 fn next_breakpoint<F: Fn(&Interval) -> Time>(
     intervals: &[Interval],
     start: usize,
@@ -550,6 +565,118 @@ impl Grid {
                 grid.size += 1;
             }
         }
+    }
+
+    pub fn remove(&mut self, interval: Interval, page_size: usize) {
+        use std::iter::FromIterator;
+        match self {
+            Grid::TimeDuration(grid) => {
+                if grid.min_start_times.is_empty() {
+                    return;
+                }
+
+                // First find the column that could hold the element
+                let i = find_pos(&grid.min_start_times, |t| t <= interval.start);
+                let j = find_pos(&grid.values[i].min_durations, |d| d <= interval.duration());
+
+                // Remove the element
+                let prev_size = grid.values[i].values[j].len();
+                grid.values[i].values[j].retain(|int| int != &interval);
+                let new_size = grid.values[i].values[j].len();
+                if prev_size == new_size {
+                    // no removal happened, do nothing more
+                    return;
+                }
+                grid.values[i].size -= 1;
+                let column_size = grid.values[i].size;
+
+                // Restructure the grid, possibly
+                if column_size < page_size * page_size {
+                    // Merge the column with an adjacent one, if possible
+                    let h = if i >= 1
+                        && grid.values[i - 1].size + column_size <= 2 * page_size * page_size
+                    {
+                        Some(i - 1)
+                    } else if i + 1 < grid.values.len()
+                        && grid.values[i + 1].size + column_size <= 2 * page_size * page_size
+                    {
+                        Some(i + 1)
+                    } else {
+                        None
+                    };
+                    if let Some(h) = h {
+                        // merge column i and h
+                        let mut intervals: Vec<Interval> =
+                            Vec::with_capacity(column_size + grid.values[h].size);
+                        grid.values[i].for_each(|cell| intervals.extend(cell.into_iter()));
+                        grid.values[h].for_each(|cell| intervals.extend(cell.into_iter()));
+
+                        let mut new_column =
+                            DurationPartition::new(&mut intervals, page_size, |cell| {
+                                cell.sort_unstable_by_key(|interval| interval.end);
+                                Vec::from_iter(cell.iter().cloned())
+                            });
+
+                        std::mem::swap(
+                            &mut grid.values[i].max_durations,
+                            &mut new_column.max_durations,
+                        );
+                        std::mem::swap(
+                            &mut grid.values[i].min_durations,
+                            &mut new_column.min_durations,
+                        );
+                        std::mem::swap(&mut grid.values[i].values, &mut new_column.values);
+
+                        grid.values.remove(h);
+                    }
+                } else if grid.values[i].values[j].len() < page_size {
+                    let column = &mut grid.values[i];
+                    let cell_size = column.values[j].len();
+                    // Merge the cell with an adjacent one
+                    let h = if j >= 1 && column.values[j - 1].len() + cell_size <= 2 * page_size {
+                        Some(j - 1)
+                    } else if j + 1 < column.values.len()
+                        && column.values[j + 1].len() + cell_size <= 2 * page_size
+                    {
+                        Some(j + 1)
+                    } else {
+                        None
+                    };
+
+                    if let Some(h) = h {
+                        let intervals: Vec<Interval> = column.values[h].drain(..).collect();
+                        column.values[j].extend(intervals.into_iter());
+                        column.values[j].sort_unstable_by_key(|int| int.end);
+
+                        column.min_durations[j] =
+                            std::cmp::min(column.min_durations[j], column.min_durations[h]);
+                        column.max_durations[j] =
+                            std::cmp::max(column.max_durations[j], column.max_durations[h]);
+                        column.values.remove(h);
+                    }
+                }
+
+                grid.size -= 1;
+            }
+            Grid::DurationTime(grid) => todo!(),
+        }
+    }
+}
+
+/// Find the first position satisfying the given predicate on time, assuming that the times are sorted.
+fn find_pos(v: &[Time], pred: impl Fn(Time) -> bool) -> usize {
+    let mut i = 0;
+    if pred(v[0]) {
+        // ^ this handles the case where the interval starts earlier than any in the index
+        while i < v.len() {
+            if pred(v[i]) {
+                return i;
+            }
+            i += 1;
+        }
+        panic!();
+    } else {
+        return 0;
     }
 }
 
