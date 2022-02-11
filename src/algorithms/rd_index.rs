@@ -380,17 +380,7 @@ impl Grid {
                 }
 
                 // First find the column that could hold the element
-                // TODO: use binary search to do it
-                let mut i = 0;
-                if grid.min_start_times[i] <= interval.start {
-                    // ^ this handles the case where the interval starts earlier than any in the index
-                    while i < grid.min_start_times.len() {
-                        if grid.min_start_times[i] <= interval.start {
-                            break;
-                        }
-                        i += 1;
-                    }
-                }
+                let i = find_pos(&grid.min_start_times, |t| t <= interval.start);
 
                 let column_size = grid.values[i].size;
                 if column_size + 1 > 2 * page_size * page_size {
@@ -424,16 +414,7 @@ impl Grid {
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
-                    let mut j = 0;
-                    if column.min_durations[j] <= interval.duration() {
-                        // ^ This handles the case of the interval during less than any in the column
-                        while j < column.min_durations.len() {
-                            if column.min_durations[j] <= interval.duration() {
-                                break;
-                            }
-                            j += 1;
-                        }
-                    }
+                    let j = find_pos(&column.min_durations, |d| d <= interval.duration());
 
                     let cell_size = column.values[j].len();
                     if cell_size + 1 > 2 * page_size {
