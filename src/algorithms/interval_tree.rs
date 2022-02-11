@@ -250,6 +250,49 @@ impl Node {
         }
     }
 
+    fn insert(&mut self, interval: Interval) {
+        if interval.end <= self.middle {
+            // insert left
+            if let Some(left) = self.left.as_mut() {
+                left.insert(interval);
+            } else {
+                self.left.replace(Box::new(Self::new(&vec![interval])));
+            }
+        } else if interval.start > self.middle {
+            // insert right
+            if let Some(right) = self.right.as_mut() {
+                right.insert(interval);
+            } else {
+                self.right.replace(Box::new(Self::new(&vec![interval])));
+            }
+        } else {
+            // insert into upper and lower of this
+            self.upper.push(interval);
+            self.lower.push(interval);
+            // TODO: insert directly in order
+            self.lower.sort_by_key(|i| i.start);
+            self.upper.sort_by_key(|i| -(i.end as i32));
+        }
+    }
+
+    fn remove(&mut self, interval: Interval) {
+        if interval.end <= self.middle {
+            // remove from left, if any
+            if let Some(left) = self.left.as_mut() {
+                left.remove(interval);
+            }
+        } else if interval.start > self.middle {
+            // remove from  right, if any
+            if let Some(right) = self.right.as_mut() {
+                right.remove(interval);
+            }
+        } else {
+            // remove from self
+            self.upper.retain(|i| i != &interval);
+            self.lower.retain(|i| i != &interval);
+        }
+    }
+
     fn traverse<F: FnMut(&Node)>(&self, action: &mut F) {
         action(self);
         if let Some(left) = &self.left {
@@ -296,5 +339,22 @@ impl Node {
                 action(*interval);
             });
         cnt
+    }
+}
+
+impl Updatable for IntervalTree {
+    fn insert(&mut self, interval: Interval) {
+        if let Some(root) = self.root.as_mut() {
+            root.insert(interval);
+        } else {
+            let root = Box::new(Node::new(&vec![interval]));
+            self.root.replace(root);
+        }
+    }
+
+    fn remove(&mut self, interval: Interval) {
+        if let Some(root) = self.root.as_mut() {
+            root.remove(interval);
+        }
     }
 }

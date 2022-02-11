@@ -283,6 +283,11 @@ pub trait Algorithm: std::fmt::Debug {
     }
 }
 
+pub trait Updatable {
+    fn insert(&mut self, x: Interval);
+    fn remove(&mut self, x: Interval);
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

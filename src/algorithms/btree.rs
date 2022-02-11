@@ -100,3 +100,20 @@ impl Algorithm for BTree {
         self.data.clear();
     }
 }
+
+impl Updatable for BTree {
+    fn insert(&mut self, interval: Interval) {
+        self.data
+            .entry(interval.duration())
+            .or_insert_with(Vec::new)
+            .push(interval);
+    }
+
+    fn remove(&mut self, interval: Interval) {
+        let bucket = self.data.entry(interval.duration()).or_default();
+        bucket.retain(|i| *i != interval);
+        if bucket.len() == 0 {
+            self.data.remove(&interval.duration());
+        }
+    }
+}
