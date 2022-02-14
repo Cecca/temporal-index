@@ -1,4 +1,6 @@
-use crate::types::*;
+use std::ops::Index;
+
+use crate::{get_allocated, types::*};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
@@ -197,7 +199,9 @@ impl Updatable for RDIndex {
     }
 
     fn remove(&mut self, x: Interval) {
-        todo!()
+        if let Some(grid) = self.grid.as_mut() {
+            grid.remove(x, self.page_size);
+        }
     }
 }
 
@@ -362,32 +366,18 @@ impl Grid {
     }
 
     pub fn insert(&mut self, interval: Interval, page_size: usize) {
-        use std::iter::FromIterator;
-
         match self {
             Grid::TimeDuration(grid) => {
-                if grid.min_start_times.is_empty() {
-                    let mut intervals = vec![interval];
-                    let mut new_columns =
-                        TimePartition::new(&mut intervals, page_size * page_size, |column| {
-                            DurationPartition::new(column, page_size, |cell| {
-                                cell.sort_unstable_by_key(|interval| interval.end);
-                                Vec::from_iter(cell.iter().cloned())
-                            })
-                        });
-                    std::mem::swap(grid, &mut new_columns);
-                    return;
-                }
+                assert!(!grid.values.is_empty());
 
                 // First find the column that could hold the element
                 let i = find_pos(&grid.min_start_times, |t| t <= interval.start);
 
                 let column_size = grid.values[i].size;
                 if column_size + 1 > 2 * page_size * page_size {
-                    grid.replace(
-                        i,
-                        time_columns(&mut grid.values[i].all_intervals(), page_size),
-                    );
+                    let mut intervals = grid.values[i].all_intervals();
+                    intervals.push(interval);
+                    grid.replace(i, time_columns(&mut intervals, page_size));
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
@@ -396,6 +386,7 @@ impl Grid {
                     let cell_size = column.values[j].len();
                     if cell_size + 1 > 2 * page_size {
                         let mut new_cells = column.values[j].all_intervals();
+                        new_cells.push(interval);
                         column.replace(j, duration_cells(&mut new_cells, page_size));
                     } else {
                         column.values[j].push(interval);
@@ -408,33 +399,25 @@ impl Grid {
                 grid.size += 1;
             }
             Grid::DurationTime(grid) => {
-                if grid.values.is_empty() {
-                    let mut new_columns = DurationPartition::new(
-                        &mut vec![interval],
-                        page_size * page_size,
-                        |column| TimePartition::new(column, page_size, cell_builder),
-                    );
-                    std::mem::swap(grid, &mut new_columns);
-                    return;
-                }
+                assert!(!grid.values.is_empty());
 
                 // First find the column that could hold the element
                 let i = find_pos(&grid.min_durations, |d| d <= interval.duration());
 
                 let column_size = grid.values[i].size;
                 if column_size + 1 > 2 * page_size * page_size {
-                    grid.replace(
-                        i,
-                        duration_columns(&mut grid.values[i].all_intervals(), page_size),
-                    );
+                    let mut intervals = grid.values[i].all_intervals();
+                    intervals.push(interval);
+                    grid.replace(i, duration_columns(&mut intervals, page_size));
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
-                    let j = find_pos(&column.min_start_times, |d| d <= interval.duration());
+                    let j = find_pos(&column.min_start_times, |d| d <= interval.start);
 
                     let cell_size = column.values[j].len();
                     if cell_size + 1 > 2 * page_size {
                         let mut new_cells = column.values[j].all_intervals();
+                        new_cells.push(interval);
                         column.replace(j, time_cells(&mut new_cells, page_size));
                     } else {
                         column.values[j].push(interval);
@@ -450,18 +433,17 @@ impl Grid {
     }
 
     pub fn remove(&mut self, interval: Interval, page_size: usize) {
-        use std::iter::FromIterator;
         match self {
             Grid::TimeDuration(grid) => {
-                if grid.min_start_times.is_empty() {
+                if grid.values.is_empty() {
                     return;
                 }
 
-                // First find the column that could hold the element
+                // First find the column that could be holding the element
                 let i = find_pos(&grid.min_start_times, |t| t <= interval.start);
                 let j = find_pos(&grid.values[i].min_durations, |d| d <= interval.duration());
 
-                // Remove the element
+                // Remove the element with a sequential scan
                 let prev_size = grid.values[i].values[j].len();
                 grid.values[i].values[j].retain(|int| int != &interval);
                 let new_size = grid.values[i].values[j].len();
@@ -469,78 +451,51 @@ impl Grid {
                     // no removal happened, do nothing more
                     return;
                 }
+
+                // decrease the size
                 grid.values[i].size -= 1;
                 let column_size = grid.values[i].size;
 
                 // Restructure the grid, possibly
                 if column_size < page_size * page_size {
-                    // Merge the column with an adjacent one, if possible
-                    let h = if i >= 1
-                        && grid.values[i - 1].size + column_size <= 2 * page_size * page_size
-                    {
-                        Some(i - 1)
-                    } else if i + 1 < grid.values.len()
-                        && grid.values[i + 1].size + column_size <= 2 * page_size * page_size
-                    {
-                        Some(i + 1)
-                    } else {
-                        None
-                    };
-                    if let Some(h) = h {
-                        // merge column i and h
-                        let mut intervals: Vec<Interval> =
-                            Vec::with_capacity(column_size + grid.values[h].size);
-                        grid.values[i].for_each(|cell| intervals.extend(cell.into_iter()));
-                        grid.values[h].for_each(|cell| intervals.extend(cell.into_iter()));
-
-                        let mut new_column =
-                            DurationPartition::new(&mut intervals, page_size, |cell| {
-                                cell.sort_unstable_by_key(|interval| interval.end);
-                                Vec::from_iter(cell.iter().cloned())
-                            });
-
-                        std::mem::swap(
-                            &mut grid.values[i].max_durations,
-                            &mut new_column.max_durations,
-                        );
-                        std::mem::swap(
-                            &mut grid.values[i].min_durations,
-                            &mut new_column.min_durations,
-                        );
-                        std::mem::swap(&mut grid.values[i].values, &mut new_column.values);
-
-                        grid.values.remove(h);
-                    }
+                    grid.maybe_merge(i, page_size, 2 * page_size * page_size);
                 } else if grid.values[i].values[j].len() < page_size {
-                    let column = &mut grid.values[i];
-                    let cell_size = column.values[j].len();
-                    // Merge the cell with an adjacent one
-                    let h = if j >= 1 && column.values[j - 1].len() + cell_size <= 2 * page_size {
-                        Some(j - 1)
-                    } else if j + 1 < column.values.len()
-                        && column.values[j + 1].len() + cell_size <= 2 * page_size
-                    {
-                        Some(j + 1)
-                    } else {
-                        None
-                    };
-
-                    if let Some(h) = h {
-                        let intervals: Vec<Interval> = column.values[h].drain(..).collect();
-                        column.values[j].extend(intervals.into_iter());
-                        column.values[j].sort_unstable_by_key(|int| int.end);
-
-                        column.min_durations[j] =
-                            std::cmp::min(column.min_durations[j], column.min_durations[h]);
-                        column.max_durations[j] =
-                            std::cmp::max(column.max_durations[j], column.max_durations[h]);
-                        column.values.remove(h);
-                    }
+                    grid.values[i].maybe_merge(j, page_size, 2 * page_size);
                 }
 
                 grid.size -= 1;
             }
-            Grid::DurationTime(grid) => todo!(),
+            Grid::DurationTime(grid) => {
+                if grid.values.is_empty() {
+                    return;
+                }
+
+                // First find the column that could be holding the element
+                let i = find_pos(&grid.min_durations, |t| t <= interval.duration());
+                let j = find_pos(&grid.values[i].min_start_times, |d| d <= interval.start);
+
+                // Remove the element with a sequential scan
+                let prev_size = grid.values[i].values[j].len();
+                grid.values[i].values[j].retain(|int| int != &interval);
+                let new_size = grid.values[i].values[j].len();
+                if prev_size == new_size {
+                    // no removal happened, do nothing more
+                    return;
+                }
+
+                // decrease the size
+                grid.values[i].size -= 1;
+                let column_size = grid.values[i].size;
+
+                // Restructure the grid, possibly
+                if column_size < page_size * page_size {
+                    grid.maybe_merge(i, page_size, 2 * page_size * page_size);
+                } else if grid.values[i].values[j].len() < page_size {
+                    grid.values[i].maybe_merge(j, page_size, 2 * page_size);
+                }
+
+                grid.size -= 1;
+            }
         }
     }
 }
@@ -792,5 +747,132 @@ impl<V: AllIntervals> AllIntervals for DurationPartition<V> {
         self.for_each(|v| {
             v.all_intervals_i(out);
         });
+    }
+}
+
+trait NumIntervals {
+    fn num_intervals(&self) -> usize;
+}
+
+impl NumIntervals for Vec<Interval> {
+    fn num_intervals(&self) -> usize {
+        self.len()
+    }
+}
+
+impl<V> NumIntervals for DurationPartition<V> {
+    fn num_intervals(&self) -> usize {
+        self.size
+    }
+}
+
+impl<V> NumIntervals for TimePartition<V> {
+    fn num_intervals(&self) -> usize {
+        self.size
+    }
+}
+
+fn get_mergeable<N: NumIntervals>(i: usize, coll: &[N], max_size: usize) -> Option<usize> {
+    let size_i = coll[i].num_intervals();
+    if i >= 1 && coll[i - 1].num_intervals() + size_i <= max_size {
+        Some(i - 1)
+    } else if i + 1 < coll.len() && coll[i + 1].num_intervals() + size_i <= max_size {
+        Some(i + 1)
+    } else {
+        None
+    }
+}
+
+trait MaybeMerge {
+    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize);
+}
+
+// merge cells partitioned by time
+impl MaybeMerge for TimePartition<Vec<Interval>> {
+    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize) {
+        if let Some(h) = get_mergeable(i, &self.values, max_size) {
+            let intervals: Vec<Interval> = self.values[h].drain(..).collect();
+            self.values[i].extend(intervals.into_iter());
+            self.values[i].sort_unstable_by_key(|int| int.end);
+
+            self.min_start_times[i] = self.values[i].iter().map(|int| int.start).min().unwrap();
+            self.max_end_times[i] = self.values[i].iter().map(|int| int.end).max().unwrap();
+
+            self.values.remove(h);
+            self.min_start_times.remove(h);
+            self.max_end_times.remove(h);
+        }
+    }
+}
+
+// merge cells partitioned by duration
+impl MaybeMerge for DurationPartition<Vec<Interval>> {
+    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize) {
+        if let Some(h) = get_mergeable(i, &self.values, max_size) {
+            let intervals: Vec<Interval> = self.values[h].drain(..).collect();
+            self.values[i].extend(intervals.into_iter());
+            self.values[i].sort_unstable_by_key(|int| int.end);
+
+            self.min_durations[i] = self.values[i]
+                .iter()
+                .map(|int| int.duration())
+                .min()
+                .unwrap();
+            self.max_durations[i] = self.values[i]
+                .iter()
+                .map(|int| int.duration())
+                .max()
+                .unwrap();
+
+            self.values.remove(h);
+            self.min_durations.remove(h);
+            self.max_durations.remove(h);
+        }
+    }
+}
+
+// merge columns partitioned by time
+impl MaybeMerge for TimePartition<DurationPartition<Vec<Interval>>> {
+    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize) {
+        if let Some(h) = get_mergeable(i, &self.values, max_size) {
+            let column_size = self.values[i].size;
+            let mut intervals: Vec<Interval> =
+                Vec::with_capacity(column_size + self.values[h].size);
+            intervals.extend(self.values[i].all_intervals());
+            intervals.extend(self.values[h].all_intervals());
+
+            let mut new_column = duration_cells(&mut intervals, page_size);
+
+            // swap out the old i column with the new one
+            std::mem::swap(&mut self.values[i], &mut new_column);
+
+            // remove the h column
+            self.values.remove(h);
+            self.min_start_times.remove(h);
+            self.max_end_times.remove(h);
+        }
+    }
+}
+
+// merge columns partitioned by duration
+impl MaybeMerge for DurationPartition<TimePartition<Vec<Interval>>> {
+    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize) {
+        if let Some(h) = get_mergeable(i, &self.values, max_size) {
+            let column_size = self.values[i].size;
+            let mut intervals: Vec<Interval> =
+                Vec::with_capacity(column_size + self.values[h].size);
+            intervals.extend(self.values[i].all_intervals());
+            intervals.extend(self.values[h].all_intervals());
+
+            let mut new_column = time_cells(&mut intervals, page_size);
+
+            // swap out the old i column with the new one
+            std::mem::swap(&mut self.values[i], &mut new_column);
+
+            // remove the h column
+            self.values.remove(h);
+            self.min_durations.remove(h);
+            self.max_durations.remove(h);
+        }
     }
 }
