@@ -64,6 +64,7 @@ impl Reporter {
         }
 
         match mode {
+            ExperimentMode::Insertion { batch } => todo!(),
             ExperimentMode::Batch => conn
                 .query_row(
                     "SELECT id FROM batch_raw

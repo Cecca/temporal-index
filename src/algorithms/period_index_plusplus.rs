@@ -1,6 +1,8 @@
 use crate::types::*;
 use std::iter::FromIterator;
 
+use super::PeriodIndexStar;
+
 pub struct PeriodIndexPlusPlus {
     page_size: usize,
     index: Option<SortedBlockIndex<SortedBlockIndex<Vec<Interval>>>>,
@@ -18,6 +20,16 @@ impl PeriodIndexPlusPlus {
 impl std::fmt::Debug for PeriodIndexPlusPlus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "period-index++({})", self.page_size)
+    }
+}
+
+impl Updatable for PeriodIndexPlusPlus {
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
     }
 }
 
@@ -366,5 +378,15 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
             }
             action((lower_bound, upper_bound), &self.values[i]);
         }
+    }
+}
+
+impl Updatable for PeriodIndexStar {
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
     }
 }

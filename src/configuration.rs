@@ -402,6 +402,7 @@ impl QueryConfiguration {
 pub enum ExperimentMode {
     Focus { samples: u32 },
     Batch,
+    Insertion { batch: usize },
 }
 
 #[derive(Serialize, Deserialize)]
