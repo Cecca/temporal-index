@@ -224,4 +224,12 @@ impl Algorithm for GridFile {
         drop(self.duration_anchor.take());
         drop(self.start_anchor.take());
     }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
 }

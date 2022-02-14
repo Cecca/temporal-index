@@ -513,6 +513,14 @@ impl Algorithm for PeriodIndex {
             .map(|(index, bucket)| (index, bucket.count_intervals()));
         reporter.report_period_index_buckets(bucket_info)
     }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
 }
 
 pub struct PeriodIndexStar {
@@ -679,6 +687,14 @@ impl Algorithm for PeriodIndexStar {
             .enumerate()
             .map(|(index, bucket)| (index, bucket.count_intervals()));
         reporter.report_period_index_buckets(bucket_info)
+    }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
     }
 }
 

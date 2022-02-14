@@ -127,6 +127,21 @@ impl Algorithm for IntervalTree {
         self.n = intervals.len();
     }
 
+    fn insert(&mut self, interval: Interval) {
+        if let Some(root) = self.root.as_mut() {
+            root.insert(interval);
+        } else {
+            let root = Box::new(Node::new(&vec![interval]));
+            self.root.replace(root);
+        }
+    }
+
+    fn remove(&mut self, interval: Interval) {
+        if let Some(root) = self.root.as_mut() {
+            root.remove(interval);
+        }
+    }
+
     fn query(&self, query: &Query, answers: &mut QueryAnswerBuilder) {
         if let Some(range) = query.range {
             if let Some(duration_range) = query.duration {
@@ -339,22 +354,5 @@ impl Node {
                 action(*interval);
             });
         cnt
-    }
-}
-
-impl Updatable for IntervalTree {
-    fn insert(&mut self, interval: Interval) {
-        if let Some(root) = self.root.as_mut() {
-            root.insert(interval);
-        } else {
-            let root = Box::new(Node::new(&vec![interval]));
-            self.root.replace(root);
-        }
-    }
-
-    fn remove(&mut self, interval: Interval) {
-        if let Some(root) = self.root.as_mut() {
-            root.remove(interval);
-        }
     }
 }

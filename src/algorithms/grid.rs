@@ -215,6 +215,14 @@ impl Algorithm for Grid {
         drop(std::mem::replace(&mut self.end_time_ecdf, BTreeMap::new()));
         drop(self.n.take());
     }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
 }
 
 #[inline]

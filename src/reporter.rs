@@ -58,15 +58,13 @@ impl Reporter {
         ).optional()
         .context("query algorithm id")?;
 
-        if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
-            // This configuration has not been run, neither in batch nor in focus mode
-            return Ok(None);
-        }
-
         match mode {
-            ExperimentMode::Insertion { batch } => todo!(),
-            ExperimentMode::Batch => conn
-                .query_row(
+            ExperimentMode::Batch => {
+                if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
+                    // This configuration has not been run, neither in batch nor in focus mode
+                    return Ok(None);
+                }
+                conn.query_row(
                     "SELECT id FROM batch_raw
                     WHERE hostname == ?1
                     AND dataset_id == ?2
@@ -77,9 +75,14 @@ impl Reporter {
                     |row| row.get(0),
                 )
                 .optional()
-                .context("problem checking if the algorithm already ran, batch mode"),
-            ExperimentMode::Focus { samples: _ } => conn
-                .query_row(
+                .context("problem checking if the algorithm already ran, batch mode")
+            }
+            ExperimentMode::Focus { samples: _ } => {
+                if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
+                    // This configuration has not been run, neither in batch nor in focus mode
+                    return Ok(None);
+                }
+                conn.query_row(
                     "SELECT id FROM focus_configuration_raw
                     WHERE hostname == ?1
                     AND dataset_id == ?2
@@ -90,7 +93,25 @@ impl Reporter {
                     |row| row.get(0),
                 )
                 .optional()
-                .context("problem checking if the algorithm already ran, focus mode"),
+                .context("problem checking if the algorithm already ran, focus mode")
+            }
+            ExperimentMode::Insertion { batch: _ } => {
+                if dataset_id.is_none() || algorithm_id.is_none() {
+                    // This configuration has not been run, neither in batch nor in focus mode
+                    return Ok(None);
+                }
+                conn.query_row(
+                    "SELECT id FROM insertions_configuration_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND algorithm_id == ?
+                    ",
+                    params![hostname, dataset_id, algorithm_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, focus mode")
+            }
         }
     }
 
@@ -139,6 +160,74 @@ impl Reporter {
             params![algorithm.name(), algorithm.parameters(), algorithm.version()],
             |row| row.get(0)
         ).context("query algorithm id")
+    }
+
+    pub fn report_insert(&self, batch_size: usize, results: Vec<InsertResult>) -> Result<()> {
+        let dbpath = Self::get_db_path();
+        let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let hostname = get_hostname()?;
+
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+
+        let conf_file = self
+            .config_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
+            .to_owned();
+
+        let tx = conn.transaction()?;
+        {
+            // First get the component spec ids, inserting them if necessary
+            info!("Getting dataset, and algorithm IDs");
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
+
+            // Then insert into the configuration_raw table
+            info!("Inserting into the configuration table");
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO insertions_configuration_raw ( 
+                            date, 
+                            git_rev, 
+                            hostname, 
+                            conf_file,
+                            batch_size,
+                            dataset_id,
+                            algorithm_id)
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        batch_size,
+                        dataset_id,
+                        algorithm_id
+                    ],
+                )
+                .context("error inserting into main table")?;
+            if updated_cnt == 0 {
+                anyhow::bail!("Insertion didn't happen");
+            }
+
+            // Then insert into the query_focus table
+            info!("Inserting into the insertion table");
+            let id = tx.last_insert_rowid();
+            info!("last inserted row id is {}", id);
+            let mut stmt = tx.prepare(
+                "INSERT INTO insertions_raw (
+                    id,
+                    batch,
+                    batch_time_ns )
+                    VALUES ( ?1, ?2, ?3 )",
+            )?;
+            for res in results.into_iter() {
+                stmt.execute(params![id, res.iter, res.insert_time.as_nanos() as i64,])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     pub fn report_focus(&self, results: Vec<FocusResult>) -> Result<()> {
@@ -701,6 +790,13 @@ pub fn db_setup() -> Result<()> {
         info!("Cleaning up database");
         conn.execute("VACUUM", [])?;
         bump(&conn, 11)?;
+    }
+    if version < 12 {
+        Reporter::backup(Some("v12".to_owned()))?;
+        let tx = conn.transaction()?;
+        tx.execute_batch(include_str!("migrations/v12.sql"))?;
+        tx.commit()?;
+        bump(&conn, 12)?;
     }
 
     info!("database schema up to date");

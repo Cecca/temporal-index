@@ -99,9 +99,7 @@ impl Algorithm for BTree {
     fn clear(&mut self) {
         self.data.clear();
     }
-}
 
-impl Updatable for BTree {
     fn insert(&mut self, interval: Interval) {
         self.data
             .entry(interval.duration())

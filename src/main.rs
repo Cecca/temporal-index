@@ -223,13 +223,14 @@ fn main() -> Result<()> {
                     reporter.report_focus(results)?;
                 }
                 ExperimentMode::Insertion { batch } => {
-                    let mut algorithm = experiment.algorithm.borrow_mut();
-
-                    for chunk in dataset_intervals.chunks(batch) {
-                        // algorithm.update
-                    }
-
-                    todo!()
+                    let results = {
+                        let mut algorithm = experiment.algorithm.borrow_mut();
+                        algorithm.clear();
+                        let results = algorithm.run_inserts(&dataset_intervals, batch);
+                        algorithm.clear();
+                        results
+                    };
+                    reporter.report_insert(batch, results)?;
                 }
             }
 

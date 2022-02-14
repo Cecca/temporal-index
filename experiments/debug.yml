@@ -1,7 +1,8 @@
 ---
 
 - mode: 
-    Batch
+    Insertion: 
+      batch: 1000
 
   datasets:
     - MimicIII
@@ -12,16 +13,8 @@
         n: [10000]
         range:
           - Free
-          - Pair: 
-              - Scaled: 
-                  inner: {Uniform: { low: 1, high:  40251}}
-                  scale: 1
-              - Scaled:
-                  inner: {Uniform: { low: 1, high: 40251}}
-                  scale: 1
           
         duration:
-          - Free
           - Single: 
               Scaled:
                 inner: {Uniform: { low: 1, high: 200}}
@@ -29,6 +22,7 @@
 
   algorithms:
     - RTree
+    - BTree
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
         page_size: [10, 50, 100, 150]

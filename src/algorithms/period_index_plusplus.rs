@@ -23,16 +23,6 @@ impl std::fmt::Debug for PeriodIndexPlusPlus {
     }
 }
 
-impl Updatable for PeriodIndexPlusPlus {
-    fn insert(&mut self, x: Interval) {
-        todo!()
-    }
-
-    fn remove(&mut self, x: Interval) {
-        todo!()
-    }
-}
-
 impl Algorithm for PeriodIndexPlusPlus {
     fn name(&self) -> String {
         "period-index++".to_owned()
@@ -249,6 +239,14 @@ impl Algorithm for PeriodIndexPlusPlus {
     fn clear(&mut self) {
         drop(self.index.take());
     }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
 }
 
 struct SortedBlockIndex<V> {
@@ -378,15 +376,5 @@ impl<V: Send + Sync> SortedBlockIndex<V> {
             }
             action((lower_bound, upper_bound), &self.values[i]);
         }
-    }
-}
-
-impl Updatable for PeriodIndexStar {
-    fn insert(&mut self, x: Interval) {
-        todo!()
-    }
-
-    fn remove(&mut self, x: Interval) {
-        todo!()
     }
 }

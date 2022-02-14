@@ -18,16 +18,6 @@ pub struct RTreeIndex {
     max_duration: Time,
 }
 
-impl Updatable for RTreeIndex {
-    fn insert(&mut self, x: Interval) {
-        self.tree.insert(x);
-    }
-
-    fn remove(&mut self, x: Interval) {
-        self.tree.remove(&x);
-    }
-}
-
 impl Algorithm for RTreeIndex {
     fn name(&self) -> String {
         "RTree".to_owned()
@@ -113,5 +103,13 @@ impl Algorithm for RTreeIndex {
         let mut empty = RTree::new();
         mem::swap(&mut self.tree, &mut empty);
         drop(empty);
+    }
+
+    fn insert(&mut self, x: Interval) {
+        self.tree.insert(x);
+    }
+
+    fn remove(&mut self, x: Interval) {
+        self.tree.remove(&x);
     }
 }

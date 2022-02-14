@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use progress_logger::ProgressLogger;
 
 pub type Time = u64;
@@ -159,6 +161,11 @@ pub struct FocusResult {
     pub query_time: std::time::Duration,
 }
 
+pub struct InsertResult {
+    pub iter: usize,
+    pub insert_time: std::time::Duration,
+}
+
 pub trait Algorithm: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
@@ -227,6 +234,22 @@ pub trait Algorithm: std::fmt::Debug {
         results
     }
 
+    fn run_inserts(&mut self, intervals: &[Interval], batch: usize) -> Vec<InsertResult> {
+        let mut times = Vec::new();
+        for (iter, chunk) in intervals.chunks(batch).enumerate() {
+            let t = Instant::now();
+            for int in chunk {
+                self.insert(*int);
+            }
+            let elapsed = t.elapsed();
+            times.push(InsertResult {
+                iter,
+                insert_time: elapsed,
+            });
+        }
+        times
+    }
+
     /// Returns either the query results or, if running too slow,
     /// the predicted duration
     fn run(
@@ -281,9 +304,7 @@ pub trait Algorithm: std::fmt::Debug {
         // do nothing by default
         Ok(())
     }
-}
 
-pub trait Updatable {
     fn insert(&mut self, x: Interval);
     fn remove(&mut self, x: Interval);
 }

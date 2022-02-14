@@ -58,4 +58,12 @@ impl Algorithm for LinearScan {
         let dataset = std::mem::replace(&mut self.dataset, Vec::new());
         drop(dataset);
     }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
 }

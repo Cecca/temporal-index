@@ -1,6 +1,4 @@
-use std::ops::Index;
-
-use crate::{get_allocated, types::*};
+use crate::types::*;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
@@ -186,9 +184,7 @@ impl Algorithm for RDIndex {
     fn clear(&mut self) {
         drop(self.grid.take());
     }
-}
 
-impl Updatable for RDIndex {
     fn insert(&mut self, x: Interval) {
         if let Some(grid) = self.grid.as_mut() {
             grid.insert(x, self.page_size);
@@ -789,7 +785,7 @@ trait MaybeMerge {
 
 // merge cells partitioned by time
 impl MaybeMerge for TimePartition<Vec<Interval>> {
-    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize) {
+    fn maybe_merge(&mut self, i: usize, _page_size: usize, max_size: usize) {
         if let Some(h) = get_mergeable(i, &self.values, max_size) {
             let intervals: Vec<Interval> = self.values[h].drain(..).collect();
             self.values[i].extend(intervals.into_iter());
@@ -807,7 +803,7 @@ impl MaybeMerge for TimePartition<Vec<Interval>> {
 
 // merge cells partitioned by duration
 impl MaybeMerge for DurationPartition<Vec<Interval>> {
-    fn maybe_merge(&mut self, i: usize, page_size: usize, max_size: usize) {
+    fn maybe_merge(&mut self, i: usize, _page_size: usize, max_size: usize) {
         if let Some(h) = get_mergeable(i, &self.values, max_size) {
             let intervals: Vec<Interval> = self.values[h].drain(..).collect();
             self.values[i].extend(intervals.into_iter());

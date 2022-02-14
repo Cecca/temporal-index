@@ -173,4 +173,12 @@ impl Algorithm for Grid3D {
         drop(std::mem::replace(&mut self.duration_ecdf, BTreeMap::new()));
         drop(self.n.take());
     }
+
+    fn insert(&mut self, x: Interval) {
+        todo!()
+    }
+
+    fn remove(&mut self, x: Interval) {
+        todo!()
+    }
 }
