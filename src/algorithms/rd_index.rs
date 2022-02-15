@@ -531,7 +531,7 @@ fn insert_by_end(v: &mut Vec<Interval>, interval: Interval) {
         pos += 1;
     }
     v.insert(pos, interval);
-    assert!(is_sorted_by(&v, |a, b| a.end <= b.end), "cell is {:?}", v);
+    debug_assert!(is_sorted_by(&v, |a, b| a.end <= b.end), "cell is {:?}", v);
 }
 
 fn time_columns(
@@ -634,7 +634,7 @@ impl<V> TimePartition<V> {
         insert_many(i, &mut self.min_start_times, &mut other.min_start_times);
         insert_many(i, &mut self.max_end_times, &mut other.max_end_times);
         insert_many(i, &mut self.values, &mut other.values);
-        assert!(self.check_sorted());
+        debug_assert!(self.check_sorted());
     }
 
     fn check_sorted(&self) -> bool {
@@ -736,7 +736,7 @@ impl<V> DurationPartition<V> {
         // println!("[duration] after insert many {:?}", self.min_durations);
         insert_many(i, &mut self.max_durations, &mut other.max_durations);
         insert_many(i, &mut self.values, &mut other.values);
-        assert!(self.check_sorted(), "not sorted {:?}", self.min_durations);
+        debug_assert!(self.check_sorted(), "not sorted {:?}", self.min_durations);
     }
 
     fn check_sorted(&self) -> bool {
