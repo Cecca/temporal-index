@@ -393,6 +393,7 @@ impl Grid {
                 }
 
                 grid.size += 1;
+                debug_assert!(grid.size == grid.all_intervals().len());
             }
             Grid::DurationTime(grid) => {
                 assert!(!grid.values.is_empty());
@@ -424,6 +425,7 @@ impl Grid {
                 }
 
                 grid.size += 1;
+                debug_assert!(grid.size == grid.all_intervals().len());
             }
         }
     }
@@ -460,6 +462,7 @@ impl Grid {
                 }
 
                 grid.size -= 1;
+                debug_assert!(grid.size == grid.all_intervals().len());
             }
             Grid::DurationTime(grid) => {
                 if grid.values.is_empty() {
@@ -491,6 +494,7 @@ impl Grid {
                 }
 
                 grid.size -= 1;
+                debug_assert!(grid.size == grid.all_intervals().len());
             }
         }
     }
@@ -504,19 +508,14 @@ fn cell_builder(cell: &mut [Interval]) -> Vec<Interval> {
 
 /// Find the first position satisfying the given predicate on time, assuming that the times are sorted.
 fn find_pos(v: &[Time], pred: impl Fn(Time) -> bool) -> usize {
-    let mut i = 0;
-    if pred(v[0]) {
-        // ^ this handles the case where the interval starts earlier than any in the index
-        while i < v.len() {
-            if pred(v[i]) {
-                return i;
-            }
-            i += 1;
+    let mut i = v.len() - 1;
+    while i > 0 {
+        if pred(v[i]) {
+            return i;
         }
-        panic!();
-    } else {
-        return 0;
+        i -= 1;
     }
+    0
 }
 
 fn time_columns(
@@ -604,6 +603,12 @@ impl<V> TimePartition<V> {
     }
 
     fn replace(&mut self, i: usize, mut other: Self) {
+        println!(
+            "[time] Replace {} out of {} with {} new",
+            i,
+            self.values.len(),
+            other.values.len()
+        );
         // Remove the old column
         self.min_start_times.remove(i);
         self.max_end_times.remove(i);
@@ -613,6 +618,11 @@ impl<V> TimePartition<V> {
         insert_many(i, &mut self.min_start_times, &mut other.min_start_times);
         insert_many(i, &mut self.max_end_times, &mut other.max_end_times);
         insert_many(i, &mut self.values, &mut other.values);
+        assert!(self.check_sorted());
+    }
+
+    fn check_sorted(&self) -> bool {
+        is_sorted(&self.min_start_times)
     }
 
     #[allow(dead_code)]
@@ -691,15 +701,30 @@ impl<V> DurationPartition<V> {
     }
 
     fn replace(&mut self, i: usize, mut other: Self) {
+        println!(
+            "[duration] Replace {} out of {} with {} new {:?}",
+            i,
+            self.values.len(),
+            other.values.len(),
+            other.min_durations
+        );
+        // println!("[duration] before remove {:?}", self.min_durations);
         // Remove the old column
         self.min_durations.remove(i);
         self.max_durations.remove(i);
         self.values.remove(i);
+        // println!("[duration] after remove {:?}", self.min_durations);
 
         // Add the new columns
         insert_many(i, &mut self.min_durations, &mut other.min_durations);
+        // println!("[duration] after insert many {:?}", self.min_durations);
         insert_many(i, &mut self.max_durations, &mut other.max_durations);
         insert_many(i, &mut self.values, &mut other.values);
+        assert!(self.check_sorted(), "not sorted {:?}", self.min_durations);
+    }
+
+    fn check_sorted(&self) -> bool {
+        is_sorted(&self.min_durations) && is_sorted(&self.max_durations)
     }
 
     fn for_each<F: FnMut(&V)>(&self, mut action: F) {
@@ -871,4 +896,13 @@ impl MaybeMerge for DurationPartition<TimePartition<Vec<Interval>>> {
             self.max_durations.remove(h);
         }
     }
+}
+
+fn is_sorted(v: &[Time]) -> bool {
+    for i in 1..v.len() {
+        if v[i - 1] > v[i] {
+            return false;
+        }
+    }
+    return true;
 }

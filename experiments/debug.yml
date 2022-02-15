@@ -21,8 +21,8 @@
                 scale: 1
 
   algorithms:
-    - RTree
-    - BTree
+    # - RTree
+    # - BTree
     - RDIndex:
-        dimension_order: [TimeDuration, DurationTime]
-        page_size: [10, 50, 100, 150]
+        dimension_order: [TimeDuration]
+        page_size: [200]

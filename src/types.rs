@@ -236,6 +236,10 @@ pub trait Algorithm: std::fmt::Debug {
 
     fn run_inserts(&mut self, intervals: &[Interval], batch: usize) -> Vec<InsertResult> {
         let mut times = Vec::new();
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(intervals.len() as u64)
+            .with_items_name("insertions")
+            .start();
         for (iter, chunk) in intervals.chunks(batch).enumerate() {
             let t = Instant::now();
             for int in chunk {
@@ -246,7 +250,9 @@ pub trait Algorithm: std::fmt::Debug {
                 iter,
                 insert_time: elapsed,
             });
+            pl.update(chunk.len() as u64);
         }
+        pl.stop();
         times
     }
 
