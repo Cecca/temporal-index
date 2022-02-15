@@ -21,6 +21,7 @@ CREATE TABLE insertions_raw (
         id INTEGER NOT NULL,
         batch INT,
         batch_time_ns INT64,
+        batch_insertions_per_second REAL,
         FOREIGN KEY (id) REFERENCES insertions_configuration_raw(id)
 );
 

@@ -219,11 +219,18 @@ impl Reporter {
                 "INSERT INTO insertions_raw (
                     id,
                     batch,
-                    batch_time_ns )
-                    VALUES ( ?1, ?2, ?3 )",
+                    batch_time_ns,
+                    batch_insertions_per_second
+                    )
+                    VALUES ( ?1, ?2, ?3, ?4 )",
             )?;
             for res in results.into_iter() {
-                stmt.execute(params![id, res.iter, res.insert_time.as_nanos() as i64,])?;
+                stmt.execute(params![
+                    id,
+                    res.iter,
+                    res.insert_time.as_nanos() as i64,
+                    res.insert_per_sec
+                ])?;
             }
         }
         tx.commit()?;

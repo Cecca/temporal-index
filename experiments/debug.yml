@@ -2,8 +2,7 @@
 
 - mode: 
     Insertion: 
-      batch: 1000
-
+      batch: 10000
   datasets:
     - MimicIII
 
@@ -21,8 +20,8 @@
                 scale: 1
 
   algorithms:
-    # - RTree
-    # - BTree
+    - RTree
+    - BTree
     - RDIndex:
-        dimension_order: [TimeDuration]
+        dimension_order: [DurationTime]
         page_size: [200]

@@ -166,6 +166,7 @@ pub struct FocusResult {
 pub struct InsertResult {
     pub iter: usize,
     pub insert_time: std::time::Duration,
+    pub insert_per_sec: f64,
 }
 
 pub trait Algorithm: std::fmt::Debug {
@@ -248,9 +249,11 @@ pub trait Algorithm: std::fmt::Debug {
                 self.insert(*int);
             }
             let elapsed = t.elapsed();
+            let throughput = chunk.len() as f64 / elapsed.as_secs_f64();
             times.push(InsertResult {
                 iter,
                 insert_time: elapsed,
+                insert_per_sec: throughput,
             });
             pl.update(chunk.len() as u64);
         }
