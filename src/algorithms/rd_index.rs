@@ -370,7 +370,7 @@ impl Grid {
                 let i = find_pos(&grid.min_start_times, |t| t <= interval.start);
 
                 let column_size = grid.values[i].size;
-                if column_size + 1 > 2 * page_size * page_size {
+                if column_size + 1 > 2 * page_size * page_size && !grid.is_heavy(i) {
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
                     grid.replace(i, time_columns(&mut intervals, page_size));
@@ -380,13 +380,12 @@ impl Grid {
                     let j = find_pos(&column.min_durations, |d| d <= interval.duration());
 
                     let cell_size = column.values[j].len();
-                    if cell_size + 1 > 2 * page_size {
+                    if cell_size + 1 > 2 * page_size && !column.is_heavy(j) {
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
                         column.replace(j, duration_cells(&mut new_cells, page_size));
                     } else {
-                        column.values[j].push(interval);
-                        column.values[j].sort_unstable_by_key(|i| i.end);
+                        insert_by_end(&mut column.values[j], interval);
                     }
 
                     column.size += 1;
@@ -402,7 +401,7 @@ impl Grid {
                 let i = find_pos(&grid.min_durations, |d| d <= interval.duration());
 
                 let column_size = grid.values[i].size;
-                if column_size + 1 > 2 * page_size * page_size {
+                if column_size + 1 > 2 * page_size * page_size && !grid.is_heavy(i) {
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
                     grid.replace(i, duration_columns(&mut intervals, page_size));
@@ -412,13 +411,12 @@ impl Grid {
                     let j = find_pos(&column.min_start_times, |d| d <= interval.start);
 
                     let cell_size = column.values[j].len();
-                    if cell_size + 1 > 2 * page_size {
+                    if cell_size + 1 > 2 * page_size && !column.is_heavy(j) {
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
                         column.replace(j, time_cells(&mut new_cells, page_size));
                     } else {
-                        column.values[j].push(interval);
-                        column.values[j].sort_unstable_by_key(|i| i.end);
+                        insert_by_end(&mut column.values[j], interval);
                     }
 
                     column.size += 1;
@@ -518,6 +516,24 @@ fn find_pos(v: &[Time], pred: impl Fn(Time) -> bool) -> usize {
     0
 }
 
+fn insert_by_end(v: &mut Vec<Interval>, interval: Interval) {
+    // println!("before insert {:?}", v);
+    let iend = interval.end;
+    if iend >= v[v.len() - 1].end {
+        // handle the simple and efficient case
+        v.push(interval);
+    }
+    let mut pos = 0;
+    while pos < v.len() {
+        if iend < v[pos].end {
+            break;
+        }
+        pos += 1;
+    }
+    v.insert(pos, interval);
+    assert!(is_sorted_by(&v, |a, b| a.end <= b.end), "cell is {:?}", v);
+}
+
 fn time_columns(
     intervals: &mut [Interval],
     page_size: usize,
@@ -603,12 +619,12 @@ impl<V> TimePartition<V> {
     }
 
     fn replace(&mut self, i: usize, mut other: Self) {
-        println!(
-            "[time] Replace {} out of {} with {} new",
-            i,
-            self.values.len(),
-            other.values.len()
-        );
+        // println!(
+        //     "[time] Replace {} out of {} with {} new",
+        //     i,
+        //     self.values.len(),
+        //     other.values.len()
+        // );
         // Remove the old column
         self.min_start_times.remove(i);
         self.max_end_times.remove(i);
@@ -701,13 +717,13 @@ impl<V> DurationPartition<V> {
     }
 
     fn replace(&mut self, i: usize, mut other: Self) {
-        println!(
-            "[duration] Replace {} out of {} with {} new {:?}",
-            i,
-            self.values.len(),
-            other.values.len(),
-            other.min_durations
-        );
+        // println!(
+        //     "[duration] Replace {} out of {} with {} new {:?}",
+        //     i,
+        //     self.values.len(),
+        //     other.values.len(),
+        //     other.min_durations
+        // );
         // println!("[duration] before remove {:?}", self.min_durations);
         // Remove the old column
         self.min_durations.remove(i);
@@ -905,4 +921,44 @@ fn is_sorted(v: &[Time]) -> bool {
         }
     }
     return true;
+}
+
+fn is_sorted_by<T>(v: &[T], le: impl Fn(&T, &T) -> bool) -> bool {
+    for i in 1..v.len() {
+        if !le(&v[i - 1], &v[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+trait IsHeavy {
+    fn is_heavy(&self, i: usize) -> bool;
+}
+
+impl<V> IsHeavy for DurationPartition<V> {
+    fn is_heavy(&self, i: usize) -> bool {
+        self.min_durations[i] == self.max_durations[i]
+    }
+}
+
+impl IsHeavy for TimePartition<Vec<Interval>> {
+    fn is_heavy(&self, i: usize) -> bool {
+        let max_start_time = self.values[i].iter().map(|int| int.start).max().unwrap();
+        self.min_start_times[i] == max_start_time
+    }
+}
+
+impl IsHeavy for TimePartition<DurationPartition<Vec<Interval>>> {
+    fn is_heavy(&self, i: usize) -> bool {
+        let mut max_start = 0;
+        self.values[i].for_each(|ints| {
+            for int in ints {
+                if int.start > max_start {
+                    max_start = int.start;
+                }
+            }
+        });
+        self.min_start_times[i] == max_start
+    }
 }
