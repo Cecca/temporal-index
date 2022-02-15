@@ -4,6 +4,13 @@
     Insertion: 
       batch: 10000
   datasets:
+    - Random:
+        seed: [123]
+        n: [10000000]
+        start_times: [Uniform: { low: 1, high: 10000000 }]
+        durations: [Zipf: { n: 10000000, beta: 1 }]
+    - Webkit
+    - Flight
     - MimicIII
 
   queries:
@@ -23,7 +30,7 @@
   algorithms:
     - RTree
     - BTree
-    - ITree
+    - IntervalTree
     - RDIndex:
-        dimension_order: [DurationTime]
-        page_size: [200]
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [100, 200]
