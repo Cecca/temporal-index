@@ -59,11 +59,11 @@ impl Algorithm for LinearScan {
         drop(dataset);
     }
 
-    fn insert(&mut self, x: Interval) {
+    fn insert(&mut self, _x: Interval) {
         todo!()
     }
 
-    fn remove(&mut self, x: Interval) {
+    fn remove(&mut self, _x: Interval) {
         todo!()
     }
 }

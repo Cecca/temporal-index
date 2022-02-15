@@ -514,11 +514,11 @@ impl Algorithm for PeriodIndex {
         reporter.report_period_index_buckets(bucket_info)
     }
 
-    fn insert(&mut self, x: Interval) {
+    fn insert(&mut self, _x: Interval) {
         todo!()
     }
 
-    fn remove(&mut self, x: Interval) {
+    fn remove(&mut self, _x: Interval) {
         todo!()
     }
 }
@@ -689,11 +689,11 @@ impl Algorithm for PeriodIndexStar {
         reporter.report_period_index_buckets(bucket_info)
     }
 
-    fn insert(&mut self, x: Interval) {
+    fn insert(&mut self, _x: Interval) {
         todo!()
     }
 
-    fn remove(&mut self, x: Interval) {
+    fn remove(&mut self, _x: Interval) {
         todo!()
     }
 }

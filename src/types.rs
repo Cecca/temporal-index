@@ -79,6 +79,7 @@ pub struct Query {
 pub struct QueryAnswer {
     #[cfg(test)]
     intervals: Vec<Interval>,
+    #[cfg(test)]
     examined: u32,
     n_matches: u32,
 }
@@ -149,6 +150,7 @@ impl QueryAnswerBuilder {
         QueryAnswer {
             #[cfg(test)]
             intervals: self.intervals,
+            #[cfg(test)]
             examined: self.examined,
             n_matches: self.n_matches,
         }

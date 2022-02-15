@@ -1,7 +1,7 @@
 use crate::types::*;
 use std::iter::FromIterator;
 
-use super::PeriodIndexStar;
+
 
 pub struct PeriodIndexPlusPlus {
     page_size: usize,
@@ -240,11 +240,11 @@ impl Algorithm for PeriodIndexPlusPlus {
         drop(self.index.take());
     }
 
-    fn insert(&mut self, x: Interval) {
+    fn insert(&mut self, _x: Interval) {
         todo!()
     }
 
-    fn remove(&mut self, x: Interval) {
+    fn remove(&mut self, _x: Interval) {
         todo!()
     }
 }

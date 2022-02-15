@@ -216,11 +216,11 @@ impl Algorithm for Grid {
         drop(self.n.take());
     }
 
-    fn insert(&mut self, x: Interval) {
+    fn insert(&mut self, _x: Interval) {
         todo!()
     }
 
-    fn remove(&mut self, x: Interval) {
+    fn remove(&mut self, _x: Interval) {
         todo!()
     }
 }
