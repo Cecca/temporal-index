@@ -276,6 +276,29 @@ table_durations <- function() {
     select(name, duration = value, count)
 }
 
+table_insertions <- function() {
+  db_file <- here::here("temporal-index-results.sqlite")
+  conn <- DBI::dbConnect(RSQLite::SQLite(), db_file)
+
+  res <- as_tibble(dbGetQuery(
+    conn,
+    "select * from insertions"
+  )) %>%
+    filter(algorithm_name != "period-index++") %>%
+    mutate(
+      algorithm_name = case_when(
+        str_detect(algorithm_params, "TimeDuration") ~ str_c(algorithm_name, "-td"),
+        str_detect(algorithm_params, "DurationTime") ~ str_c(algorithm_name, "-dt"),
+        TRUE ~ algorithm_name
+      ),
+      page_size = as.integer(str_match(algorithm_params, "page_size=(\\d+)")[,2])
+    )
+
+  DBI::dbDisconnect(conn)
+  res
+}
+
+
 table_query_focus <- function() {
   db_file <- here::here("temporal-index-results.sqlite")
   conn <- dbConnect(RSQLite::SQLite(), db_file)

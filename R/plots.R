@@ -1,7 +1,11 @@
 # All the code to generate the plots
 
 theme_paper <- function() {
-    theme_tufte()
+    theme_tufte() +
+    theme(
+        # axis.line.x = element_line(),
+        # axis.line.y = element_line()
+    )
 }
 
 plot_scalability <- function(data_scalability) {
@@ -822,4 +826,58 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
             )
     }
     p
+}
+
+plot_insertions <- function(data_insertions) {
+    data_insertions %>%
+        filter(na_or_in(page_size, c(100))) %>%
+        mutate(
+            dataset_name = if_else(dataset_name == "random-uniform-zipf", "Random", dataset_name),
+            dataset_name = factor(dataset_name, levels = c("Random", "Flight", "Webkit", "MimicIII"), ordered = T),
+            algorithm_name = case_when(
+                algorithm_name == "interval-tree" ~ "Interval-Tree",
+                algorithm_name == "BTree" ~ "B-Tree",
+                algorithm_name == "RTree" ~ "R-Tree",
+                algorithm_name == "grid-file" ~ "Grid-File",
+                algorithm_name == "period-index-*" ~ "Period-Index*",
+                algorithm_name == "rd-index-dt" ~ "RD-index-dt",
+                algorithm_name == "rd-index-td" ~ "RD-index-td",
+                T ~ algorithm_name
+            ),
+            algorithm_name = factor(algorithm_name, levels = c(
+                "RD-index-td",
+                "RD-index-dt",
+                "Grid-File",
+                "Period-Index*",
+                "R-Tree",
+                "Interval-Tree",
+                "B-Tree"
+            ), ordered = T)
+        ) %>%
+        group_by(dataset_name, algorithm_name, algorithm_params) %>%
+        mutate(
+            batch = percent_rank(batch)
+        ) %>%
+        ggplot(aes(
+            x = batch, 
+            y = batch_insertions_per_second,
+            color = algorithm_name,
+            group = interaction(algorithm_name, algorithm_params)
+        )) +
+        geom_line() +
+        geom_hline(yintercept=0) +
+        geom_vline(xintercept=0) +
+        scale_y_log10() +
+        scale_x_continuous(labels = scales::percent_format()) +
+        scale_color_tableau(name = "") +
+        facet_wrap(vars(dataset_name), ncol = 2, scales="fixed") +
+        labs(
+            x = "Dataset fraction",
+            y = "Insertions per second"
+        ) +
+        theme_paper() +
+        theme(
+            legend.position = "top"
+        )
+
 }

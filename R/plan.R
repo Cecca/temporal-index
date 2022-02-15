@@ -9,14 +9,6 @@ real_sizes <- tribble(
   "MimicIII", 4134909
 )
 
-# TODO:
-# - [x] distribution of start times and durations for the real world datasets
-# - [x] best configurations, also as csv
-# - [x] best configuration latex table
-# - [x] scalability data and plots
-# - [x] parameter dependency plots
-# - [x] query focus plots
-
 plan <- drake_plan(
   # The best configuration for each algorithm
   best_batch = target({
@@ -137,6 +129,22 @@ plan <- drake_plan(
     ),
 
   ######################################################################
+  # Insertions performance
+  data_insertions = {
+    file_in("temporal-index-results.sqlite")
+    table_insertions()
+  },
+
+  figure_insertions = data_insertions %>%
+    plot_insertions() %>%
+    save_png(
+      "paper/images/insertions.png",
+      width = 8,
+      height = 4
+    ),
+
+
+  ######################################################################
   # Running example to be used in the paper
   query_range =
     interval(
@@ -160,31 +168,17 @@ plan <- drake_plan(
     dev.off()
   },
 
-  # latex_running_example = data_running_example %>%
-  #   latex_example() %>%
-  #   write_file(file_out("paper/example-table.tex")),
-
   figure_running_example_plane = {
-    # tikzDevice::tikz(
-    #   file = file_out("paper/example-plane.tex"),
-    #   width = 3.3, height = 2.5
-    # )
     plot_running_example_mimic(
       query_range, query_duration
     )
-    # dev.off()
     ggsave(file_out("paper/images/example-plane.pdf"), width = 3.3, height = 2.5, dpi = 300)
   },
   figure_running_example_grid = {
-    # tikzDevice::tikz(
-    #   file = file_out("paper/example-grid.tex"),
-    #   width = 3.3, height = 2.5
-    # )
     plot_running_example_mimic(
       query_range, query_duration,
       grid = TRUE
     )
-    # dev.off()
     ggsave(file_out("paper/images/example-grid.pdf"), width = 3.3, height = 2.5, dpi = 300)
   },
 )
