@@ -1,0 +1,242 @@
+---
+title: "Indexing Temporal Relations for Range-Duration Queries"
+subtitle: "Supplemental material"
+author:
+  - Matteo Ceccarello <mceccarello@unibz.it>
+  - Anton Dignös <dignoes@inf.unibz.it>
+  - Johann Gamper <gamper@inf.unibz.it>
+  - Christina Khnaisser <christina.khnaisser@usherbrooke.ca>
+execute:
+  echo: false
+format:
+  html:
+    self-contained: true
+---
+
+```{css}
+.plot {
+  font-size: 12pt;
+}
+```
+
+```{r setup, echo=F, message=F, warning=F}
+library(tidyverse)
+library(kableExtra)
+library(units)
+data <- read_csv("best.csv") %>%
+  filter(
+    dataset_name %in% c("UZ", "Flight", "Webkit", "MimicIII"),
+    time_constraint %in% c("UZ", "UU", "-"),
+    duration_constraint %in% c("U", "-")
+  ) %>%
+  select(
+      dataset_name, time_constraint,
+      duration_constraint, algorithm_name, qps
+  ) %>%
+  group_by(dataset_name, time_constraint, duration_constraint) %>%
+  distinct(algorithm_name, qps) %>%
+  replace_na(list(qps = 0)) %>%
+  mutate(
+      rank = dense_rank(desc(qps)),
+      rank_str = str_c(" {\\footnotesize(", rank, ")}"),
+      qps_num = qps,
+      qps = qps %>% scales::number(accuracy=1)
+  ) %>%
+  select(
+      dataset = dataset_name,
+      time = time_constraint,
+      duration = duration_constraint,
+      algorithm_name,
+      qps, qps_num
+  ) %>%
+  mutate(
+      algorithm_name = case_when(
+          algorithm_name == "BTree"          ~ "BTree",
+          algorithm_name == "grid-file"      ~ "GridFile",
+          algorithm_name == "period-index-*" ~ "Period-Index*",
+          algorithm_name == "interval-tree"  ~ "ITree",
+          algorithm_name == "rd-index-td"    ~ "RD-Index-td",
+          algorithm_name == "rd-index-dt"    ~ "RD-Index-dt",
+          algorithm_name == "RTree"          ~ "RTree",
+          TRUE ~ algorithm_name
+      ),
+      algorithm_name = factor(algorithm_name,
+          levels = c(
+              "RD-Index-td",
+              "RD-Index-dt",
+              "GridFile",
+              "Period-Index*",
+              "RTree",
+              "ITree",
+              "BTree"
+          ),
+          ordered = TRUE
+      )
+  ) %>%
+  mutate(
+      query_type = case_when(
+          time == "UZ" && duration == "U" ~ "qrd",
+          time == "UU" && duration == "U" ~ "qrd",
+          time == "-" && duration == "U"  ~ "qdo",
+          time == "UZ" && duration == "-" ~ "qro",
+          time == "UU" && duration == "-" ~ "qro",
+          T ~ "unknown"
+      ),
+      query_type = factor(query_type, levels = c("qro", "qdo", "qrd"), ordered = T)
+  ) %>%
+  ungroup() %>%
+  select(
+      dataset,
+      query = query_type,
+      algorithm_name,
+      qps, qps_num
+  ) %>%
+  arrange(algorithm_name)
+
+ojs_define(data = select(data, dataset, query, algorithm_name, qps_num) %>%
+  pivot_wider(names_from=query, values_from=qps_num))
+```
+
+This document provides supplemental information on the experimental evaluation.
+
+## Mixed-workload queries
+
+The paper reports on the performance of various index structures for uniform workload queries, i.e. range-only queries, duration-only queries, or range-duration queries.
+
+```{r}
+#| tbl-cap: "Table 1, as reported in the paper"
+#| tbl-cap-location: top
+#| column: screen-inset
+
+data %>% 
+  select(dataset, query, algorithm_name, qps) %>%
+  pivot_wider(
+      names_from = "algorithm_name",
+      values_from = "qps"
+  ) %>%
+  mutate(
+      dataset = case_when(
+          dataset == "UZ" ~ "Random",
+          TRUE ~ dataset
+      ),
+      dataset = factor(dataset,
+          levels = c("Random", "Flight", "Webkit", "MimicIII"),
+          ordered = TRUE
+      )
+  ) %>%
+  arrange(dataset, query) %>%
+  kbl(align="r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = T, font_size = 14)
+
+```
+
+A natural question is: how does the performance change when these three types of queries are mixed together?
+Using data from the above table we can estimate performance figures for mixed workloads.
+In particular, the inverse of the throughputs reported in the above table are the average running time of each specific type of query.
+Taking the inverse of the weighted average (where weights are the fraction of queries of each type) is the throughput of the mixed workload:
+$$
+QPS_{mixed} =
+\frac{1}{
+  f_{ro} / QPS_{ro} +
+  f_{do} / QPS_{do} +
+  f_{rd} / QPS_{rd}
+}
+$$
+where $f_{ro}$ is the fraction of range only queries in the workload,
+$f_{do}$ is the fraction of duration only queries in the workload,
+and $f_{rd}$ is the fraction of range-duration queries.
+
+Using the sliders below, we can change the proportion of the three types of queries.
+
+:::{.column-margin}
+Setting any of the three values to 1 will give the results also reported in the table above.
+:::
+
+```{ojs}
+import { aq, op } from '@uwdata/arquero'
+viewof range_only_frac = Inputs.range(
+  [0, 1],
+  {value: 1, step: 0.01, label: "Fraction of range only queries:"}
+)
+viewof duration_only_frac = Inputs.range(
+  [0, 1 - range_only_frac],
+  {value: 0, step: 0.01, label: "Fraction of duration only queries:"}
+)
+range_duration_frac = 1.0 - range_only_frac - duration_only_frac
+html`<span>Range-duration queries: ${range_duration_frac.toFixed(2)}</span>`
+```
+
+```{ojs}
+computed = aq.table(data)
+  .params({range_only: range_only_frac, duration_only: duration_only_frac, range_duration: range_duration_frac})
+  .derive({
+    qps: (d, $) => 1 / ($.range_only / d.qro + $.duration_only / d.qdo + $.range_duration / d.qrd)
+  })
+bestperf = computed
+  .groupby('dataset')
+  .rollup({
+    maxqps: op.max('qps')
+  })
+normalized = computed.join(bestperf)
+  .derive({
+    normqps: d => d.qps / d.maxqps
+  })
+```
+
+The following plot reports the estimated throughput corresponding to the workload selected above.
+The bars lenght is rescaled to the best performance, so that a bar with length 1 corresponds to the best performance and that the plot spans the same domain for all datasets.
+The numbers beside each bar report the estimated queries per second.
+
+```{ojs}
+//| column: page
+Plot.plot({
+  grid: false,
+  width: 1200,
+  height: 1200 / 1.5,
+  marginRight: 190,
+  marginLeft: 150,
+  x: {
+    grid: true,
+    label: "Queries per second"
+  },
+  y: {
+    grid: false,
+    label: "Algorithm"
+  },
+  facet: {
+    data: normalized,
+    y: "dataset",
+    marginRight: 90
+  },
+  color: {
+    domain: [true, false],
+    range: ["orange", "gray"]
+  },
+  marks: [
+    Plot.barX(
+      normalized,
+      {
+        y: "algorithm_name", 
+        x: "normqps",
+        fill: d => d.algorithm_name == "RD-Index-dt" || d.algorithm_name == "RD-Index-td"
+      }
+    ),
+    Plot.text(
+      normalized,
+      {
+        x: "normqps",
+        y: "algorithm_name",
+        text: d => d.qps.toFixed(0),
+        textAnchor: "start",
+        dx: "1em",
+        fill: "black"
+      }
+    )
+  ]
+})
+```
+
+Observe that, as long as there are no duration-only queries in the workload, i.e. when we only have range and range-duration queries,
+our index structure `RD-Index` is always the best performing one.
+
+When duration only queries are mixed into the workload, each dataset has a specific threshold of duration only queries such that the throughput of `RD-Index` is better than other index structures.
