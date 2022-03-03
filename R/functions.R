@@ -667,3 +667,11 @@ plot_top_query_times <- function(querystats) {
     coord_flip() +
     theme_tufte()
 }
+
+simulate_workload <- function(data, frac_rd = 0, frac_dur = 0.5, frac_range = 0.5) {
+  assertthat::assert_that(frac_rd + frac_dur + frac_range == 1.0)
+  data %>%
+    mutate(
+      qps = 1 / (frac_rd / qrd + frac_dur / qdo + frac_range / qro)
+    )
+}

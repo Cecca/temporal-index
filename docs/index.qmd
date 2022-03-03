@@ -13,6 +13,9 @@ format:
     self-contained: true
 ---
 
+This document complements the experimental results of the paper. 
+In particular, in this document we provide interactive plots to explore the behavior of different index structures on mixed query workloads.
+
 ```{css}
 .plot {
   font-size: 12pt;
@@ -96,8 +99,6 @@ data <- read_csv("best.csv") %>%
 ojs_define(data = select(data, dataset, query, algorithm_name, qps_num) %>%
   pivot_wider(names_from=query, values_from=qps_num))
 ```
-
-This document provides supplemental information on the experimental evaluation.
 
 ## Mixed-workload queries
 

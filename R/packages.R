@@ -18,4 +18,5 @@ suppressPackageStartupMessages({
     library(kableExtra)
     library(lubridate)
     library(patchwork)
+    library(ggrepel)
 })

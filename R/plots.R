@@ -8,6 +8,18 @@ theme_paper <- function() {
     )
 }
 
+scale_color_algorithm <- function() {
+    scale_color_manual(values=c(
+        "RD-index-td"    = "#e49444",
+        "RD-index-dt"    = "#d1615d",
+        "Grid-File"      = "#e7ca60",
+        "Period-Index*"  = "#a87c9f",
+        "R-Tree"         = "#6a9f58",
+        "Interval-Tree"  = "#85b6b2",
+        "B-Tree"         = "#5778a4"
+    ))
+}
+
 plot_scalability <- function(data_scalability) {
     data_scalability <- data_scalability %>%
         mutate(
@@ -869,7 +881,7 @@ plot_insertions <- function(data_insertions) {
         geom_vline(xintercept=0) +
         scale_y_log10() +
         scale_x_continuous(labels = scales::percent_format()) +
-        scale_color_tableau(name = "") +
+        scale_color_algorithm() +
         facet_wrap(vars(dataset_name), ncol = 2, scales="fixed") +
         labs(
             x = "Dataset fraction",
@@ -880,4 +892,41 @@ plot_insertions <- function(data_insertions) {
             legend.position = "top"
         )
 
+}
+
+plot_simulated_tradeoff <- function(simulated_tradeoff) {
+    breakpoints <- simulated_tradeoff %>%
+        filter(algorithm %in% c("RD-index-dt", "B-Tree")) %>%
+        select(dataset, algorithm, qps, frac_dur) %>%
+        pivot_wider(names_from=algorithm, values_from=qps) %>%
+        group_by(dataset) %>%
+        filter(`RD-index-dt` > `B-Tree`) %>%
+        slice_max(frac_dur)
+
+    simulated_tradeoff %>% 
+        ggplot(aes(frac_dur, qps, color=algorithm)) + 
+        geom_line() +
+        geom_text_repel(
+            aes(x = frac_dur, y=`RD-index-dt`, label = frac_dur),
+            data=breakpoints, 
+            inherit.aes=F,
+            box.padding = 0.5, 
+            max.overlaps = 0,
+            nudge_x = -0.15,
+            nudge_y = 1000,
+            size = 3,
+            segment.size = 0.2
+        ) +
+        scale_y_log10() + 
+        scale_color_algorithm() +
+        labs(
+            x = "Fraction of duration queries",
+            y = "Queries per second"
+        ) +
+        facet_wrap(vars(dataset), ncol=4, scales="free_y") +
+        theme_paper() +
+        theme(
+            legend.position = "bottom",
+            panel.border = element_rect(fill=NA)
+        )
 }

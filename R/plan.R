@@ -16,6 +16,14 @@ plan <- drake_plan(
     table_best()
   }),
 
+  # Same data than in best_batch, but in wide format
+  best_wide = target({
+    get_best_wide(best_batch)
+  }),
+
+  simulated_tradeoff_do_ro = get_simulated_tradeoff_do_ro(best_wide),
+  simulated_tradeoff_do_rd = get_simulated_tradeoff_do_rd(best_wide),
+
   # Format the table to a latex file
   latex_batch = best_batch %>%
     filter(
@@ -127,6 +135,33 @@ plan <- drake_plan(
       width = 4,
       height = 4
     ),
+
+  figure_simulated_workload_do_ro = simulated_tradeoff_do_ro %>%
+    plot_simulated_tradeoff() %>%
+    save_png(
+      "paper/images/simulated_tradeoff_do_ro.png",
+      width = 8,
+      height = 3
+    ),
+  figure_simulated_workload_do_rd = simulated_tradeoff_do_rd %>%
+    plot_simulated_tradeoff() %>%
+    save_png(
+      "paper/images/simulated_tradeoff_do_rd.png",
+      width = 8,
+      height = 3
+    ),
+  figure_simulated_workload = {
+    p1 <- simulated_tradeoff_do_ro %>% plot_simulated_tradeoff()
+    p2 <- simulated_tradeoff_do_rd %>% plot_simulated_tradeoff()
+    p <- (p1 / p2 / patchwork::guide_area()) + plot_layout(guides = "collect")
+    save_png(
+      p,
+      "paper/images/simulated_tradeoff.png",
+      width = 8,
+      height = 5
+    )
+  },
+
 
   ######################################################################
   # Insertions performance

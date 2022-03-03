@@ -408,3 +408,106 @@ table_running_mimic <- function(query_range, query_duration) {
     ) %>%
     filter(highlighted)
 }
+
+get_best_wide <- function(best_batch) {
+  best_batch %>%
+    filter(
+      dataset_name %in% c("UZ", "Flight", "Webkit", "MimicIII"),
+      time_constraint %in% c("UZ", "UU", "-"),
+      duration_constraint %in% c("U", "-")
+    ) %>%
+    ungroup() %>%
+    select(
+        dataset_name, time_constraint,
+        duration_constraint, algorithm_name, qps
+    ) %>%
+    group_by(dataset_name, time_constraint, duration_constraint) %>%
+    distinct(algorithm_name, qps) %>%
+    replace_na(list(qps = 0)) %>%
+    mutate(
+        qps = qps %>% drop_units(),
+        rank = dense_rank(desc(qps)),
+    ) %>%
+    mutate(
+        algorithm_name = case_when(
+            algorithm_name == "BTree" ~ "B-Tree",
+            algorithm_name == "grid-file" ~ "Grid-File",
+            algorithm_name == "period-index-*" ~ "Period-Index*",
+            algorithm_name == "interval-tree" ~ "Interval-Tree",
+            algorithm_name == "rd-index-td" ~ "RD-index-td",
+            algorithm_name == "rd-index-dt" ~ "RD-index-dt",
+            algorithm_name == "RTree" ~ "R-Tree",
+            TRUE ~ algorithm_name
+        ),
+        algorithm_name = factor(algorithm_name,
+            levels = c(
+                "RD-index-td",
+                "RD-index-dt",
+                "Grid-File",
+                "Period-Index*",
+                "R-Tree",
+                "Interval-Tree",
+                "B-Tree"
+            ),
+            ordered = TRUE
+        )
+    ) %>%
+    arrange(algorithm_name) %>%
+    select(
+        dataset = dataset_name,
+        time = time_constraint,
+        duration = duration_constraint,
+        algorithm_name,
+        qps
+    ) %>%
+    mutate(
+        query_type = case_when(
+            time == "UZ" && duration == "U" ~ "qrd",
+            time == "UU" && duration == "U" ~ "qrd",
+            time == "-" && duration == "U"  ~ "qdo",
+            time == "UZ" && duration == "-" ~ "qro",
+            time == "UU" && duration == "-" ~ "qro",
+            T ~ "unknown"
+        ),
+        query_type = factor(query_type, levels = c("qro", "qdo", "qrd"), ordered = T)
+    ) %>%
+    ungroup() %>%
+    select(
+        dataset,
+        query = query_type,
+        algorithm = algorithm_name,
+        qps
+    ) %>%
+    pivot_wider(
+        names_from = "query",
+        values_from = "qps"
+    ) %>%
+    mutate(
+        dataset = case_when(
+            dataset == "UZ" ~ "Random",
+            TRUE ~ dataset
+        ),
+        dataset = factor(dataset,
+            levels = c("Random", "Flight", "Webkit", "MimicIII"),
+            ordered = TRUE
+        )
+    ) %>%
+    arrange(dataset, algorithm)
+}
+
+# Mixes duration only and range only queries
+get_simulated_tradeoff_do_ro <- function(best_wide) {
+  best_wide %>% 
+    mutate(frac_dur = list(0:100/100)) %>% 
+    unnest(cols = frac_dur) %>% 
+    mutate(qps = 1 / ((1-frac_dur) / qro + frac_dur / qdo))
+}
+
+# Mixes range-duration and duration-only queries
+get_simulated_tradeoff_do_rd <- function(best_wide) {
+  best_wide %>% 
+    mutate(frac_dur = list(0:100/100)) %>% 
+    unnest(cols = frac_dur) %>% 
+    mutate(qps = 1 / ((1-frac_dur) / qrd + frac_dur / qdo))
+}
+ 
