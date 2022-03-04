@@ -894,20 +894,20 @@ plot_insertions <- function(data_insertions) {
 
 }
 
-plot_simulated_tradeoff <- function(simulated_tradeoff) {
+plot_simulated_tradeoff <- function(simulated_tradeoff, col = frac_dur, xlab = "Fraction of duration queries") {
     breakpoints <- simulated_tradeoff %>%
         filter(algorithm %in% c("RD-index-dt", "B-Tree")) %>%
-        select(dataset, algorithm, qps, frac_dur) %>%
+        select(dataset, algorithm, qps, {{ col }}) %>%
         pivot_wider(names_from=algorithm, values_from=qps) %>%
         group_by(dataset) %>%
         filter(`RD-index-dt` > `B-Tree`) %>%
-        slice_max(frac_dur)
+        slice_max({{ col }})
 
     simulated_tradeoff %>% 
-        ggplot(aes(frac_dur, qps, color=algorithm)) + 
+        ggplot(aes({{ col }}, qps, color=algorithm)) + 
         geom_line() +
         geom_text_repel(
-            aes(x = frac_dur, y=`RD-index-dt`, label = frac_dur),
+            aes(x = {{ col }}, y=`RD-index-dt`, label = {{ col }}),
             data=breakpoints, 
             inherit.aes=F,
             box.padding = 0.5, 
@@ -920,7 +920,7 @@ plot_simulated_tradeoff <- function(simulated_tradeoff) {
         scale_y_log10() + 
         scale_color_algorithm() +
         labs(
-            x = "Fraction of duration queries",
+            x = xlab,
             y = "Queries per second"
         ) +
         facet_wrap(vars(dataset), ncol=4, scales="free_y") +
@@ -929,4 +929,42 @@ plot_simulated_tradeoff <- function(simulated_tradeoff) {
             legend.position = "bottom",
             panel.border = element_rect(fill=NA)
         )
+}
+
+plot_tradeoff_tern_all <- function(simulated_tradeoff_tern) {
+    simulated_tradeoff_tern %>%
+        group_by(dataset) %>%
+        mutate(
+            rank = ntile(qps, n = 100)
+        ) %>%
+        ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = rank)) +
+        geom_point(size = 0.2) +
+        scale_color_viridis_c() +
+        facet_grid(vars(algorithm), vars(dataset))
+}
+
+plot_tradeoff_tern_algo <- function(simulated_tradeoff_tern) {
+    simulated_tradeoff_tern %>%
+        group_by(dataset, frac_ro, frac_do, frac_rd) %>%
+        slice_max(qps, n=1) %>%
+        ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = algorithm)) +
+        geom_point(size = 0.1) +
+        scale_color_algorithm() +
+        facet_wrap(vars(dataset), ncol=4)
+
+    # simulated_tradeoff_tern %>%
+    #     filter(algorithm != "RD-index-dt") %>%
+    #     group_by(dataset, frac_ro, frac_do, frac_rd) %>%
+    #     slice_max(qps, n=2) %>%
+    #     mutate(
+    #         algorithm = if_else(algorithm == "RD-index-td", "ours", "other")
+    #     ) %>%
+    #     select(dataset, algorithm, frac_ro, frac_do, frac_rd, qps) %>%
+    #     pivot_wider(names_from=algorithm, values_from=qps, values_fn=mean) %>%
+    #     group_by(dataset) %>%
+    #     mutate(relative = ours / other, n=100) %>% view()
+    #     ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = relative)) +
+    #     geom_point(size = 0.2) +
+    #     scale_color_continuous_diverging(mid = 1) +
+    #     facet_wrap(vars(dataset), ncol=4)
 }

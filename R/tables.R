@@ -510,4 +510,23 @@ get_simulated_tradeoff_do_rd <- function(best_wide) {
     unnest(cols = frac_dur) %>% 
     mutate(qps = 1 / ((1-frac_dur) / qrd + frac_dur / qdo))
 }
+
+# Mixes range-duration and range-only queries
+get_simulated_tradeoff_ro_rd <- function(best_wide) {
+  best_wide %>% 
+    mutate(frac_ro = list(0:100/100)) %>% 
+    unnest(cols = frac_ro) %>% 
+    mutate(qps = 1 / ((1-frac_ro) / qrd + frac_ro / qro))
+}
+
+get_simulated_tradeoff_tern <- function(best_wide) {
+  best_wide %>% 
+    mutate(fracs = list(expand.grid(frac_ro =0:100/100, frac_do =0:100/100))) %>% 
+    unnest(cols = fracs) %>%
+    mutate(frac_rd = 1 - frac_ro - frac_do) %>%
+    filter(frac_rd >= 0) %>%
+    mutate(qps = 1 / (frac_rd / qrd + frac_ro / qro + frac_do / qdo))
+}
+ 
+
  

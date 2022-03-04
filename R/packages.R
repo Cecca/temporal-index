@@ -19,4 +19,5 @@ suppressPackageStartupMessages({
     library(lubridate)
     library(patchwork)
     library(ggrepel)
+    library(ggtern)
 })
