@@ -949,22 +949,20 @@ plot_tradeoff_tern_algo <- function(simulated_tradeoff_tern) {
         slice_max(qps, n=1) %>%
         ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = algorithm)) +
         geom_point(size = 0.1) +
+        guides(colour = guide_legend(override.aes = list(size=3))) +
         scale_color_algorithm() +
-        facet_wrap(vars(dataset), ncol=4)
+        facet_wrap(vars(dataset), ncol=4) +
+        labs(
+            x = "R",
+            y = "D",
+            z = "RD",
+            color = "Fastest index"
+        ) +
+        theme_paper() +
+        theme(
+            legend.position = "bottom",
+            panel.spacing = unit(10, "mm"),
+            axis.title = element_text(size = 8)
+        )
 
-    # simulated_tradeoff_tern %>%
-    #     filter(algorithm != "RD-index-dt") %>%
-    #     group_by(dataset, frac_ro, frac_do, frac_rd) %>%
-    #     slice_max(qps, n=2) %>%
-    #     mutate(
-    #         algorithm = if_else(algorithm == "RD-index-td", "ours", "other")
-    #     ) %>%
-    #     select(dataset, algorithm, frac_ro, frac_do, frac_rd, qps) %>%
-    #     pivot_wider(names_from=algorithm, values_from=qps, values_fn=mean) %>%
-    #     group_by(dataset) %>%
-    #     mutate(relative = ours / other, n=100) %>% view()
-    #     ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = relative)) +
-    #     geom_point(size = 0.2) +
-    #     scale_color_continuous_diverging(mid = 1) +
-    #     facet_wrap(vars(dataset), ncol=4)
 }

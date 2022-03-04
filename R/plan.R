@@ -1,4 +1,4 @@
-install_symbolic_unit("records")
+# install_symbolic_unit("records")
 Sys.setlocale("LC_ALL", "en_US")
 
 real_sizes <- tribble(
@@ -25,6 +25,14 @@ plan <- drake_plan(
   simulated_tradeoff_do_rd = get_simulated_tradeoff_do_rd(best_wide),
   simulated_tradeoff_ro_rd = get_simulated_tradeoff_ro_rd(best_wide),
   simulated_tradeoff_tern = get_simulated_tradeoff_tern(best_wide),
+  simulated_tradeoff_tern_csv = write_csv(simulated_tradeoff_tern, "docs/tradeoffs.csv"),
+  simulated_tradeoff_tern_best = simulated_tradeoff_tern %>%
+    group_by(dataset, frac_ro, frac_rd, frac_do) %>%
+    slice_max(qps) %>%
+    ungroup() %>%
+    count(dataset, algorithm) %>%
+    group_by(dataset) %>%
+    mutate(frac = n / sum(n)),
 
   # Format the table to a latex file
   latex_batch = best_batch %>%
@@ -172,13 +180,13 @@ plan <- drake_plan(
       width = 8,
       height = 16
     ),
-  # figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
-  #   plot_tradeoff_tern_algo() %>%
-  #   save_png(
-  #     "paper/images/tradeoff_algo.png",
-  #     width = 8,
-  #     height = 16
-  #   ),
+  figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
+    plot_tradeoff_tern_algo() %>%
+    save_png(
+      "paper/images/tradeoff_algo.png",
+      width = 8,
+      height = 3
+    ),
 
 
   ######################################################################

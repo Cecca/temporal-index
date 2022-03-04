@@ -520,12 +520,15 @@ get_simulated_tradeoff_ro_rd <- function(best_wide) {
 }
 
 get_simulated_tradeoff_tern <- function(best_wide) {
+  n <- 100
   best_wide %>% 
-    mutate(fracs = list(expand.grid(frac_ro =0:100/100, frac_do =0:100/100))) %>% 
+    mutate(fracs = list(expand.grid(frac_ro =0:n/n, frac_do =0:n/n))) %>% 
     unnest(cols = fracs) %>%
     mutate(frac_rd = 1 - frac_ro - frac_do) %>%
-    filter(frac_rd >= 0) %>%
-    mutate(qps = 1 / (frac_rd / qrd + frac_ro / qro + frac_do / qdo))
+    filter(frac_rd >= 0, abs(frac_rd + frac_ro + frac_do - 1) <= 0.0001) %>%
+    mutate(
+      qps = 1 / (frac_rd / qrd + frac_ro / qro + frac_do / qdo)
+    )
 }
  
 
