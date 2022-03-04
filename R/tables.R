@@ -525,6 +525,7 @@ get_simulated_tradeoff_tern <- function(best_wide) {
     mutate(fracs = list(expand.grid(frac_ro =0:n/n, frac_do =0:n/n))) %>% 
     unnest(cols = fracs) %>%
     mutate(frac_rd = 1 - frac_ro - frac_do) %>%
+    mutate(frac_rd = if_else(abs(frac_rd - 0) <= 0.00001, 0, frac_rd)) %>%
     filter(frac_rd >= 0, abs(frac_rd + frac_ro + frac_do - 1) <= 0.0001) %>%
     mutate(
       qps = 1 / (frac_rd / qrd + frac_ro / qro + frac_do / qdo)

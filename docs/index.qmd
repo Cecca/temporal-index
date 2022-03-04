@@ -20,6 +20,11 @@ In particular, in this document we provide interactive plots to explore the beha
 .plot {
   font-size: 12pt;
 }
+thead>tr {
+  border-bottom-color: rgb(204, 204, 204);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
 ```
 
 ```{r setup, echo=F, message=F, warning=F}
@@ -149,14 +154,16 @@ $f_{do}$ is the fraction of duration only queries in the workload,
 and $f_{rd}$ is the fraction of range-duration queries.
 
 ```{ojs}
-import { aq, op } from '@uwdata/arquero'
-import { ternaryPlot, barycentric } from "@julesblm/d3-ternary"
+// import { aq, op } from '@uwdata/arquero'
+// import { ternaryPlot, barycentric } from "@julesblm/d3-ternary"
+aq = require('arquero');
 d3 = require("d3@7")
+d3ternary = require("d3-ternary@2")
 ```
 
 Using the following radio buttons, we can select on which dataset to focus on.
 ```{ojs}
-viewof datasetName = Inputs.radio(["Random", "Flight", "Webkit", "MimicIII"])
+viewof datasetName = Inputs.radio(["Random", "Flight", "Webkit", "MimicIII"], {value: "Random", label: "Dataset"})
 ```
 
 ```{ojs}
@@ -233,7 +240,7 @@ axisLabels = (g, labels) =>
 
 ```{ojs}
 valuesTable = (labels, plot) => html`
-<table style="height:50px">
+<table style="height:50px; width:100%">
   <thead>
     <tr style="width:33%">${labels.map((label) => `<th>${label}</th>`)}</tr>
   </thead>
@@ -254,7 +261,7 @@ valuesTable(['Range only', 'Duration only', 'Range-duration'], bestMap)
 ::: {layout-ncol=2 .column-page}
 ```{ojs}
 viewof bestMap = {
-  const height = 400;
+  const height = 350;
   const width = 500;
   const radius = Math.min(width, height) / 2;
   // to keep the triangle centered
@@ -283,11 +290,11 @@ viewof bestMap = {
   }
 
   // Define transformer in ternary coordinates
-  const normalBarycentric = barycentric()
+  const normalBarycentric = d3ternary.barycentric()
     .a(d => d.frac_ro)
     .b(d => d.frac_do)
     .c(d => d.frac_rd);
-  const ternary = ternaryPlot(normalBarycentric)
+  const ternary = d3ternary.ternaryPlot(normalBarycentric)
     .radius(radius)
     .labels(["Range only", "Duration only", "Range-Duration"]);
 
