@@ -940,7 +940,19 @@ plot_tradeoff_tern_all <- function(simulated_tradeoff_tern) {
         ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = rank)) +
         geom_point(size = 0.2) +
         scale_color_viridis_c() +
-        facet_grid(vars(algorithm), vars(dataset))
+        facet_grid(vars(algorithm), vars(dataset)) +
+        labs(
+            x = "R",
+            y = "D",
+            z = "RD",
+            color = "Throughput percentile (dataset-wise)"
+        ) +
+        theme_paper() +
+        theme(
+            legend.position = "bottom",
+            panel.spacing = unit(5, "mm"),
+            axis.title = element_text(size = 8)
+        )
 }
 
 plot_tradeoff_tern_algo <- function(simulated_tradeoff_tern) {

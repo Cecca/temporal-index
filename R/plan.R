@@ -178,7 +178,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/tradeoff_all.png",
       width = 8,
-      height = 16
+      height = 10
     ),
   figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
     plot_tradeoff_tern_algo() %>%
