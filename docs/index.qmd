@@ -8,6 +8,8 @@ author:
   - Christina Khnaisser <christina.khnaisser@usherbrooke.ca>
 execute:
   echo: false
+reference-location: margin
+citation-location: margin
 format:
   html:
     self-contained: true
@@ -162,9 +164,18 @@ d3ternary = require("d3-ternary@2")
 ```
 
 Using the following radio buttons, we can select on which dataset to focus on.
+
 ```{ojs}
 viewof datasetName = Inputs.radio(["Random", "Flight", "Webkit", "MimicIII"], {value: "Random", label: "Dataset"})
 ```
+
+Then, the ternary plot below allows to select different workloads by hovering the mouse on top of it.
+Towards the top corner we have workloads composed for the most part by range only queries.
+The bottom left corner is for workloads with a majority of duration only queries.
+In the bottom right corner we have workloads with mainly range-duration queries.
+The table above the plot reports the precise composition of the select workload.
+At the right of the ternary plot, a bar chart displays the performance attained by the different index structures on the selected workload, in queries per second.
+The ternary plot area's itself is colored with the color of the best performing index in each particular point.
 
 ```{ojs}
 // Function to transform a triplet of number adding up to 1 into a triplet of integers adding up to 100
@@ -380,3 +391,16 @@ Plot.plot({
 });
 ```
 :::
+
+First and foremost, observe that for the majority of workloads on all datasets we have that one of the two variants of the RD-Index is the best performing data structure.
+This is true also when a considerable part of the workload is comprised of range-only or duration-only queries.
+
+On all datasets, when the vast majority of queries are duration-only queries, the best performing data structure is the B-Tree.
+The threshold of duration-only queries at which the B-Tree is the best varies from dataset to dataset, and depends also on how many range-duration queries are involved[^why-range-duration].
+In particular, for the `Random` the B-Tree has the best performance only when there are at most $\approx 37\%$ range-duration queries and no range-only queries.
+On `Flight`, with either $\ge 60\%$  duration-only and no range-only queries, or $76\%$ range-duration and $23\%$  duration-only queries, the B-Tree is the best data structure.
+On the other two datasets, the B-Tree outperforms the RD-Index only when the vast majority of queries are range-only.
+
+[^why-range-duration]: The B-Tree indexes only the duration dimension of intervals. Therefore, queries constraining only the range do not benefit from this index, but range-duration queries do, although not as much as duration-only queries.
+
+On `MimicIII`, when almost all the queries are range-only, the strictly best performing data structure is the Grid File. However, as can be seen by the bar chart, the RD-Index performs very similarly.
