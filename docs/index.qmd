@@ -96,8 +96,9 @@ data <- read_csv("best.csv") %>%
   ) %>%
   arrange(algorithm_name)
 
-ojs_define(data = select(data, dataset, query, algorithm_name, qps_num) %>%
-  pivot_wider(names_from=query, values_from=qps_num))
+# ojs_define(data = select(data, dataset, query, algorithm_name, qps_num) %>%
+#   pivot_wider(names_from=query, values_from=qps_num))
+# ojs_define(tradeoffs = read_csv("tradeoffs.csv"))
 ```
 
 ## Mixed-workload queries
@@ -147,97 +148,228 @@ where $f_{ro}$ is the fraction of range only queries in the workload,
 $f_{do}$ is the fraction of duration only queries in the workload,
 and $f_{rd}$ is the fraction of range-duration queries.
 
-Using the sliders below, we can change the proportion of the three types of queries.
-
-:::{.column-margin}
-Setting any of the three values to 1 will give the results also reported in the table above.
-:::
-
 ```{ojs}
 import { aq, op } from '@uwdata/arquero'
-viewof range_only_frac = Inputs.range(
-  [0, 1],
-  {value: 1, step: 0.01, label: "Fraction of range only queries:"}
-)
-viewof duration_only_frac = Inputs.range(
-  [0, 1 - range_only_frac],
-  {value: 0, step: 0.01, label: "Fraction of duration only queries:"}
-)
-range_duration_frac = 1.0 - range_only_frac - duration_only_frac
-html`<span>Range-duration queries: ${range_duration_frac.toFixed(2)}</span>`
+import { ternaryPlot, barycentric } from "@julesblm/d3-ternary"
+d3 = require("d3@7")
+```
+
+Using the following radio buttons, we can select on which dataset to focus on.
+```{ojs}
+viewof datasetName = Inputs.radio(["Random", "Flight", "Webkit", "MimicIII"])
 ```
 
 ```{ojs}
-computed = aq.table(data)
-  .params({range_only: range_only_frac, duration_only: duration_only_frac, range_duration: range_duration_frac})
-  .derive({
-    qps: (d, $) => 1 / ($.range_only / d.qro + $.duration_only / d.qdo + $.range_duration / d.qrd)
-  })
-bestperf = computed
-  .groupby('dataset')
-  .rollup({
-    maxqps: op.max('qps')
-  })
-normalized = computed.join(bestperf)
-  .derive({
-    normqps: d => d.qps / d.maxqps
-  })
+// Function to transform a triplet of number adding up to 1 into a triplet of integers adding up to 100
+function roundTriplet(triplet) {
+  const [x, y, z] = d3.map(triplet, x => Math.round(x * 100))
+  const excess = x + y + z - 100;
+  return [x, y, z - excess];
+}
 ```
 
-The following plot reports the estimated throughput corresponding to the workload selected above.
-The bars lenght is rescaled to the best performance, so that a bar with length 1 corresponds to the best performance and that the plot spans the same domain for all datasets.
-The numbers beside each bar report the estimated queries per second.
+```{ojs}
+// This is the table of all the performance and its tradeoffs
+// table = aq.table(tradeoffs)
+table = aq.loadCSV("tradeoffs.csv")
+```
 
 ```{ojs}
-//| column: page
+// This is the map holding the best index for each workload
+bestMapData = table.params({dataName: datasetName}).filter((d, $) => d.dataset == $.dataName)
+  .derive({
+    triplet: aq.escape(d => roundTriplet([d.frac_ro, d.frac_do, d.frac_rd]))
+  })
+  .groupby("dataset", "triplet")
+  .orderby(d => -d.qps)
+  .slice(0, 1)
+```
+
+```{ojs}
+algoDomain = [
+  "RD-index-td"   ,
+  "RD-index-dt"   ,
+  "Grid-File"     ,
+  "Period-Index*" ,
+  "R-Tree"        ,
+  "Interval-Tree" ,
+  "B-Tree"        
+];
+```
+
+```{ojs}
+// This is the subset of data that corresponds to the position under the mouse
+triplet = (bestMap != 0)? roundTriplet(bestMap.coords) : [0,0,0]; // Return the impossible triplet if a selection has yet to be made
+selectedSubset = d3.filter(table, 
+  d => d.dataset == datasetName &&
+    Math.round(d.frac_ro * 100) == triplet[0] && 
+    Math.round(d.frac_do * 100) == triplet[1] && 
+    Math.round(d.frac_rd * 100) == triplet[2])
+```
+
+```{ojs}
+axisLabels = (g, labels) =>
+  g
+    .selectAll("text")
+    .data(labels, d => d.label)
+    .join(
+      enter =>
+        enter
+          .append("text")
+          .attr("dy", (d, i) => (i === 0 ? "2em" : ".5em"))
+          .attr(
+            "transform",
+            (label, i) => `translate(${label.position})`
+          )
+          .attr("text-anchor", "middle")
+          .text(label => label.label),
+      update =>
+        update.attr(
+          "transform",
+          (label, i) => `translate(${label.position})`
+        )
+    )
+```
+
+```{ojs}
+valuesTable = (labels, plot) => html`
+<table style="height:50px">
+  <thead>
+    <tr style="width:33%">${labels.map((label) => `<th>${label}</th>`)}</tr>
+  </thead>
+  <tbody>
+    <tr>${
+      plot === 0
+        ? `<td colspan="3">
+            Hover your mouse over the triangle to select a workload
+          </td>`
+        : plot.coords.map(c => `<td>${d3.format(".0%")(c)}</td>`)
+    } </tr>
+  </tbody>
+</table>
+`
+valuesTable(['Range only', 'Duration only', 'Range-duration'], bestMap)
+```
+
+::: {layout-ncol=2 .column-page}
+```{ojs}
+viewof bestMap = {
+  const height = 400;
+  const width = 500;
+  const radius = Math.min(width, height) / 2;
+  // to keep the triangle centered
+  const yOffset = radius/4;
+  // Set up the chart space
+  const node = DOM.svg(width, height);
+  const svg = d3.select(node);
+  const chart = svg
+    .append("g")
+    .attr("transform", `translate(${width / 2} ${height / 2 + yOffset})`)
+    .on("mousemove", handleMouseMove);
+
+  const circle = chart.append("g");
+  
+  // Handler of mouse hover events. It stores the state
+  // underlying the mouse in the SVG node itself.
+  function handleMouseMove(d) {
+    const xy = d3.pointer(d);
+    const inverse = ternary.invert(xy);
+
+    node.dispatchEvent(new CustomEvent("input"), { bubbles: true });
+    node.value = {
+      coords: inverse,
+      data: d.target.__data__
+    };
+  }
+
+  // Define transformer in ternary coordinates
+  const normalBarycentric = barycentric()
+    .a(d => d.frac_ro)
+    .b(d => d.frac_do)
+    .c(d => d.frac_rd);
+  const ternary = ternaryPlot(normalBarycentric)
+    .radius(radius)
+    .labels(["Range only", "Duration only", "Range-Duration"]);
+
+  const axisLabelsGroups = chart
+    .append("g")
+    .attr("class", "axis-labels")
+    .append("g")
+    .attr("class", "labels")
+    .attr("font-size", 16);
+
+  axisLabelsGroups.call(axisLabels, ternary.axisLabels());
+  
+  // Add the ternary components to the data
+  const ternaryData = d3.map(bestMapData, (d) => {
+    const [x, y] = ternary(d);
+    return { x, y, ...d };
+  });
+
+  // border triangle
+  const trianglePath = chart
+    .append("path")
+    .attr("d", ternary.triangle())
+    .attr("fill", "transparent")
+    .attr("stroke", "black")
+    .attr("stroke-width", 6);
+
+  // Set up color scale
+  const color = d3.scaleOrdinal(d3.schemeTableau10)
+    .domain(algoDomain);
+
+  // Add the points
+  chart.append("g")
+    .selectAll("circle")
+    .data(ternaryData)
+    .join("circle")
+    .attr("r", 2)
+    .attr("cx", (d) => d.x)
+    .attr("cy", (d) => d.y)
+    .attr("fill", d => color(d.algorithm))
+    .attr("stroke", "none");
+
+  node.value = 0;
+
+  return svg.node();
+}
+```
+
+```{ojs}
 Plot.plot({
-  grid: false,
-  width: 1200,
-  height: 1200 / 1.5,
-  marginRight: 190,
-  marginLeft: 150,
+  width: 800,
+  height: 600,
   x: {
-    grid: true,
-    label: "Queries per second"
-  },
-  y: {
-    grid: false,
-    label: "Algorithm"
-  },
-  facet: {
-    data: normalized,
-    y: "dataset",
-    marginRight: 90
+    domain: d3.sort(selectedSubset, d => -d.qps).map(d => d.algorithm)
   },
   color: {
-    domain: [true, false],
-    range: ["orange", "gray"]
+    type: "categorical",
+    scheme: "tableau10",
+    domain: algoDomain
   },
+  marginLeft: 90,
+  marginTop: 90,
+  marginBottom: 50,
   marks: [
-    Plot.barX(
-      normalized,
+    Plot.barY(
+      selectedSubset,
       {
-        y: "algorithm_name", 
-        x: "normqps",
-        fill: d => d.algorithm_name == "RD-Index-dt" || d.algorithm_name == "RD-Index-td"
+        x: "algorithm",
+        y: "qps",
+        fill: "algorithm"
       }
     ),
     Plot.text(
-      normalized,
+      selectedSubset,
       {
-        x: "normqps",
-        y: "algorithm_name",
-        text: d => d.qps.toFixed(0),
-        textAnchor: "start",
-        dx: "1em",
-        fill: "black"
+        x: "algorithm",
+        y: "qps",
+        text: d => d3.format("d")(d.qps),
+        dy: -10
       }
-    )
+    ),
+    Plot.ruleY([0])
   ]
-})
+});
 ```
-
-Observe that, as long as there are no duration-only queries in the workload, i.e. when we only have range and range-duration queries,
-our index structure `RD-Index` is always the best performing one.
-
-When duration only queries are mixed into the workload, each dataset has a specific threshold of duration only queries such that the throughput of `RD-Index` is better than other index structures.
+:::
