@@ -404,3 +404,6 @@ On the other two datasets, the B-Tree outperforms the RD-Index only when the vas
 [^why-range-duration]: The B-Tree indexes only the duration dimension of intervals. Therefore, queries constraining only the range do not benefit from this index, but range-duration queries do, although not as much as duration-only queries.
 
 On `MimicIII`, when almost all the queries are range-only, the strictly best performing data structure is the Grid File. However, as can be seen by the bar chart, the RD-Index performs very similarly.
+
+Finally, observe that the performance of the RD-Index is rather robust to the choice of indexing order: moving the mouse on the ternary plot while observing the bar chart shows that the throughput of RD-Index-dt is similar to the throughput of RD-Index-td.
+
