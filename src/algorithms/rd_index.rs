@@ -136,6 +136,14 @@ impl Algorithm for RDIndex {
         "rd-index".to_owned()
     }
 
+    fn size(&self) -> usize {
+        if let Some(grid) = self.grid.as_ref() {
+            grid.len()
+        } else {
+            0
+        }
+    }
+
     fn parameters(&self) -> String {
         format!(
             "dimension_order={:?} page_size={}",
@@ -362,6 +370,7 @@ impl Grid {
     }
 
     pub fn insert(&mut self, interval: Interval, page_size: usize) {
+        let prev_size = self.len();
         match self {
             Grid::TimeDuration(grid) => {
                 assert!(!grid.values.is_empty());
@@ -402,6 +411,7 @@ impl Grid {
 
                 let column_size = grid.values[i].size;
                 if column_size + 1 > 2 * page_size * page_size && !grid.is_heavy(i) {
+                    // println!("Replacing column");
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
                     grid.replace(i, duration_columns(&mut intervals, page_size));
@@ -412,10 +422,12 @@ impl Grid {
 
                     let cell_size = column.values[j].len();
                     if cell_size + 1 > 2 * page_size && !column.is_heavy(j) {
+                        // println!("replacing cell");
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
                         column.replace(j, time_cells(&mut new_cells, page_size));
                     } else {
+                        // println!("Insert in place");
                         insert_by_end(&mut column.values[j], interval);
                     }
 
@@ -426,6 +438,7 @@ impl Grid {
                 debug_assert!(grid.size == grid.all_intervals().len());
             }
         }
+        debug_assert_eq!(self.len(), prev_size + 1);
     }
 
     pub fn remove(&mut self, interval: Interval, page_size: usize) {
@@ -522,15 +535,16 @@ fn insert_by_end(v: &mut Vec<Interval>, interval: Interval) {
     if iend >= v[v.len() - 1].end {
         // handle the simple and efficient case
         v.push(interval);
-    }
-    let mut pos = 0;
-    while pos < v.len() {
-        if iend < v[pos].end {
-            break;
+    } else {
+        let mut pos = 0;
+        while pos < v.len() {
+            if iend < v[pos].end {
+                break;
+            }
+            pos += 1;
         }
-        pos += 1;
+        v.insert(pos, interval);
     }
-    v.insert(pos, interval);
     debug_assert!(is_sorted_by(&v, |a, b| a.end <= b.end), "cell is {:?}", v);
 }
 

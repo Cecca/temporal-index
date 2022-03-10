@@ -23,6 +23,10 @@ impl Algorithm for RTreeIndex {
         "RTree".to_owned()
     }
 
+    fn size(&self) -> usize {
+        self.tree.size()
+    }
+
     fn parameters(&self) -> String {
         String::new()
     }

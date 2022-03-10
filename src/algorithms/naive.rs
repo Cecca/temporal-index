@@ -26,6 +26,10 @@ impl Algorithm for LinearScan {
         String::new()
     }
 
+    fn size(&self) -> usize {
+        todo!()
+    }
+
     fn version(&self) -> u8 {
         4
     }

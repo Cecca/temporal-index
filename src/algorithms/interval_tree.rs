@@ -113,6 +113,15 @@ impl Algorithm for IntervalTree {
     fn name(&self) -> String {
         String::from("interval-tree")
     }
+
+    fn size(&self) -> usize {
+        if let Some(root) = self.root.as_ref() {
+            root.size()
+        } else {
+            0
+        }
+    }
+
     fn parameters(&self) -> String {
         String::new()
     }
@@ -263,6 +272,17 @@ impl Node {
             left,
             right,
         }
+    }
+
+    fn size(&self) -> usize {
+        let mut s = self.upper.len();
+        if let Some(l) = self.left.as_ref() {
+            s += l.size()
+        }
+        if let Some(r) = self.right.as_ref() {
+            s += r.size();
+        }
+        s
     }
 
     fn insert(&mut self, interval: Interval) {

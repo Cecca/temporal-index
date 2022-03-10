@@ -173,6 +173,7 @@ pub trait Algorithm: std::fmt::Debug {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
+    fn size(&self) -> usize;
     fn index(&mut self, dataset: &[Interval]);
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder);
     /// Clears the index, freeing up space
@@ -258,6 +259,8 @@ pub trait Algorithm: std::fmt::Debug {
             pl.update(chunk.len() as u64);
         }
         pl.stop();
+        assert_eq!(self.size(), intervals.len());
+        info!("The index contain {} intervals", self.size());
         times
     }
 

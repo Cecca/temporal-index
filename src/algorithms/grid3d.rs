@@ -92,6 +92,12 @@ impl Algorithm for Grid3D {
     fn name(&self) -> String {
         String::from("grid3D")
     }
+
+    fn size(&self) -> usize {
+        todo!()
+    }
+
+
     fn parameters(&self) -> String {
         format!("n_buckets={}", self.num_buckets)
     }

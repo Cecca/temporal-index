@@ -368,6 +368,10 @@ impl Algorithm for PeriodIndex {
         String::from("period-index")
     }
 
+    fn size(&self) -> usize {
+        todo!()
+    }
+
     fn parameters(&self) -> String {
         format!(
             "n_buckets={} max_levels={}",
@@ -579,6 +583,10 @@ impl std::fmt::Debug for PeriodIndexStar {
 impl Algorithm for PeriodIndexStar {
     fn name(&self) -> String {
         String::from("period-index-*")
+    }
+
+    fn size(&self) -> usize {
+        todo!()
     }
 
     fn parameters(&self) -> String {

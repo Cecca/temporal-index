@@ -1,6 +1,6 @@
 ---
 
-- mode: 
+- mode: #Batch
     Insertion: 
       batch: 10000
   datasets:
@@ -21,9 +21,9 @@
                 scale: 1
 
   algorithms:
-    - RTree
+    - IntervalTree
     - BTree
-    - ITree
+    - RTree
     - RDIndex:
-        dimension_order: [DurationTime]
+        dimension_order: [TimeDuration]
         page_size: [200]

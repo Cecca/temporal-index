@@ -28,6 +28,10 @@ impl Algorithm for PeriodIndexPlusPlus {
         "period-index++".to_owned()
     }
 
+    fn size(&self) -> usize {
+        todo!()
+    }
+
     fn parameters(&self) -> String {
         format!("page_size={}", self.page_size)
     }

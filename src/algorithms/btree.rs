@@ -23,6 +23,9 @@ impl Algorithm for BTree {
     fn name(&self) -> String {
         String::from("BTree")
     }
+    fn size(&self) -> usize {
+        self.data.values().map(|bucket| bucket.len()).sum()
+    }
     fn parameters(&self) -> String {
         String::new()
     }

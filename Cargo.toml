@@ -36,3 +36,4 @@ vergen = "3"
 
 [profile.release]
 debug = false
+incremental = true

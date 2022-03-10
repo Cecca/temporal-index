@@ -131,6 +131,16 @@ impl Algorithm for GridFile {
         "grid-file".to_owned()
     }
 
+    fn size(&self) -> usize {
+        let mut s = 0;
+        for col in self.inner.iter() {
+            for cell in col.iter() {
+                s += cell.len();
+            }
+        }
+        s
+    }
+
     fn parameters(&self) -> String {
         format!("side_cells={}", self.side_cells)
     }

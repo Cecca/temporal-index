@@ -107,6 +107,9 @@ impl Algorithm for Grid {
     fn parameters(&self) -> String {
         format!("n_buckets={}", self.num_buckets)
     }
+    fn size(&self) -> usize {
+        todo!()
+    }
     fn version(&self) -> u8 {
         6
     }
