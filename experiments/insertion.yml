@@ -13,6 +13,20 @@
     - Flight
     - MimicIII
 
+    - Sorted:
+        base:
+          Random:
+            seed: [123]
+            n: [10000000]
+            start_times: [Uniform: { low: 1, high: 10000000 }]
+            durations: [Zipf: { n: 10000000, beta: 1 }]
+    - Sorted:
+        base: Webkit
+    - Sorted:
+        base: Flight
+    - Sorted:
+        base: MimicIII
+
   queries:
     # dummy queryset, in insertion experiments it is not actually used
     - Random:
