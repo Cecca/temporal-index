@@ -244,6 +244,51 @@ impl Dataset for RandomDatasetZipfAndUniform {
     }
 }
 
+/// Takes a base dataset, and sorts all its intervals by start time,
+/// presenting them in this order to any consumer
+#[derive(Debug)]
+pub struct SortedDataset {
+    base: Vec<Interval>,
+    base_name: String,
+    base_params: String,
+    base_version: u8
+}
+
+impl SortedDataset {
+    pub fn new(dataset: Rc<dyn Dataset>) -> Result<Self> {
+        let mut base = dataset.get()?;
+        base.sort_by_key(|interval| interval.start );
+        Ok(Self {
+            base, 
+            base_name: dataset.name(),
+            base_params: dataset.parameters(),
+            base_version: dataset.version(),
+        })
+    }
+}
+
+impl Dataset for SortedDataset {
+    fn name(&self) -> String {
+        format!("sorted-{}", self.base_name)
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "base={} base_params=[{}] base_version={}",
+            self.base_name, self.base_params, self.base_version
+        )
+    }
+
+    fn version(&self) -> u8 {
+        1
+    }
+
+    fn get(&self) -> Result<Vec<Interval>> {
+        Ok(self.base.clone())
+    }
+}
+
+
 /// Takes a base dataset, and repeats all its intervals
 /// shifted by multiples of the time span of the
 /// original dataset. Useful for building scalability

@@ -5,6 +5,8 @@
       batch: 10000
   datasets:
     - MimicIII
+    - Sorted:
+        base: MimicIII
 
   queries:
     # dummy queryset, in insertion experiments it is not actually used
@@ -21,9 +23,9 @@
                 scale: 1
 
   algorithms:
-    - IntervalTree
+    # - IntervalTree
     - BTree
-    - RTree
+    # - RTree
     - RDIndex:
         dimension_order: [TimeDuration]
         page_size: [200]

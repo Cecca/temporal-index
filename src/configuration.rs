@@ -168,6 +168,9 @@ pub enum DataConfiguration {
         separator: u8,
         has_header: bool,
     },
+    Sorted {
+        base: Box<DataConfiguration>,
+    },
     Reiterated {
         base: Box<DataConfiguration>,
         copies: usize,
@@ -196,6 +199,17 @@ impl DataConfiguration {
             Self::MimicIII => {
                 let d = Rc::new(MimicIIIDataset::from_upstream().unwrap()) as Rc<dyn Dataset>;
                 Box::new(Some(d).into_iter())
+            }
+            Self::Sorted { base } => {
+                let mut iter = base.datasets();
+                let dataset = iter.next().expect("Missing dataset");
+                assert!(
+                    iter.next().is_none(),
+                    "only a single dataset is supported here"
+                );
+                let sorted =
+                    SortedDataset::new(dataset).expect("error getting the dataset");
+                Box::new(Some(Rc::new(sorted) as Rc<dyn Dataset>).into_iter())
             }
             Self::Reiterated { base, copies } => {
                 let mut iter = base.datasets();
