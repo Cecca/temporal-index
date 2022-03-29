@@ -795,35 +795,35 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 color = "forestgreen",
                 linetype = "solid"
             ) +
-            geom_text(
-                data = columns,
-                mapping = aes(
-                    x = column_bound,
-                    label = strftime(column_bound, "%b, %d")
-                ),
-                y = maxduration - 0.3,
-                nudge_x = 3,
-                vjust = 1,
-                hjust = 1,
-                size = 2.5,
-                angle = 90,
-                inherit.aes = F
-            ) +
-            geom_text(
-                data = columns,
-                mapping = aes(
-                    x = column_bound,
-                    label = strftime(latest_end_time, "%b %d")
-                ),
-                y = maxduration - 0.5,
-                nudge_x = 20,
-                vjust = 1,
-                hjust = 1,
-                size = 2,
-                color = "gray40",
-                angle = 90,
-                inherit.aes = F
-            ) +
+            # geom_text(
+            #     data = columns,
+            #     mapping = aes(
+            #         x = column_bound,
+            #         label = strftime(column_bound, "%b, %d")
+            #     ),
+            #     y = maxduration + 9,
+            #     nudge_x = 3,
+            #     vjust = 1,
+            #     hjust = 0,
+            #     size = 2.5,
+            #     angle = 0,
+            #     inherit.aes = F
+            # ) +
+            # geom_text(
+            #     data = columns,
+            #     mapping = aes(
+            #         x = column_bound,
+            #         label = strftime(latest_end_time, "%b, %d")
+            #     ),
+            #     y = maxduration + 5,
+            #     nudge_x = 3,
+            #     vjust = 1,
+            #     hjust = 0,
+            #     size = 2.5,
+            #     color = "gray40",
+            #     angle = 0,
+            #     inherit.aes = F
+            # ) +
             geom_linerange(
                 data = cells,
                 mapping = aes(
@@ -836,6 +836,64 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 linetype = "solid",
                 inherit.aes = FALSE
             )
+
+        arrays <- ggplot(dataset, aes(start)) +
+            # geom_point(y = 0 +
+            geom_text(
+                data = columns,
+                mapping = aes(
+                    x = column_bound,
+                    label = strftime(column_bound, "%b, %d")
+                ),
+                y = 2,
+                nudge_x = 3,
+                vjust = 1,
+                hjust = 0,
+                size = 2.5,
+                angle = 0,
+                inherit.aes = F
+            ) +
+            geom_text(
+                data = columns,
+                mapping = aes(
+                    x = column_bound,
+                    label = strftime(latest_end_time, "%b, %d")
+                ),
+                y = 0,
+                nudge_x = 3,
+                vjust = 1,
+                hjust = 0,
+                size = 2.5,
+                color = "gray40",
+                angle = 0,
+                inherit.aes = F
+            ) +
+            geom_text(
+                label = "col_minstart:",
+                x = ymd('2016-01-01'),
+                y = 2,
+                data = function(d) {head(d, 1)},
+                nudge_x = -9,
+                vjust = 1,
+                hjust = 1,
+                size = 2.5,
+            ) +
+            geom_text(
+                label = "col_maxend:",
+                x = ymd('2016-01-01'),
+                y = 0,
+                data = function(d) {head(d, 1)},
+                color = "gray40",
+                nudge_x = -9,
+                vjust = 1,
+                hjust = 1,
+                size = 2.5,
+            ) +
+            scale_y_continuous(limits=c(-1, 2)) +
+            scale_x_date(date_labels = "%b", expand = expansion(mult=c(.05, .1))) +
+            coord_cartesian(clip="off") +
+            theme_void()
+        p <- patchwork::wrap_plots(arrays, p, ncol=1, heights = c(1, 7))
     }
     p
 }
