@@ -379,7 +379,7 @@ impl Grid {
                 let i = find_pos(&grid.min_start_times, |t| t <= interval.start);
 
                 let column_size = grid.values[i].size;
-                if column_size + 1 > 2 * page_size * page_size && !grid.is_heavy(i) {
+                if column_size + 1 > page_size * page_size && !grid.is_heavy(i) {
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
                     grid.replace(i, time_columns(&mut intervals, page_size));
@@ -389,7 +389,7 @@ impl Grid {
                     let j = find_pos(&column.min_durations, |d| d <= interval.duration());
 
                     let cell_size = column.values[j].len();
-                    if cell_size + 1 > 2 * page_size && !column.is_heavy(j) {
+                    if cell_size + 1 > page_size && !column.is_heavy(j) {
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
                         column.replace(j, duration_cells(&mut new_cells, page_size));
@@ -410,7 +410,7 @@ impl Grid {
                 let i = find_pos(&grid.min_durations, |d| d <= interval.duration());
 
                 let column_size = grid.values[i].size;
-                if column_size + 1 > 2 * page_size * page_size && !grid.is_heavy(i) {
+                if column_size + 1 > page_size * page_size && !grid.is_heavy(i) {
                     // println!("Replacing column");
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
@@ -421,7 +421,7 @@ impl Grid {
                     let j = find_pos(&column.min_start_times, |d| d <= interval.start);
 
                     let cell_size = column.values[j].len();
-                    if cell_size + 1 > 2 * page_size && !column.is_heavy(j) {
+                    if cell_size + 1 > page_size && !column.is_heavy(j) {
                         // println!("replacing cell");
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
@@ -467,9 +467,9 @@ impl Grid {
 
                 // Restructure the grid, possibly
                 if column_size < page_size * page_size {
-                    grid.maybe_merge(i, page_size, 2 * page_size * page_size);
+                    grid.maybe_merge(i, page_size, page_size * page_size);
                 } else if grid.values[i].values[j].len() < page_size {
-                    grid.values[i].maybe_merge(j, page_size, 2 * page_size);
+                    grid.values[i].maybe_merge(j, page_size, page_size);
                 }
 
                 grid.size -= 1;
@@ -499,9 +499,9 @@ impl Grid {
 
                 // Restructure the grid, possibly
                 if column_size < page_size * page_size {
-                    grid.maybe_merge(i, page_size, 2 * page_size * page_size);
+                    grid.maybe_merge(i, page_size, page_size * page_size);
                 } else if grid.values[i].values[j].len() < page_size {
-                    grid.values[i].maybe_merge(j, page_size, 2 * page_size);
+                    grid.values[i].maybe_merge(j, page_size, page_size);
                 }
 
                 grid.size -= 1;

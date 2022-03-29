@@ -27,5 +27,5 @@
     - BTree
     # - RTree
     - RDIndex:
-        dimension_order: [TimeDuration]
+        dimension_order: [TimeDuration, DurationTime]
         page_size: [200]
