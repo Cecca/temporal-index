@@ -47,4 +47,4 @@
     - IntervalTree
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [100]
+        page_size: [200]
