@@ -900,7 +900,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
 
 plot_insertions <- function(data_insertions) {
     data_insertions %>%
-        filter(na_or_in(page_size, c(100))) %>%
+        filter(na_or_in(page_size, c(200))) %>%
         mutate(
             dataset_name = if_else(dataset_name == "random-uniform-zipf", "Random", dataset_name),
             dataset_name = factor(dataset_name, levels = c("Random", "Flight", "Webkit", "MimicIII"), ordered = T),
