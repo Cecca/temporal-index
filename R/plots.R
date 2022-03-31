@@ -899,9 +899,11 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
 }
 
 plot_insertions <- function(data_insertions) {
-    data_insertions %>%
+    plotdata <- data_insertions %>%
         filter(na_or_in(page_size, c(200))) %>%
         mutate(
+            is_sorted = str_detect(dataset_name, "sorted"),
+            dataset_name = str_remove(dataset_name, "sorted-"),
             dataset_name = if_else(dataset_name == "random-uniform-zipf", "Random", dataset_name),
             dataset_name = factor(dataset_name, levels = c("Random", "Flight", "Webkit", "MimicIII"), ordered = T),
             algorithm_name = case_when(
@@ -927,29 +929,33 @@ plot_insertions <- function(data_insertions) {
         group_by(dataset_name, algorithm_name, algorithm_params) %>%
         mutate(
             batch = percent_rank(batch)
-        ) %>%
-        ggplot(aes(
-            x = batch, 
-            y = batch_insertions_per_second,
-            color = algorithm_name,
-            group = interaction(algorithm_name, algorithm_params)
-        )) +
-        geom_line() +
-        geom_hline(yintercept=0) +
-        geom_vline(xintercept=0) +
-        scale_y_log10() +
-        scale_x_continuous(labels = scales::percent_format()) +
-        scale_color_algorithm() +
-        facet_wrap(vars(dataset_name), ncol = 2, scales="fixed") +
-        labs(
-            x = "Dataset fraction",
-            y = "Insertions per second"
-        ) +
-        theme_paper() +
-        theme(
-            legend.position = "top"
         )
-
+    doplot <- function(pdata) {
+        ggplot(pdata, aes(
+                x = batch, 
+                y = batch_insertions_per_second,
+                color = algorithm_name,
+                group = interaction(algorithm_name, algorithm_params)
+            )) +
+            geom_line() +
+            geom_hline(yintercept=0) +
+            geom_vline(xintercept=0) +
+            scale_y_log10() +
+            scale_x_continuous(labels = scales::percent_format()) +
+            scale_color_algorithm() +
+            facet_wrap(vars(dataset_name), ncol = 2, scales="fixed") +
+            labs(
+                x = "Dataset fraction",
+                y = "Insertions per second"
+            ) +
+            theme_paper() +
+            theme(
+                legend.position = "top"
+            )
+    }
+    p1 <- (plotdata %>% filter(!is_sorted) %>% doplot()) + ggtitle("Random order")
+    p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("Sorted by time")
+    guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect")
 }
 
 plot_simulated_tradeoff <- function(simulated_tradeoff, col = frac_dur, xlab = "Fraction of duration queries") {

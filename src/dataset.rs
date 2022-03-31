@@ -10,6 +10,7 @@ use csv;
 use progress_logger::ProgressLogger;
 use rand::distributions::*;
 use rand::SeedableRng;
+use rand::prelude::SliceRandom;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -1215,7 +1216,7 @@ impl Dataset for FlightDataset {
             .min()
             .context("min on empty vector")?;
 
-        Ok(pairs
+        let mut dataset: Vec<Interval> = pairs
             .into_iter()
             .map(|(start, end)| {
                 let start = (start - earliest_time).num_minutes() as u64;
@@ -1223,7 +1224,12 @@ impl Dataset for FlightDataset {
                 assert!(start < end);
                 Interval { start, end }
             })
-            .collect())
+            .collect();
+        
+        let mut rng = rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(1234);
+        dataset.shuffle(&mut rng);
+
+        Ok(dataset)
     }
 
     fn version(&self) -> u8 {

@@ -201,7 +201,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/insertions.png",
       width = 8,
-      height = 4
+      height = 7
     ),
 
 
