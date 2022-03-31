@@ -940,7 +940,7 @@ plot_insertions <- function(data_insertions) {
             geom_line() +
             geom_hline(yintercept=0) +
             geom_vline(xintercept=0) +
-            scale_y_log10() +
+            scale_y_log10(limits=c(500, 100000000)) +
             scale_x_continuous(labels = scales::percent_format()) +
             scale_color_algorithm() +
             facet_wrap(vars(dataset_name), ncol = 2, scales="fixed") +
@@ -954,8 +954,8 @@ plot_insertions <- function(data_insertions) {
             )
     }
     p1 <- (plotdata %>% filter(!is_sorted) %>% doplot()) + ggtitle("Random order")
-    p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("Sorted by time")
-    guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect")
+    p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("By increasing start time")
+    guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect", heights=c(1,2,2))
 }
 
 plot_simulated_tradeoff <- function(simulated_tradeoff, col = frac_dur, xlab = "Fraction of duration queries") {
