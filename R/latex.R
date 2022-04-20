@@ -54,27 +54,28 @@ latex_best <- function(data_best) {
             time_index_num = time_index %>% set_units("ms") %>% drop_units(),
             time_index = time_index_num %>% scales::number(big.mark = "\\\\,"),
             time_index = if_else(time_index_num == min(time_index_num),
-                str_c("\\textbf{", time_index, "}"),
+                str_c("\\underline{", time_index, "}"),
                 time_index
             ),
             bytes_per_interval = if_else(bytes_per_interval == min(bytes_per_interval),
-                str_c("\\textbf{", scales::number(bytes_per_interval, accuracy = 0.1), "}"),
+                str_c("\\textbf{", scales::number(bytes_per_interval, accuracy = 1), "}"),
                 scales::number(bytes_per_interval, accuracy = 0.1)
             ),
-            time_index_str = str_c(
-                " {\\scriptsize$\\big|$\\stackanchor{",
-                time_index,
-                "}{",
-                bytes_per_interval,
-                "}}"
-            ),
+            # time_index_str = str_c(
+            #     " {\\scriptsize$\\big|$\\stackanchor{",
+            #     time_index,
+            #     "}{",
+            #     bytes_per_interval,
+            #     "}}"
+            # ),
             qps = drop_units(qps) %>% scales::number(big.mark = "\\\\,"),
             # qps = if_else(qps_num == max(qps_num),
             #     str_c("\\textbf{", qps, "}"),
             #     qps
             # ),
             qps = str_c("\\colorbox[HTML]{", bgcolors[rank], "}{\\color{", fgcolor[rank], "}", qps, "}"),
-            qps = str_c(qps, time_index_str),
+            qps = str_c(qps, time_index, bytes_per_interval, sep = "$~|~$"),
+            # qps = str_c(qps, time_index_str),
             # qps = cell_spec(qps,
             #     background = if_else(qps_num == max(qps_num), "#e9e9e9", "white"),
             #     # color = if_else(rank <= 2, "black", "white"),
@@ -150,7 +151,8 @@ latex_best <- function(data_best) {
         kbl(format = "latex", booktabs = T, escape = F, linesep = "", align = "llrrrrrrrr") %>%
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
         add_header_above(
-            c(" " = 2, "Queries per second$\\\\big|${\\\\scriptsize\\\\stackanchor{index build time}{index size}} " = 7),
+            # c(" " = 2, "Queries per second$\\\\big|${\\\\scriptsize\\\\stackanchor{index build time}{index size}} " = 7),
+            c(" " = 2, "Queries per second $~|~$ Index build time $~|~$ Bytes per interval" = 7),
             escape = F
         )
 }
