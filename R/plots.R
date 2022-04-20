@@ -65,10 +65,10 @@ plot_scalability <- function(data_scalability) {
         ) +
         scale_color_tableau(name = "") +
         # scale_color_tableau(name = "", guide = guide_legend(ncol = 6)) +
-        facet_wrap(vars(dataset_name), ncol = 4, scales = "free_y") +
+        facet_wrap(vars(dataset_name), ncol = 2, scales = "free_y") +
         guides(
-            color = guide_legend(nrow = 1),
-            shape = guide_legend(nrow = 1)
+            color = guide_legend(nrow = 3, title.position="top"),
+            shape = guide_legend(nrow = 3, title.position="top")
         ) +
         # guides(
         #     colour = guide_legend(nrow = 1),
@@ -1025,9 +1025,10 @@ plot_tradeoff_tern_algo <- function(simulated_tradeoff_tern) {
         slice_max(qps, n=1) %>%
         ggtern(aes(x = frac_ro, y = frac_do, z = frac_rd, color = algorithm)) +
         geom_point(size = 0.1) +
-        guides(colour = guide_legend(override.aes = list(size=3))) +
+        guides(colour = guide_legend(override.aes = list(size=3),
+                                     title.position = "top")) +
         scale_color_algorithm() +
-        facet_wrap(vars(dataset), ncol=4) +
+        facet_wrap(vars(dataset), ncol=2) +
         labs(
             x = "R",
             y = "D",
@@ -1037,7 +1038,7 @@ plot_tradeoff_tern_algo <- function(simulated_tradeoff_tern) {
         theme_paper() +
         theme(
             legend.position = "bottom",
-            panel.spacing = unit(10, "mm"),
+            panel.spacing = unit(5, "mm"),
             axis.title = element_text(size = 8)
         )
 

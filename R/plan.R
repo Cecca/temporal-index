@@ -58,7 +58,7 @@ plan <- drake_plan(
   figure_scalability = data_scalability %>%
     plot_scalability() %>%
     save_png(file_out("paper/images/scalability.png"),
-      width = 10, height = 3
+      width = 4, height = 4
     ),
 
   # Data for the parameter dependency plot
@@ -184,8 +184,8 @@ plan <- drake_plan(
     plot_tradeoff_tern_algo() %>%
     save_png(
       "paper/images/tradeoff_algo.png",
-      width = 8,
-      height = 3
+      width = 4,
+      height = 4
     ),
 
 
