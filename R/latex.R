@@ -59,7 +59,7 @@ latex_best <- function(data_best) {
             ),
             bytes_per_interval = if_else(bytes_per_interval == min(bytes_per_interval),
                 str_c("\\textbf{", scales::number(bytes_per_interval, accuracy = 1), "}"),
-                scales::number(bytes_per_interval, accuracy = 0.1)
+                scales::number(bytes_per_interval, accuracy = 1)
             ),
             # time_index_str = str_c(
             #     " {\\scriptsize$\\big|$\\stackanchor{",
