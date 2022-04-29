@@ -9,8 +9,8 @@ use anyhow::Result;
 use csv;
 use progress_logger::ProgressLogger;
 use rand::distributions::*;
-use rand::SeedableRng;
 use rand::prelude::SliceRandom;
+use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -252,15 +252,15 @@ pub struct SortedDataset {
     base: Vec<Interval>,
     base_name: String,
     base_params: String,
-    base_version: u8
+    base_version: u8,
 }
 
 impl SortedDataset {
     pub fn new(dataset: Rc<dyn Dataset>) -> Result<Self> {
         let mut base = dataset.get()?;
-        base.sort_by_key(|interval| interval.start );
+        base.sort_by_key(|interval| interval.start);
         Ok(Self {
-            base, 
+            base,
             base_name: dataset.name(),
             base_params: dataset.parameters(),
             base_version: dataset.version(),
@@ -288,7 +288,6 @@ impl Dataset for SortedDataset {
         Ok(self.base.clone())
     }
 }
-
 
 /// Takes a base dataset, and repeats all its intervals
 /// shifted by multiples of the time span of the
@@ -437,6 +436,148 @@ pub trait Queryset: std::fmt::Debug {
 
         pl.stop();
         res
+    }
+}
+
+#[derive(Debug)]
+pub struct MixedQueries {
+    seed: u64,
+    n: usize,
+    intervals: Option<(TimeDistribution, TimeDistribution)>,
+    durations: Option<TimeDistribution>,
+    frac_duration: f64,
+    frac_range: f64,
+    frac_range_duration: f64,
+}
+
+impl MixedQueries {
+    pub fn new(
+        seed: u64,
+        n: usize,
+        intervals: Option<(TimeDistribution, TimeDistribution)>,
+        durations: Option<TimeDistribution>,
+        frac_duration: f64,
+        frac_range: f64,
+        frac_range_duration: f64,
+    ) -> Self {
+        Self {
+            seed,
+            n,
+            intervals,
+            durations,
+            frac_duration,
+            frac_range,
+            frac_range_duration,
+        }
+    }
+}
+
+impl Queryset for MixedQueries {
+    fn name(&self) -> String {
+        format!(
+            "random-{}-{}",
+            self.intervals
+                .clone()
+                .map(|pair| format!("{}-{}", pair.0.name(), pair.1.name()))
+                .unwrap_or("None".to_owned()),
+            self.durations
+                .clone()
+                .map(|pair| format!("{}", pair.name()))
+                .unwrap_or("None".to_owned()),
+        )
+    }
+
+    fn parameters(&self) -> String {
+        format!(
+            "seed={} n={} {} {}, frac_duration={}, frac_range={}, frac_range_duration={}",
+            self.seed,
+            self.n,
+            self.intervals
+                .clone()
+                .map(|it| format!("{} {}", it.0.parameters("start_"), it.1.parameters("dur_")))
+                .unwrap_or(String::new()),
+            self.durations
+                .clone()
+                .map(|d| format!("{}", d.parameters("dur_dist_")))
+                .unwrap_or(String::new()),
+            self.frac_duration,
+            self.frac_range,
+            self.frac_range_duration
+        )
+    }
+
+    fn version(&self) -> u8 {
+        7
+    }
+
+    fn get(&self) -> Vec<Query> {
+        use rand::RngCore;
+        use std::collections::BTreeSet;
+        let mut seeder = rand_xoshiro::SplitMix64::seed_from_u64(self.seed);
+        let rng1 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng2 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let rng3 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let mut rng4 = Xoshiro256PlusPlus::seed_from_u64(seeder.next_u64());
+        let mut data = BTreeSet::new();
+        let mut interval_gen = self
+            .intervals
+            .as_ref()
+            .map(move |(start_times, durations)| {
+                (start_times.stream(rng1), durations.stream(rng2))
+            });
+        let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
+        
+        let n_range = (self.n as f64 * self.frac_range) as usize;
+        let n_duration = (self.n as f64 * self.frac_duration) as usize;
+        let n_range_duration = (self.n as f64 * self.frac_range_duration) as usize;
+
+        let mut cnt = 0;
+        while data.len() < n_range_duration && cnt < self.n * 2 {
+            let interval = interval_gen.as_mut().map(|(start, duration)| {
+                Interval::new(start.next().unwrap(), duration.next().unwrap())
+            });
+            let duration_range = durations_gen.as_mut().map(|d| {
+                let a = d.next().unwrap();
+                let b = d.next().unwrap();
+                DurationRange::new(std::cmp::min(a, b), std::cmp::max(a, b))
+            });
+            data.insert(Query {
+                range: interval,
+                duration: duration_range,
+            });
+            cnt += 1;
+        }
+        while data.len() < n_range_duration + n_duration && cnt < self.n * 2 {
+            let duration_range = durations_gen.as_mut().map(|d| {
+                let a = d.next().unwrap();
+                let b = d.next().unwrap();
+                DurationRange::new(std::cmp::min(a, b), std::cmp::max(a, b))
+            });
+            data.insert(Query {
+                range: None,
+                duration: duration_range,
+            });
+            cnt += 1;
+        }
+        while data.len() < self.n && cnt < self.n * 2 {
+            let interval = interval_gen.as_mut().map(|(start, duration)| {
+                Interval::new(start.next().unwrap(), duration.next().unwrap())
+            });
+            data.insert(Query {
+                range: interval,
+                duration: None,
+            });
+            cnt += 1;
+        }
+        assert!(
+            data.len() == self.n,
+            "Generated too few vectors ({} out of {})",
+            data.len(),
+            self.n,
+        );
+        let mut data: Vec<Query> = data.into_iter().collect();
+        data.shuffle(&mut rng4);
+        data
     }
 }
 
@@ -1225,7 +1366,7 @@ impl Dataset for FlightDataset {
                 Interval { start, end }
             })
             .collect();
-        
+
         let mut rng = rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(1234);
         dataset.shuffle(&mut rng);
 

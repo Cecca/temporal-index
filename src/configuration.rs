@@ -324,6 +324,15 @@ pub enum QueryConfiguration {
         range: Vec<GeneratorPairConfig>,
         duration: Vec<GeneratorConfig>,
     },
+    Mixed {
+        seed: Vec<u64>,
+        n: Vec<usize>,
+        range: Vec<GeneratorPairConfig>,
+        duration: Vec<GeneratorConfig>,
+        frac_duration: f64,
+        frac_range: f64,
+        frac_range_duration: f64,
+    },
     RandomCapped {
         seed: Vec<u64>,
         n: Vec<usize>,
@@ -372,6 +381,26 @@ impl QueryConfiguration {
                         (None, None) => None,
                         (range, duration) => {
                             Some(Rc::new(RandomQueryset::new(*seed, *n, range, duration))
+                                as Rc<dyn Queryset>)
+                        }
+                    },
+                );
+                Box::new(iter)
+            }
+            Self::Mixed {
+                seed,
+                n,
+                range,
+                duration,
+                frac_duration,
+                frac_range,
+                frac_range_duration
+            } => {
+                let iter = iproduct!(seed, n, range, duration).flat_map(
+                    move |(seed, n, range, duration)| match (range.get(), duration.get()) {
+                        (None, None) => None,
+                        (range, duration) => {
+                            Some(Rc::new(MixedQueries::new(*seed, *n, range, duration, *frac_duration, *frac_range, *frac_range_duration))
                                 as Rc<dyn Queryset>)
                         }
                     },
