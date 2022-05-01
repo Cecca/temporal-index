@@ -2,7 +2,7 @@
 
 - mode: 
     Insertion: 
-      batch: 10000
+      batch: 50000
   datasets:
     - Random:
         seed: [123]

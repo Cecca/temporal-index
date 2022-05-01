@@ -95,7 +95,7 @@ impl Reporter {
                 .optional()
                 .context("problem checking if the algorithm already ran, focus mode")
             }
-            ExperimentMode::Insertion { batch: _ } => {
+            ExperimentMode::Insertion { batch } => {
                 if dataset_id.is_none() || algorithm_id.is_none() {
                     // This configuration has not been run, neither in batch nor in focus mode
                     return Ok(None);
@@ -104,13 +104,14 @@ impl Reporter {
                     "SELECT id FROM insertions_configuration_raw
                     WHERE hostname == ?1
                     AND dataset_id == ?2
-                    AND algorithm_id == ?
+                    AND algorithm_id == ?3
+                    AND batch_size == ?4
                     ",
-                    params![hostname, dataset_id, algorithm_id],
+                    params![hostname, dataset_id, algorithm_id, batch],
                     |row| row.get(0),
                 )
                 .optional()
-                .context("problem checking if the algorithm already ran, focus mode")
+                .context("problem checking if the algorithm already ran, insertion mode")
             }
         }
     }
