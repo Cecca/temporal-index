@@ -48,9 +48,9 @@ latex_best <- function(data_best) {
         replace_na(list(qps = 0)) %>%
         mutate(
             # rank = row_number(desc(qps)),
-            rank = dense_rank(desc(qps)),
+            rank = dense_rank(desc(round(qps))),
             rank_str = str_c(" {\\footnotesize(", rank, ")}"),
-            qps_num = qps %>% drop_units(),
+            qps_num = qps %>% drop_units() %>% round(),
             time_index_num = time_index %>% set_units("ms") %>% drop_units(),
             time_index = time_index_num %>% scales::number(big.mark = "\\\\,"),
             time_index = if_else(time_index_num == min(time_index_num),
@@ -139,11 +139,11 @@ latex_best <- function(data_best) {
         ) %>%
         mutate(
             dataset = case_when(
-                dataset == "UZ" ~ "Random",
+                dataset == "UZ" ~ "Synthetic",
                 TRUE ~ dataset
             ),
             dataset = factor(dataset,
-                levels = c("Random", "Flight", "Webkit", "MimicIII"),
+                levels = c("Synthetic", "Flight", "Webkit", "MimicIII"),
                 ordered = TRUE
             )
         ) %>%

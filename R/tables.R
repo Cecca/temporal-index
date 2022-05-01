@@ -282,7 +282,7 @@ table_insertions <- function() {
 
   res <- as_tibble(dbGetQuery(
     conn,
-    "select * from insertions"
+    "select * from insertions where batch_size = 50000"
   )) %>%
     filter(algorithm_name != "period-index++") %>%
     mutate(
