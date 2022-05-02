@@ -146,47 +146,48 @@ plan <- drake_plan(
       height = 4
     ),
 
-  figure_simulated_workload_do_ro = simulated_tradeoff_do_ro %>%
-    plot_simulated_tradeoff() %>%
-    save_png(
-      "paper/images/simulated_tradeoff_do_ro.png",
-      width = 8,
-      height = 3
-    ),
-  figure_simulated_workload_do_rd = simulated_tradeoff_do_rd %>%
-    plot_simulated_tradeoff() %>%
-    save_png(
-      "paper/images/simulated_tradeoff_do_rd.png",
-      width = 8,
-      height = 3
-    ),
-  figure_simulated_workload = {
-    p1 <- simulated_tradeoff_do_ro %>% plot_simulated_tradeoff()
-    p2 <- simulated_tradeoff_do_rd %>% plot_simulated_tradeoff()
-    p3 <- simulated_tradeoff_ro_rd %>% plot_simulated_tradeoff(col = frac_ro, xlab = "Fraction of range queries")
-    p <- (p1 / p2 / p3 / patchwork::guide_area()) + plot_layout(guides = "collect")
-    save_png(
-      p,
-      "paper/images/simulated_tradeoff.png",
-      width = 8,
-      height = 5
-    )
-  },
+  # figure_simulated_workload_do_ro = simulated_tradeoff_do_ro %>%
+  #   plot_simulated_tradeoff() %>%
+  #   save_png(
+  #     "paper/images/simulated_tradeoff_do_ro.png",
+  #     width = 8,
+  #     height = 3
+  #   ),
+  # figure_simulated_workload_do_rd = simulated_tradeoff_do_rd %>%
+  #   plot_simulated_tradeoff() %>%
+  #   save_png(
+  #     "paper/images/simulated_tradeoff_do_rd.png",
+  #     width = 8,
+  #     height = 3
+  #   ),
 
-  figure_tradeoff_tern = simulated_tradeoff_tern %>%
-    plot_tradeoff_tern_all() %>%
-    save_png(
-      "paper/images/tradeoff_all.png",
-      width = 8,
-      height = 10
-    ),
-  figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
-    plot_tradeoff_tern_algo() %>%
-    save_png(
-      "paper/images/tradeoff_algo.png",
-      width = 4,
-      height = 4
-    ),
+  # figure_simulated_workload = {
+  #   p1 <- simulated_tradeoff_do_ro %>% plot_simulated_tradeoff()
+  #   p2 <- simulated_tradeoff_do_rd %>% plot_simulated_tradeoff()
+  #   p3 <- simulated_tradeoff_ro_rd %>% plot_simulated_tradeoff(col = frac_ro, xlab = "Fraction of range queries")
+  #   p <- (p1 / p2 / p3 / patchwork::guide_area()) + plot_layout(guides = "collect")
+  #   save_png(
+  #     p,
+  #     "paper/images/simulated_tradeoff.png",
+  #     width = 8,
+  #     height = 5
+  #   )
+  # },
+
+  # figure_tradeoff_tern = simulated_tradeoff_tern %>%
+  #   plot_tradeoff_tern_all() %>%
+  #   save_png(
+  #     "paper/images/tradeoff_all.png",
+  #     width = 8,
+  #     height = 10
+  #   ),
+  # figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
+  #   plot_tradeoff_tern_algo() %>%
+  #   save_png(
+  #     "paper/images/tradeoff_algo.png",
+  #     width = 4,
+  #     height = 4
+  #   ),
 
 
   ######################################################################
@@ -218,16 +219,16 @@ plan <- drake_plan(
     query_range, query_duration
   ),
 
-  figure_running_example = {
-    tikzDevice::tikz(
-      file = file_out("paper/example.tex"),
-      width = 3.3, height = 1.0
-    )
-    print(plot_running_example(
-      data_running_example, query_range, query_duration
-    ))
-    dev.off()
-  },
+  # figure_running_example = {
+  #   tikzDevice::tikz(
+  #     file = file_out("paper/example.tex"),
+  #     width = 3.3, height = 1.0
+  #   )
+  #   print(plot_running_example(
+  #     data_running_example, query_range, query_duration
+  #   ))
+  #   dev.off()
+  # },
 
   figure_running_example_plane = {
     plot_running_example_mimic(

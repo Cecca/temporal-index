@@ -17,7 +17,17 @@ scale_color_algorithm <- function() {
         "R-Tree"         = "#6a9f58",
         "Interval-Tree"  = "#85b6b2",
         "B-Tree"         = "#5778a4"
-    ))
+    ), drop=T)
+}
+
+scale_color_algorithm2 <- function() {
+    scale_color_manual(values=c(
+        "RD-index-td"    = "#e49444",
+        "RD-index-dt"    = "#d1615d",
+        "R-Tree"         = "#6a9f58",
+        "Interval-Tree"  = "#85b6b2",
+        "B-Tree"         = "#5778a4"
+    ), drop=T)
 }
 
 plot_scalability <- function(data_scalability) {
@@ -63,7 +73,9 @@ plot_scalability <- function(data_scalability) {
             name = "queries per second",
             labels = scales::number_format()
         ) +
-        scale_color_tableau(name = "") +
+        scale_color_algorithm() +
+        scale_shape_discrete(name="") +
+        # scale_color_tableau(name = "") +
         # scale_color_tableau(name = "", guide = guide_legend(ncol = 6)) +
         facet_wrap(vars(dataset_name), ncol = 2, scales = "free_y") +
         guides(
@@ -74,7 +86,7 @@ plot_scalability <- function(data_scalability) {
         #     colour = guide_legend(nrow = 1),
         #     shape = guide_legend(name = "", nrow = 1)
         # ) +
-        labs(shape = "") +
+        labs(shape = "", color="") +
         theme_paper() +
         theme(
             legend.position = "top",
@@ -942,20 +954,22 @@ plot_insertions <- function(data_insertions) {
             geom_vline(xintercept=0) +
             scale_y_log10(limits=c(500, 100000000)) +
             scale_x_continuous(labels = scales::percent_format()) +
-            scale_color_algorithm() +
-            facet_wrap(vars(dataset_name), ncol = 2, scales="fixed") +
+            scale_color_algorithm2() +
+            facet_wrap(vars(dataset_name), ncol = 1, scales="fixed") +
             labs(
-                x = "Dataset fraction",
-                y = "Insertions per second"
+                x = "dataset fraction",
+                y = "insertions per second",
+                color = ""
             ) +
             theme_paper() +
             theme(
                 legend.position = "top"
             )
     }
-    p1 <- (plotdata %>% filter(!is_sorted) %>% doplot()) + ggtitle("Random order")
-    p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("By increasing start time")
-    guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect", heights=c(1,2,2))
+    p1 <- (plotdata %>% filter(!is_sorted) %>% doplot()) + ggtitle("(a) Random order")
+    p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("(a) By increasing start time")
+    # guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect", heights=c(1,2,2))
+    guide_area() / (p1 | p2) + plot_layout(guides="collect", heights=c(1, 7))
 }
 
 plot_simulated_tradeoff <- function(simulated_tradeoff, col = frac_dur, xlab = "Fraction of duration queries") {
