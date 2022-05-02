@@ -3,6 +3,7 @@
 theme_paper <- function() {
     theme_tufte() +
     theme(
+        plot.margin = unit(c(0,0,0,0), "cm")
         # axis.line.x = element_line(),
         # axis.line.y = element_line()
     )
@@ -910,7 +911,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
     p
 }
 
-plot_insertions <- function(data_insertions) {
+plot_insertions <- function(data_insertions, sorted=F, legend=T) {
     plotdata <- data_insertions %>%
         filter(na_or_in(page_size, c(200))) %>%
         mutate(
@@ -942,6 +943,12 @@ plot_insertions <- function(data_insertions) {
         mutate(
             batch = percent_rank(batch)
         )
+
+    legend_position = 'top'
+    if (!legend) {
+        legend_position = 'none'
+    }
+
     doplot <- function(pdata) {
         ggplot(pdata, aes(
                 x = batch, 
@@ -963,13 +970,19 @@ plot_insertions <- function(data_insertions) {
             ) +
             theme_paper() +
             theme(
-                legend.position = "top"
+                legend.position = legend_position,
+                legend.margin=margin(c(0,0,0,0), unit='cm')
             )
     }
-    p1 <- (plotdata %>% filter(!is_sorted) %>% doplot()) + ggtitle("(a) Random order")
-    p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("(a) By increasing start time")
-    # guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect", heights=c(1,2,2))
-    guide_area() / (p1 | p2) + plot_layout(guides="collect", heights=c(1, 7))
+    # p1 <- (plotdata %>% filter(!is_sorted) %>% doplot()) + ggtitle("(a) Random order")
+    # p2 <- (plotdata %>% filter(is_sorted) %>% doplot()) + ggtitle("(a) By increasing start time")
+    # # guide_area() + p1 + p2 + plot_layout(ncol=1, guides="collect", heights=c(1,2,2))
+    # guide_area() / (p1 | p2) + plot_layout(guides="collect", heights=c(1, 7))
+    if (sorted) {
+        plotdata %>% filter(is_sorted) %>% doplot()
+    } else {
+        plotdata %>% filter(!is_sorted) %>% doplot()
+    }
 }
 
 plot_simulated_tradeoff <- function(simulated_tradeoff, col = frac_dur, xlab = "Fraction of duration queries") {

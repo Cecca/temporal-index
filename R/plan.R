@@ -197,12 +197,27 @@ plan <- drake_plan(
     table_insertions()
   },
 
-  figure_insertions = data_insertions %>%
-    plot_insertions() %>%
+  figure_insertions_random = data_insertions %>%
+    plot_insertions(sorted=F, legend=F) %>%
     save_png(
-      "paper/images/insertions.png",
-      width = 8,
-      height = 7
+      "paper/images/insertions-random.png",
+      width = 4,
+      height = 6
+    ),
+  figure_insertions_sorted = data_insertions %>%
+    plot_insertions(sorted=T, legend=F) %>%
+    save_png(
+      "paper/images/insertions-sorted.png",
+      width = 4,
+      height = 6
+    ),
+  figure_insertions_legend = data_insertions %>%
+    plot_insertions() %>%
+    get_legend() %>%
+    save_png(
+      "paper/images/insertions-legend.png",
+      width = 4,
+      height = 1
     ),
 
 
