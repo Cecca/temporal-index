@@ -9,6 +9,13 @@ real_sizes <- tribble(
   "MimicIII", 4134909
 )
 
+query_range =
+interval(
+  ymd("2016-06-15"),
+  ymd("2016-07-15")
+)
+query_duration = c(5, 13)
+
 plan <- drake_plan(
   # The best configuration for each algorithm
   best_batch = target({
@@ -223,27 +230,21 @@ plan <- drake_plan(
 
   ######################################################################
   # Running example to be used in the paper
-  query_range =
-    interval(
-      ymd("2016-06-15"),
-      ymd("2016-07-15")
-    ),
-  query_duration = c(5, 13),
 
   data_running_example = table_running_mimic(
     query_range, query_duration
   ),
 
-  # figure_running_example = {
-  #   tikzDevice::tikz(
-  #     file = file_out("paper/example.tex"),
-  #     width = 3.3, height = 1.0
-  #   )
-  #   print(plot_running_example(
-  #     data_running_example, query_range, query_duration
-  #   ))
-  #   dev.off()
-  # },
+  figure_running_example = {
+    tikzDevice::tikz(
+      file = file_out("paper/example.tex"),
+      width = 3.3, height = 1.0
+    )
+    print(plot_running_example(
+      data_running_example, query_range, query_duration
+    ))
+    dev.off()
+  },
 
   figure_running_example_plane = {
     plot_running_example_mimic(
