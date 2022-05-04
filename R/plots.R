@@ -18,7 +18,7 @@ scale_color_algorithm <- function() {
         "R-Tree"         = "#6a9f58",
         "Interval-Tree"  = "#85b6b2",
         "B-Tree"         = "#5778a4"
-    ), drop=T)
+    ))
 }
 
 scale_color_algorithm2 <- function() {
@@ -28,7 +28,7 @@ scale_color_algorithm2 <- function() {
         "R-Tree"         = "#6a9f58",
         "Interval-Tree"  = "#85b6b2",
         "B-Tree"         = "#5778a4"
-    ), drop=T)
+    ))
 }
 
 plot_scalability <- function(data_scalability) {

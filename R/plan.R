@@ -223,7 +223,7 @@ plan <- drake_plan(
     get_legend() %>%
     save_png(
       "paper/images/insertions-legend.png",
-      width = 4,
+      width = 8,
       height = 1
     ),
 
