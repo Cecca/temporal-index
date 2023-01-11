@@ -97,7 +97,6 @@ impl Algorithm for Grid3D {
         todo!()
     }
 
-
     fn parameters(&self) -> String {
         format!("n_buckets={}", self.num_buckets)
     }

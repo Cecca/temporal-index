@@ -1,8 +1,6 @@
 use crate::types::*;
 use std::iter::FromIterator;
 
-
-
 pub struct PeriodIndexPlusPlus {
     page_size: usize,
     index: Option<SortedBlockIndex<SortedBlockIndex<Vec<Interval>>>>,

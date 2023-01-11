@@ -13,7 +13,7 @@ mod types;
 mod zipf;
 
 use crate::configuration::*;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use argh::FromArgs;
 use std::path::PathBuf;
 use sysinfo::{System, SystemExt};
@@ -89,6 +89,60 @@ fn log_memory(system: &mut System) {
     }
 }
 
+
+#[derive(Serialize, Eq, PartialEq, Hash)]
+struct WorkloadEntry {
+    data_name: String,
+    data_descr: String,
+    data_path: PathBuf,
+    data_version: u8,
+    query_name: String,
+    query_descr: String,
+    query_path: PathBuf,
+    query_version: u8,
+}
+
+fn export_workload(configurations: Vec<Configuration>, out_dir: &str) -> Result<()> {
+    let out_dir = PathBuf::from(out_dir);
+    if !out_dir.is_dir() {
+        std::fs::create_dir_all(&out_dir)?;
+    }
+    let data_dir = out_dir.join("data");
+    if !data_dir.is_dir() {
+        std::fs::create_dir_all(&data_dir)?;
+    }
+    let queries_dir = out_dir.join("queries");
+    if !queries_dir.is_dir() {
+        std::fs::create_dir_all(&queries_dir)?;
+    }
+    let workload_file = out_dir.join("workload.json");
+
+    let mut descriptions = std::collections::HashSet::new();
+
+    for conf in configurations {
+        conf.for_each(|experiment| {
+            let data_path = experiment.dataset.to_csv(data_dir.clone())?;
+            let queries_path = experiment.queries.to_csv(queries_dir.clone())?;
+            descriptions.insert(WorkloadEntry {
+                data_name: experiment.dataset.name(),
+                data_descr: experiment.dataset.parameters(),
+                data_path,
+                data_version: experiment.dataset.version(),
+                query_name: experiment.queries.name(),
+                query_descr: experiment.queries.parameters(),
+                query_path: queries_path,
+                query_version: experiment.queries.version()
+            });
+            Ok(())
+        })?;
+    }
+
+    let writer = std::fs::File::create(workload_file)?;
+    serde_json::to_writer(writer, &descriptions)?;
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     use std::time::*;
 
@@ -110,6 +164,22 @@ fn main() -> Result<()> {
         .unwrap_or(false)
     {
         crate::algorithms::rd_index::RDIndex::export_example()?;
+        return Ok(());
+    }
+    if std::env::args()
+        .nth(1)
+        .map(|s| s.eq("export_data"))
+        .unwrap_or(false)
+    {
+        let conf_file_path = std::env::args()
+            .nth(2)
+            .context("missing path to configuration file")?;
+        let out_dir = std::env::args()
+            .nth(3)
+            .context("missing path to output directory")?;
+        let conf_file = std::fs::File::open(&conf_file_path)?;
+        let configurations: Vec<Configuration> = serde_yaml::from_reader(conf_file)?;
+        export_workload(configurations, &out_dir)?;
         return Ok(());
     }
 

@@ -29,6 +29,29 @@ pub trait Dataset: std::fmt::Debug {
             self.version()
         )
     }
+
+    fn to_csv(&self, mut path: PathBuf) -> Result<PathBuf> {
+        use std::io::prelude::*;
+        let fname = format!("{}__{}.csv", self.name(), self.parameters()).replace(" ", "__");
+        path.push(fname);
+        if path.is_file() {
+            return Ok(path);
+        }
+        info!("Exporting dataset to {:?}", path);
+        let mut out = std::fs::File::create(&path)?;
+        let intervals = self.get()?;
+        let mut pl = ProgressLogger::builder()
+            .with_items_name("intervals")
+            .with_expected_updates(intervals.len() as u64)
+            .start();
+        for interval in intervals {
+            writeln!(out, "{} {}", interval.start, interval.end)?;
+            pl.update(1u64);
+        }
+        pl.stop();
+
+        Ok(path)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -378,6 +401,31 @@ pub trait Queryset: std::fmt::Debug {
         )
     }
 
+    fn to_csv(&self, mut path: PathBuf) -> Result<PathBuf> {
+        use std::io::prelude::*;
+        let fname = format!("{}__{}.csv", self.name(), self.parameters()).replace(" ", "__");
+        path.push(fname);
+        if path.is_file() {
+            return Ok(path);
+        }
+        info!("Exporting dataset to {:?}", path);
+        let mut out = std::fs::File::create(&path)?;
+        let queries = self.get();
+        let mut pl = ProgressLogger::builder()
+            .with_items_name("queries")
+            .with_expected_updates(queries.len() as u64)
+            .start();
+        for query in queries {
+            if let Some(range) = query.range {
+                writeln!(out, "{} {}", range.start, range.end)?;
+            }
+            pl.update(1u64);
+        }
+        pl.stop();
+
+        Ok(path)
+    }
+
     fn stats(&self, dataset: &[Interval]) -> Vec<(u32, QueryStats)> {
         let mut index = PeriodIndexPlusPlus::new(50);
         index.index(dataset);
@@ -526,7 +574,7 @@ impl Queryset for MixedQueries {
                 (start_times.stream(rng1), durations.stream(rng2))
             });
         let mut durations_gen = self.durations.as_ref().map(move |d| d.stream(rng3));
-        
+
         let n_range = (self.n as f64 * self.frac_range) as usize;
         let n_duration = (self.n as f64 * self.frac_duration) as usize;
         let n_range_duration = (self.n as f64 * self.frac_range_duration) as usize;

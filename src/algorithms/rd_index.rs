@@ -382,7 +382,7 @@ impl Grid {
                 if column_size + 1 > page_size * page_size && !grid.is_heavy(i) {
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
-                    grid.replace(i, time_columns(&mut intervals, page_size/2));
+                    grid.replace(i, time_columns(&mut intervals, page_size / 2));
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
@@ -392,7 +392,7 @@ impl Grid {
                     if cell_size + 1 > page_size && !column.is_heavy(j) {
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
-                        column.replace(j, duration_cells(&mut new_cells, page_size/2));
+                        column.replace(j, duration_cells(&mut new_cells, page_size / 2));
                     } else {
                         insert_by_end(&mut column.values[j], interval);
                     }
@@ -414,7 +414,7 @@ impl Grid {
                     // println!("Replacing column");
                     let mut intervals = grid.values[i].all_intervals();
                     intervals.push(interval);
-                    grid.replace(i, duration_columns(&mut intervals, page_size/2));
+                    grid.replace(i, duration_columns(&mut intervals, page_size / 2));
                 } else {
                     // Find the right cell and insert, possibly splitting
                     let column = &mut grid.values[i];
@@ -425,7 +425,7 @@ impl Grid {
                         // println!("replacing cell");
                         let mut new_cells = column.values[j].all_intervals();
                         new_cells.push(interval);
-                        column.replace(j, time_cells(&mut new_cells, page_size/2));
+                        column.replace(j, time_cells(&mut new_cells, page_size / 2));
                     } else {
                         // println!("Insert in place");
                         insert_by_end(&mut column.values[j], interval);

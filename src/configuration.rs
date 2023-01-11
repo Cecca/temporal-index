@@ -207,8 +207,7 @@ impl DataConfiguration {
                     iter.next().is_none(),
                     "only a single dataset is supported here"
                 );
-                let sorted =
-                    SortedDataset::new(dataset).expect("error getting the dataset");
+                let sorted = SortedDataset::new(dataset).expect("error getting the dataset");
                 Box::new(Some(Rc::new(sorted) as Rc<dyn Dataset>).into_iter())
             }
             Self::Reiterated { base, copies } => {
@@ -394,15 +393,20 @@ impl QueryConfiguration {
                 duration,
                 frac_duration,
                 frac_range,
-                frac_range_duration
+                frac_range_duration,
             } => {
                 let iter = iproduct!(seed, n, range, duration).flat_map(
                     move |(seed, n, range, duration)| match (range.get(), duration.get()) {
                         (None, None) => None,
-                        (range, duration) => {
-                            Some(Rc::new(MixedQueries::new(*seed, *n, range, duration, *frac_duration, *frac_range, *frac_range_duration))
-                                as Rc<dyn Queryset>)
-                        }
+                        (range, duration) => Some(Rc::new(MixedQueries::new(
+                            *seed,
+                            *n,
+                            range,
+                            duration,
+                            *frac_duration,
+                            *frac_range,
+                            *frac_range_duration,
+                        )) as Rc<dyn Queryset>),
                     },
                 );
                 Box::new(iter)
