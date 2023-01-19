@@ -22,7 +22,8 @@
               Zipf: { n: 10000000, beta: 1 }
           ]
         duration:
-          - Free
+          - Single:
+              Uniform: { low: 1, high: 10000 }
 
   algorithms:
     - RDIndex:

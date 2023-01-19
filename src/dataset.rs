@@ -417,8 +417,12 @@ pub trait Queryset: std::fmt::Debug {
             .start();
         for query in queries {
             if let Some(range) = query.range {
-                writeln!(out, "{} {}", range.start, range.end)?;
+                write!(out, "{} {} ", range.start, range.end)?;
             }
+            if let Some(duration) = query.duration {
+                write!(out, "{} {}", duration.min, duration.max)?;
+            }
+            writeln!(out);
             pl.update(1u64);
         }
         pl.stop();
