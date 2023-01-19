@@ -17,7 +17,8 @@ scale_color_algorithm <- function() {
         "Period-Index*"  = "#a87c9f",
         "R-Tree"         = "#6a9f58",
         "Interval-Tree"  = "#85b6b2",
-        "B-Tree"         = "#5778a4"
+        "B-Tree"         = "#5778a4",
+        "HINT"           = "#9c755f"
     ))
 }
 
@@ -27,7 +28,8 @@ scale_color_algorithm2 <- function() {
         "RD-index-dt"    = "#d1615d",
         "R-Tree"         = "#6a9f58",
         "Interval-Tree"  = "#85b6b2",
-        "B-Tree"         = "#5778a4"
+        "B-Tree"         = "#5778a4",
+        "HINT"           = "#9c755f"
     ))
 }
 
@@ -44,12 +46,14 @@ plot_scalability <- function(data_scalability) {
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
+                algorithm_name == "hint" ~ "HINT",
                 T ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name, ordered = T, levels = c(
                 "RD-index-td",
                 "RD-index-dt",
                 "Grid-File",
+                "HINT",
                 "Period-Index*",
                 "R-Tree",
                 "Interval-Tree",
@@ -217,12 +221,14 @@ plot_query_focus_precision <- function(data_focus) {
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
+                algorithm_name == "hint" ~ "HINT",
                 T ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name, levels = c(
                 "RD-index-td",
                 "RD-index-dt",
                 "Grid-File",
+                "HINT",
                 "Period-Index*",
                 "R-Tree",
                 "Interval-Tree",
@@ -324,12 +330,14 @@ plot_query_focus <- function(data_focus) {
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
+                algorithm_name == "hint" ~ "HINT",
                 T ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name, levels = c(
                 "RD-index-td",
                 "RD-index-dt",
                 "Grid-File",
+                "HINT",
                 "Period-Index*",
                 "R-Tree",
                 "Interval-Tree",
@@ -436,12 +444,14 @@ plot_selectivity_dependency <- function(data_selectivity, bare = FALSE, strip = 
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
+                algorithm_name == "hint" ~ "HINT",
                 T ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name, levels = c(
                 "RD-index-td",
                 "RD-index-dt",
                 "Grid-File",
+                "HINT",
                 "Period-Index*",
                 "R-Tree",
                 "Interval-Tree",
@@ -927,12 +937,14 @@ plot_insertions <- function(data_insertions, sorted=F, legend=T) {
                 algorithm_name == "period-index-*" ~ "Period-Index*",
                 algorithm_name == "rd-index-dt" ~ "RD-index-dt",
                 algorithm_name == "rd-index-td" ~ "RD-index-td",
+                algorithm_name == "hint" ~ "HINT",
                 T ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name, levels = c(
                 "RD-index-td",
                 "RD-index-dt",
                 "Grid-File",
+                "HINT",
                 "Period-Index*",
                 "R-Tree",
                 "Interval-Tree",
