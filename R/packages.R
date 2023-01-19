@@ -10,7 +10,7 @@ suppressPackageStartupMessages({
     library(assertthat)
     library(ggridges)
     library(cowplot)
-    library(bsselectR)
+    # library(bsselectR)
     library(tidytext)
     library(ggiraph)
     library(dtplyr)

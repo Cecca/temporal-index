@@ -45,14 +45,12 @@ latex_best <- function(data_best) {
         ) %>%
         group_by(dataset_name, time_constraint, duration_constraint) %>%
         distinct(algorithm_name, qps, time_index, bytes_per_interval) %>%
+        mutate(qps = units::drop_units(qps)) %>%
         replace_na(list(qps = 0)) %>%
         mutate(
-            # rank = row_number(desc(qps)),
             rank = dense_rank(desc(round(qps))),
-            rank_str = str_c(" {\\footnotesize(", rank, ")}"),
-            qps_num = qps %>% drop_units() %>% round(),
             time_index_num = time_index %>% set_units("ms") %>% drop_units(),
-            time_index = time_index_num %>% scales::number(big.mark = "\\\\,"),
+            time_index = time_index_num %>% scales::number(big.mark = "\\\\,", accuracy = 1),
             time_index = if_else(time_index_num == min(time_index_num),
                 str_c("\\underline{", time_index, "}"),
                 time_index
@@ -61,27 +59,9 @@ latex_best <- function(data_best) {
                 str_c("\\textbf{", scales::number(bytes_per_interval, accuracy = 0.1), "}"),
                 scales::number(bytes_per_interval, accuracy = 0.1)
             ),
-            # time_index_str = str_c(
-            #     " {\\scriptsize$\\big|$\\stackanchor{",
-            #     time_index,
-            #     "}{",
-            #     bytes_per_interval,
-            #     "}}"
-            # ),
-            qps = drop_units(qps) %>% scales::number(big.mark = "\\\\,"),
-            # qps = if_else(qps_num == max(qps_num),
-            #     str_c("\\textbf{", qps, "}"),
-            #     qps
-            # ),
+            qps = qps %>% scales::number(big.mark = "\\\\,", accuracy = 1),
             qps = str_c("\\colorbox[HTML]{", bgcolors[rank], "}{\\color{", fgcolor[rank], "}", qps, "}"),
             qps = str_c(qps, time_index, bytes_per_interval, sep = "$~|~$"),
-            # qps = str_c(qps, time_index_str),
-            # qps = cell_spec(qps,
-            #     background = if_else(qps_num == max(qps_num), "#e9e9e9", "white"),
-            #     # color = if_else(rank <= 2, "black", "white"),
-            #     format = "latex",
-            #     escape = FALSE
-            # )
         ) %>%
         mutate(
             algorithm_name = case_when(
@@ -92,6 +72,7 @@ latex_best <- function(data_best) {
                 algorithm_name == "rd-index-td" ~ "\\rdtd",
                 algorithm_name == "rd-index-dt" ~ "\\rddt",
                 algorithm_name == "RTree" ~ "\\rtree",
+                algorithm_name == "hint" ~ "\\hint",
                 TRUE ~ algorithm_name
             ),
             algorithm_name = factor(algorithm_name,
@@ -99,6 +80,7 @@ latex_best <- function(data_best) {
                     "\\rdtd",
                     "\\rddt",
                     "\\gfile",
+                    "\\hint",
                     "\\pindex",
                     "\\rtree",
                     "\\itree",
@@ -135,7 +117,8 @@ latex_best <- function(data_best) {
         ) %>%
         pivot_wider(
             names_from = "algorithm_name",
-            values_from = "qps"
+            values_from = "qps",
+            values_fill = "-"
         ) %>%
         mutate(
             dataset = case_when(
@@ -152,7 +135,7 @@ latex_best <- function(data_best) {
         collapse_rows(columns = 1, latex_hline = "major", valign = "middle") %>%
         add_header_above(
             # c(" " = 2, "Queries per second$\\\\big|${\\\\scriptsize\\\\stackanchor{index build time}{index size}} " = 7),
-            c(" " = 2, "Queries per second $~|~$ Index build time $~|~$ Bytes per interval" = 7),
+            c(" " = 2, "Queries per second $~|~$ Index build time $~|~$ Bytes per interval" = 8),
             escape = F
         )
 }

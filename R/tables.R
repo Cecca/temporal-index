@@ -37,7 +37,7 @@ table_batch <- function() {
     # Filter some no longer considered configurations that might still be
     # lingering around
     filter(
-      hostname == "ironmaiden",
+      hostname %in% c("ironmaiden", "fedora"),
       algorithm_name != "ebi-index",
       algorithm_name != "linear-scan",
       algorithm_name != "grid",
@@ -423,11 +423,11 @@ get_best_wide <- function(best_batch) {
     ) %>%
     group_by(dataset_name, time_constraint, duration_constraint) %>%
     distinct(algorithm_name, qps) %>%
-    replace_na(list(qps = 0)) %>%
     mutate(
-        qps = qps %>% drop_units(),
+        qps = qps %>% units::drop_units(),
         rank = dense_rank(desc(qps)),
     ) %>%
+    replace_na(list(qps = 0)) %>%
     mutate(
         algorithm_name = case_when(
             algorithm_name == "BTree" ~ "B-Tree",
