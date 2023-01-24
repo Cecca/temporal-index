@@ -437,6 +437,7 @@ get_best_wide <- function(best_batch) {
             algorithm_name == "rd-index-td" ~ "RD-index-td",
             algorithm_name == "rd-index-dt" ~ "RD-index-dt",
             algorithm_name == "RTree" ~ "R-Tree",
+            algorithm_name == "hint" ~ "HINT",
             TRUE ~ algorithm_name
         ),
         algorithm_name = factor(algorithm_name,
@@ -444,6 +445,7 @@ get_best_wide <- function(best_batch) {
                 "RD-index-td",
                 "RD-index-dt",
                 "Grid-File",
+                "HINT",
                 "Period-Index*",
                 "R-Tree",
                 "Interval-Tree",
@@ -521,8 +523,9 @@ get_simulated_tradeoff_ro_rd <- function(best_wide) {
 
 get_simulated_tradeoff_tern <- function(best_wide) {
   n <- 100
-  best_wide %>% 
-    mutate(fracs = list(expand.grid(frac_ro =0:n/n, frac_do =0:n/n))) %>% 
+  best_wide %>%
+    replace_na(list(qdo = 0)) %>%
+    mutate(fracs = list(expand.grid(frac_ro =0:n/n, frac_do =0:n/n))) %>%
     unnest(cols = fracs) %>%
     mutate(frac_rd = 1 - frac_ro - frac_do) %>%
     mutate(frac_rd = if_else(abs(frac_rd - 0) <= 0.00001, 0, frac_rd)) %>%
@@ -531,6 +534,3 @@ get_simulated_tradeoff_tern <- function(best_wide) {
       qps = 1 / (frac_rd / qrd + frac_ro / qro + frac_do / qdo)
     )
 }
- 
-
- 

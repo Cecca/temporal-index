@@ -167,7 +167,7 @@ plan <- drake_plan(
   #     width = 8,
   #     height = 3
   #   ),
-
+  #
   # figure_simulated_workload = {
   #   p1 <- simulated_tradeoff_do_ro %>% plot_simulated_tradeoff()
   #   p2 <- simulated_tradeoff_do_rd %>% plot_simulated_tradeoff()
@@ -181,20 +181,20 @@ plan <- drake_plan(
   #   )
   # },
 
-  # figure_tradeoff_tern = simulated_tradeoff_tern %>%
-  #   plot_tradeoff_tern_all() %>%
-  #   save_png(
-  #     "paper/images/tradeoff_all.png",
-  #     width = 8,
-  #     height = 10
-  #   ),
-  # figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
-  #   plot_tradeoff_tern_algo() %>%
-  #   save_png(
-  #     "paper/images/tradeoff_algo.png",
-  #     width = 4,
-  #     height = 4
-  #   ),
+  figure_tradeoff_tern = simulated_tradeoff_tern %>%
+    plot_tradeoff_tern_all() %>%
+    save_png(
+      "paper/images/tradeoff_all.png",
+      width = 8,
+      height = 10
+    ),
+  figure_tradeoff_tern_algo = simulated_tradeoff_tern %>%
+    plot_tradeoff_tern_algo() %>%
+    save_png(
+      "paper/images/tradeoff_algo.png",
+      width = 4,
+      height = 4
+    ),
 
 
   ######################################################################
