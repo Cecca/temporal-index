@@ -32,13 +32,14 @@ pub trait Dataset: std::fmt::Debug {
 
     fn to_csv(&self, mut path: PathBuf) -> Result<PathBuf> {
         use std::io::prelude::*;
+        use std::io::BufWriter;
         let fname = format!("{}__{}.csv", self.name(), self.parameters()).replace(" ", "__");
         path.push(fname);
         if path.is_file() {
             return Ok(path);
         }
         info!("Exporting dataset to {:?}", path);
-        let mut out = std::fs::File::create(&path)?;
+        let mut out = BufWriter::new(std::fs::File::create(&path)?);
         let intervals = self.get()?;
         let mut pl = ProgressLogger::builder()
             .with_items_name("intervals")
@@ -49,6 +50,7 @@ pub trait Dataset: std::fmt::Debug {
             pl.update(1u64);
         }
         pl.stop();
+        out.flush()?;
 
         Ok(path)
     }
@@ -403,13 +405,14 @@ pub trait Queryset: std::fmt::Debug {
 
     fn to_csv(&self, mut path: PathBuf) -> Result<PathBuf> {
         use std::io::prelude::*;
+        use std::io::BufWriter;
         let fname = format!("{}__{}.csv", self.name(), self.parameters()).replace(" ", "__");
         path.push(fname);
         if path.is_file() {
             return Ok(path);
         }
         info!("Exporting dataset to {:?}", path);
-        let mut out = std::fs::File::create(&path)?;
+        let mut out = BufWriter::new(std::fs::File::create(&path)?);
         let queries = self.get();
         let mut pl = ProgressLogger::builder()
             .with_items_name("queries")
@@ -422,10 +425,11 @@ pub trait Queryset: std::fmt::Debug {
             if let Some(duration) = query.duration {
                 write!(out, "{} {}", duration.min, duration.max)?;
             }
-            writeln!(out);
+            writeln!(out)?;
             pl.update(1u64);
         }
         pl.stop();
+        out.flush()?;
 
         Ok(path)
     }
