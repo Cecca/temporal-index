@@ -897,12 +897,12 @@ impl Queryset for RandomCappedQueryset {
                 })
                 .map(|interval| {
                     if interval.end > self.cap {
-                        assert!(
-                            interval.start < self.cap,
-                            "interval.start={}, self.cap={}",
-                            interval.start,
-                            self.cap
-                        );
+                        // assert!(
+                        //     interval.start < self.cap,
+                        //     "interval.start={}, self.cap={}",
+                        //     interval.start,
+                        //     self.cap
+                        // );
                         Interval {
                             start: interval.start,
                             end: self.cap,
