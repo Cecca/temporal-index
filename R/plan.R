@@ -118,7 +118,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/query-focus.png",
       width = 10,
-      height = 3
+      height = 2.5
     ),
 
   figure_query_focus_precision = data_query_focus %>%
@@ -126,7 +126,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/query-focus-precision.png",
       width = 10,
-      height = 3
+      height = 2.5
     ),
 
   figure_selectivity_dependency = data_query_focus %>%
