@@ -1,33 +1,32 @@
 ---
 title: "Indexing Temporal Relations for Range-Duration Queries"
 subtitle: "Supplemental material"
+date: 2023-02-08
 author:
-  - Matteo Ceccarello <mceccarello@unibz.it>
-  - Anton Dignös <dignoes@inf.unibz.it>
-  - Johann Gamper <gamper@inf.unibz.it>
-  - Christina Khnaisser <christina.khnaisser@usherbrooke.ca>
+  - name: Matteo Ceccarello 
+    email: mceccarello@unibz.it
+    affiliation: University of Padova
+  - name: Anton Dignös 
+    email: dignoes@inf.unibz.it
+    affiliation: Free University of Bozen-Bolzano
+  - name: Johann Gamper 
+    email: gamper@inf.unibz.it
+    affiliation: Free University of Bozen-Bolzano
+  - name: Christina Khnaisser 
+    email: christina.khnaisser@usherbrooke.ca
+    affiliation: Université de Sherbrooke
 execute:
   echo: false
-reference-location: margin
-citation-location: margin
+#reference-location: margin
+#citation-location: margin
 format:
   html:
+    theme: ember.scss
     self-contained: true
 ---
 
-This document complements the experimental results of the paper. 
+This document complements the experimental results of the [paper](https://arxiv.org/abs/2206.07428). 
 In particular, in this document we provide interactive plots to explore the behavior of different index structures on mixed query workloads.
-
-```{css}
-.plot {
-  font-size: 12pt;
-}
-thead>tr {
-  border-bottom-color: rgb(204, 204, 204);
-  border-bottom-style: solid;
-  border-bottom-width: 1px;
-}
-```
 
 ```{r setup, echo=F, message=F, warning=F}
 library(tidyverse)
@@ -68,6 +67,7 @@ data <- read_csv("best.csv") %>%
           algorithm_name == "rd-index-td"    ~ "RD-Index-td",
           algorithm_name == "rd-index-dt"    ~ "RD-Index-dt",
           algorithm_name == "RTree"          ~ "RTree",
+          algorithm_name == "hint"           ~ "HINT",
           TRUE ~ algorithm_name
       ),
       algorithm_name = factor(algorithm_name,
@@ -77,6 +77,7 @@ data <- read_csv("best.csv") %>%
               "GridFile",
               "Period-Index*",
               "RTree",
+              "HINT",
               "ITree",
               "BTree"
           ),
@@ -142,7 +143,7 @@ data %>%
 A natural question is: how does the performance change when these three types of queries are mixed together?
 Using data from the above table we can estimate performance figures for mixed workloads.
 In particular, the inverse of the throughputs reported in the above table are the average running time of each specific type of query.
-Taking the inverse of the weighted average (where weights are the fraction of queries of each type) is the throughput of the mixed workload:
+The harmonic mean of the throughputs is the throughput of the mixed workload:
 $$
 QPS_{mixed} =
 \frac{1}{
@@ -210,6 +211,7 @@ algoDomain = [
   "Grid-File"     ,
   "Period-Index*" ,
   "R-Tree"        ,
+  "HINT"          ,
   "Interval-Tree" ,
   "B-Tree"        
 ];
@@ -395,15 +397,15 @@ Plot.plot({
 First and foremost, observe that for the majority of workloads on all datasets we have that one of the two variants of the RD-Index is the best performing data structure.
 This is true also when a considerable part of the workload is comprised of range-only or duration-only queries.
 
-On all datasets, when the vast majority of queries are duration-only queries, the best performing data structure is the B-Tree.
-The threshold of duration-only queries at which the B-Tree is the best varies from dataset to dataset, and depends also on how many range-duration queries are involved[^why-range-duration].
+On all datasets, when the vast majority of queries are duration-only queries, the best performing data structure is the `B-Tree`.
+Similarly, when the majority of queries is range-only, the best performing data structure is `HINT`.
+
+The threshold of duration-only and range-only queries at which these indices are the best varies from dataset to dataset, and depends also on how many range-duration queries are involved[^why-range-duration].
 In particular, for the `Random` the B-Tree has the best performance only when there are at most $\approx 37\%$ range-duration queries and no range-only queries.
 On `Flight`, with either $\ge 60\%$  duration-only and no range-only queries, or $76\%$ range-duration and $23\%$  duration-only queries, the B-Tree is the best data structure.
 On the other two datasets, the B-Tree outperforms the RD-Index only when the vast majority of queries are range-only.
 
 [^why-range-duration]: The B-Tree indexes only the duration dimension of intervals. Therefore, queries constraining only the range do not benefit from this index, but range-duration queries do, although not as much as duration-only queries.
-
-On `MimicIII`, when almost all the queries are range-only, the strictly best performing data structure is the Grid File. However, as can be seen by the bar chart, the RD-Index performs very similarly.
 
 Finally, observe that the performance of the RD-Index is rather robust to the choice of indexing order: moving the mouse on the ternary plot while observing the bar chart shows that the throughput of RD-Index-dt is similar to the throughput of RD-Index-td.
 
