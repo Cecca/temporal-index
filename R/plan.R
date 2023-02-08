@@ -231,10 +231,10 @@ plan <- drake_plan(
   ######################################################################
   # Running example to be used in the paper
 
-  # data_running_example = table_running_mimic(
-  #   query_range, query_duration
-  # ),
-  #
+  data_running_example = table_running_mimic(
+    query_range, query_duration
+  ),
+
   # figure_running_example = {
   #   tikzDevice::tikz(
   #     file = file_out("paper/example.tex"),
@@ -246,17 +246,27 @@ plan <- drake_plan(
   #   dev.off()
   # },
   #
-  # figure_running_example_plane = {
-  #   plot_running_example_mimic(
-  #     query_range, query_duration
-  #   )
-  #   ggsave(file_out("paper/images/example-plane.pdf"), width = 6.6, height = 2.5, dpi = 300)
-  # },
-  # figure_running_example_grid = {
-  #   plot_running_example_mimic(
-  #     query_range, query_duration,
-  #     grid = TRUE
-  #   )
-  #   ggsave(file_out("paper/images/example-grid.pdf"), width = 6.6, height = 2.5, dpi = 300)
-  # },
+  figure_running_example_plane = {
+    plot_running_example_mimic(
+      query_range, query_duration
+    )
+    ggsave(
+      file_out("paper/images/example-plane.pdf"), 
+      width = 3.3, # 6.6, 
+      height = 2.5, 
+      dpi = 300
+    )
+  },
+  figure_running_example_grid = {
+    plot_running_example_mimic(
+      query_range, query_duration,
+      grid = TRUE
+    )
+    ggsave(
+      file_out("paper/images/example-grid.pdf"),
+      width = 3.3, # 6.6,
+      height = 2.5,
+      dpi = 300
+    )
+  },
 )

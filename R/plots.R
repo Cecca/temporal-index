@@ -753,7 +753,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
         filter(i != 4) %>%
         arrange(i) %>%
         mutate(column_end = lead(column_bound)) %>%
-        replace_na(list("column_end" = "2016-12-31"))
+        replace_na(list("column_end" = ymd("2016-12-31")))
     cells <- read_csv(here::here("example_rdindex/cell_info.csv")) %>%
         inner_join(columns)
 
@@ -872,7 +872,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 nudge_x = 3,
                 vjust = 1,
                 hjust = 0,
-                size = 2.5,
+                size = 2,
                 angle = 0,
                 inherit.aes = F
             ) +
@@ -886,7 +886,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 nudge_x = 3,
                 vjust = 1,
                 hjust = 0,
-                size = 2.5,
+                size = 2,
                 color = "gray40",
                 angle = 0,
                 inherit.aes = F
@@ -899,7 +899,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 nudge_x = -9,
                 vjust = 1,
                 hjust = 1,
-                size = 2.5,
+                size = 2,
             ) +
             geom_text(
                 label = "col_maxend:",
@@ -910,7 +910,7 @@ plot_running_example_mimic <- function(query_range, query_duration, grid = FALSE
                 nudge_x = -9,
                 vjust = 1,
                 hjust = 1,
-                size = 2.5,
+                size = 2,
             ) +
             scale_y_continuous(limits=c(-1, 2)) +
             scale_x_date(date_labels = "%b", expand = expansion(mult=c(.05, .1))) +
