@@ -37,7 +37,7 @@ table_batch <- function() {
     # Filter some no longer considered configurations that might still be
     # lingering around
     filter(
-      hostname %in% c("ironmaiden", "fedora"),
+      hostname %in% c("ironmaiden"),
       algorithm_name != "ebi-index",
       algorithm_name != "linear-scan",
       algorithm_name != "grid",
