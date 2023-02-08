@@ -149,8 +149,8 @@ plan <- drake_plan(
     plot_selectivity_dependency(bare = FALSE, strip = FALSE, legend = FALSE) %>%
     save_png(
       "paper/images/selectivity-dep-inefficient.png",
-      width = 4,
-      height = 4
+      width = 2,
+      height = 2
     ),
 
   # figure_simulated_workload_do_ro = simulated_tradeoff_do_ro %>%
