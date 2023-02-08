@@ -118,7 +118,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/query-focus.png",
       width = 10,
-      height = 2.5
+      height = 1.8#2#.5
     ),
 
   figure_query_focus_precision = data_query_focus %>%
@@ -126,7 +126,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/query-focus-precision.png",
       width = 10,
-      height = 2.5
+      height = 1.8#2#.5
     ),
 
   figure_selectivity_dependency = data_query_focus %>%
@@ -134,7 +134,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/selectivity-dep.png",
       width = 10,
-      height = 2.5
+      height = 1.8
     ),
 
   figure_query_focus_inefficient_precision = table_query_focus_inefficient() %>%
@@ -193,7 +193,7 @@ plan <- drake_plan(
     save_png(
       "paper/images/tradeoff_algo.png",
       width = 4,
-      height = 4
+      height = 3
     ),
 
 

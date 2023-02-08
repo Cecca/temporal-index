@@ -309,8 +309,8 @@ plot_query_focus_precision <- function(data_focus) {
         theme_paper() +
         theme(
             legend.title = element_blank(),
-            legend.position = "bottom",
-            legend.key.width = unit(30, "mm")
+            legend.position = "right",
+            # legend.key.width = unit(30, "mm")
         )
 }
 
@@ -426,8 +426,8 @@ plot_query_focus <- function(data_focus) {
         theme_paper() +
         theme(
             legend.title = element_blank(),
-            legend.position = "bottom",
-            legend.key.width = unit(30, "mm")
+            legend.position = "right",
+            # legend.key.width = unit(30, "mm")
         )
 }
 
@@ -1076,9 +1076,10 @@ plot_tradeoff_tern_algo <- function(simulated_tradeoff_tern) {
         ) +
         theme_paper() +
         theme(
-            legend.position = "bottom",
-            panel.spacing = unit(5, "mm"),
-            axis.title = element_text(size = 8)
+            legend.title = element_blank(),
+            legend.position = "right",
+            panel.spacing = unit(4, "mm"),
+            axis.title = element_text(size = 7)
         )
 
 }
