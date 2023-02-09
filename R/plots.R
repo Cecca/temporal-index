@@ -16,9 +16,9 @@ scale_color_algorithm <- function() {
         "Grid-File"      = "#e7ca60",
         "Period-Index*"  = "#a87c9f",
         "R-Tree"         = "#6a9f58",
-        "Interval-Tree"  = "#85b6b2",
+        "Interval-Tree"  = "#9c755f",
         "B-Tree"         = "#5778a4",
-        "HINT"           = "#9c755f"
+        "HINT"           = "#85b6b2"
     ))
 }
 
@@ -27,9 +27,9 @@ scale_color_algorithm2 <- function() {
         "RD-index-td"    = "#e49444",
         "RD-index-dt"    = "#d1615d",
         "R-Tree"         = "#6a9f58",
-        "Interval-Tree"  = "#85b6b2",
+        "Interval-Tree"  = "#9c755f",
         "B-Tree"         = "#5778a4",
-        "HINT"           = "#9c755f"
+        "HINT"           = "#85b6b2"
     ))
 }
 
