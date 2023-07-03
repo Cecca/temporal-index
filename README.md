@@ -2,15 +2,22 @@ Indexing temporal relations for range-duration queries
 ===============================
 
 This project implements some indices for range-duration queries.
-The code is in `rust` and can be run from a `docker` image.
-Once you have `docker` up and running, all that is neede to compile the
-code and run a first batch of experiments is
+To run the code you need the rust toolchain installed, which can be obtained by following instructions here: https://rustup.rs/
 
-    ./dockerrun experiments/debug.yml
+Experiments specifications are in the `experiments` directory, and can be run with (for instance)
 
-or any other configuration following the specification.
-   
-This will produce a sqlite database, `temporal-index-results.sqlite`,
-containing the results for each parameter configuration described in the
-`experiments/debug.yml` file.
+```
+cargo run --release -- experiments/real-world.yml
+```
+
+This command will produce (or update) a sqlite database named `temporal-index-results.sqlite` that contains all experimental results. This can be analyized with the R scripts in the `R` directory.
+
+In particular, running in an R console
+
+```
+renv::restore()
+drake::r_make()
+```
+
+Should produce the plots and tables reported in the paper
 
