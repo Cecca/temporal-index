@@ -74,6 +74,9 @@ plan <- drake_plan(
     table_parameter_dependency()
   },
 
+  csv_parameter_dependency = data_parameter_dependency %>%
+    write_csv("docs/param-dependency.csv"),
+
   # Parameter dependency plot
   #
   # Compared to the old version (before removing the timing of individual
@@ -111,6 +114,8 @@ plan <- drake_plan(
         str_detect(dataset_params, "n=10000000 ")
       )
   },
+  csv_query_focus = data_query_focus %>%
+    write_csv("docs/query-focus.csv"),
 
   # Figure for the query focus plot
   figure_query_focus = data_query_focus %>%
