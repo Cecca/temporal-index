@@ -12,3 +12,4 @@ temporal-index-*.gz
 /check
 paper/__latexindent_temp.pdf
 notes.md
+.direnv
