@@ -226,6 +226,10 @@ impl Algorithm for GridFile {
         answer.inc_examined(examined);
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         drop(std::mem::replace(&mut self.inner, Vec::new()));
         drop(std::mem::replace(&mut self.max_durations, Vec::new()));

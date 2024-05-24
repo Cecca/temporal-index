@@ -99,6 +99,10 @@ impl Algorithm for BTree {
         }
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         self.data.clear();
     }

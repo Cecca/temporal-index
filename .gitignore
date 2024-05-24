@@ -13,3 +13,8 @@ temporal-index-*.gz
 paper/__latexindent_temp.pdf
 notes.md
 .direnv
+docs/param-dependency.csv
+docs/query-focus.csv
+paper/images
+temporal-index.zip
+todo.txt

@@ -176,6 +176,7 @@ pub trait Algorithm: std::fmt::Debug {
     fn size(&self) -> usize;
     fn index(&mut self, dataset: &[Interval]);
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder);
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder);
     /// Clears the index, freeing up space
     fn clear(&mut self);
 
@@ -237,6 +238,10 @@ pub trait Algorithm: std::fmt::Debug {
 
         results
     }
+
+    // TODO: add run_parallel here, accepting the number of threads
+    // TODO add a ParallelResult struct
+    // TODO support both striped and parallel cell queries
 
     fn run_inserts(&mut self, intervals: &[Interval], batch: usize) -> Vec<InsertResult> {
         let mut times = Vec::new();

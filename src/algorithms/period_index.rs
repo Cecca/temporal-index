@@ -501,6 +501,10 @@ impl Algorithm for PeriodIndex {
         }
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         self.buckets.clear();
         self.anchor_point = 0;
@@ -679,6 +683,10 @@ impl Algorithm for PeriodIndexStar {
                 unimplemented!("iteration not supported");
             }
         }
+    }
+
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
     }
 
     fn clear(&mut self) {

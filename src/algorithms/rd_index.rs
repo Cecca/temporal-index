@@ -1,4 +1,6 @@
 use crate::types::*;
+use rayon::prelude::*;
+use std::sync::atomic::AtomicU32;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
@@ -189,6 +191,28 @@ impl Algorithm for RDIndex {
         }
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        if let Some(grid) = &self.grid {
+            let examined = match (query.range, query.duration) {
+                (Some(range), Some(duration)) => {
+                    grid.par_query_range_duration(range, duration, |interval| {
+                        sender.send(*interval).unwrap()
+                    })
+                }
+                (Some(_range), None) => unimplemented!(),
+                (None, Some(_duration)) => unimplemented!(),
+                (None, None) => unimplemented!("iteration is not supported"),
+            };
+            for interval in receiver {
+                answer.push(interval);
+            }
+            answer.inc_examined(examined);
+        } else {
+            panic!("uninitialized index!");
+        }
+    }
+
     fn clear(&mut self) {
         drop(self.grid.take());
     }
@@ -281,6 +305,41 @@ impl Grid {
             }),
         }
         cnt
+    }
+
+    #[allow(dead_code)]
+    fn par_query_range_duration<F: Fn(&Interval) + Send + Sync>(
+        &self,
+        range: Interval,
+        duration: DurationRange,
+        action: F,
+    ) -> u32 {
+        let examined = AtomicU32::new(0);
+        let mut cell_callback = |cell: &Vec<Interval>| {
+            // traverse the cell by decreasing end time
+            let mut cnt = 0u32;
+            for interval in cell.iter().rev() {
+                cnt += 1;
+                if interval.end <= range.start {
+                    return;
+                }
+                if duration.contains(interval) && interval.start < range.end {
+                    action(interval);
+                }
+            }
+            examined.fetch_add(cnt, std::sync::atomic::Ordering::SeqCst);
+        };
+        match self {
+            Self::TimeDuration(grid) => {
+                grid.par_query(range, |column| {
+                    column.par_query(duration, cell_callback);
+                });
+            }
+            Self::DurationTime(grid) => grid.query(duration, |column| {
+                column.query(range, &mut cell_callback);
+            }),
+        }
+        examined.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     #[allow(dead_code)]
@@ -677,11 +736,45 @@ impl<V> TimePartition<V> {
     }
 }
 
+impl<V: Send + Sync> TimePartition<V> {
+    fn par_query<F: Fn(&V) + Sync + Send>(&self, range: Interval, action: F) {
+        let end = match self.min_start_times.binary_search(&range.end) {
+            Ok(i) => i, // exact match, equal end time than maximum start time
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
+        };
+
+        let max_end_times = &self.max_end_times;
+
+        (0..=end)
+            .into_par_iter()
+            .filter(|i| range.start < max_end_times[*i])
+            .for_each(|i| {
+                action(&self.values[i]);
+            });
+    }
+}
+
 struct DurationPartition<V> {
     max_durations: Vec<Time>,
     min_durations: Vec<Time>,
     values: Vec<V>,
     size: usize,
+}
+
+impl<V: Send + Sync> DurationPartition<V> {
+    fn par_query<F: Fn(&V) + Send + Sync>(&self, duration_range: DurationRange, action: F) {
+        let end = match self.min_durations.binary_search(&duration_range.max) {
+            Ok(i) => i,
+            Err(i) => std::cmp::min(i, self.min_durations.len() - 1),
+        };
+
+        (0..=end)
+            .into_par_iter()
+            .filter(|i| duration_range.min <= self.max_durations[*i])
+            .for_each(|i| {
+                action(&self.values[i]);
+            });
+    }
 }
 
 impl<V> DurationPartition<V> {

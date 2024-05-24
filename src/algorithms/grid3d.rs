@@ -173,6 +173,10 @@ impl Algorithm for Grid3D {
         }
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         drop(std::mem::replace(&mut self.grid, Vec::new()));
         drop(std::mem::replace(&mut self.duration_ecdf, BTreeMap::new()));

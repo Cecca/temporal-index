@@ -238,6 +238,10 @@ impl Algorithm for PeriodIndexPlusPlus {
         }
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         drop(self.index.take());
     }

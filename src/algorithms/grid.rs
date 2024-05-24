@@ -209,6 +209,10 @@ impl Algorithm for Grid {
         answers.inc_examined(cnt);
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         drop(std::mem::replace(&mut self.grid, Vec::new()));
         drop(std::mem::replace(

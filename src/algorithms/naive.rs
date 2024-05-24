@@ -58,6 +58,10 @@ impl Algorithm for LinearScan {
         answer.inc_examined(self.dataset.len() as u32);
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         let dataset = std::mem::replace(&mut self.dataset, Vec::new());
         drop(dataset);

@@ -101,6 +101,10 @@ impl Algorithm for RTreeIndex {
         answer.inc_examined(examined);
     }
 
+    fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
+        unimplemented!()
+    }
+
     fn clear(&mut self) {
         self.max_start = 0;
         self.max_duration = 0;
