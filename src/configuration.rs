@@ -455,7 +455,7 @@ pub enum ExperimentMode {
 
 #[derive(Serialize, Deserialize)]
 pub struct Configuration {
-    mode: ExperimentMode,
+    mode: Vec<ExperimentMode>,
     datasets: Vec<DataConfiguration>,
     queries: Vec<QueryConfiguration>,
     algorithms: Vec<AlgorithmConfiguration>,
@@ -474,16 +474,18 @@ impl Configuration {
                 dataset.version(),
                 dataset.parameters()
             );
-            for queries in self.queries.iter().flat_map(|q| q.queries()) {
-                for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
-                    let conf = ExperimentConfiguration {
-                        mode: self.mode.clone(),
-                        dataset: Rc::clone(&dataset),
-                        queries: Rc::clone(&queries),
-                        algorithm: Rc::clone(&algorithm),
-                    };
-                    let dbg_str = format!("{:?}", conf);
-                    action(conf).context(dbg_str)?
+            for mode in self.mode.iter() {
+                for queries in self.queries.iter().flat_map(|q| q.queries()) {
+                    for algorithm in self.algorithms.iter().flat_map(|a| a.algorithms()) {
+                        let conf = ExperimentConfiguration {
+                            mode: mode.clone(),
+                            dataset: Rc::clone(&dataset),
+                            queries: Rc::clone(&queries),
+                            algorithm: Rc::clone(&algorithm),
+                        };
+                        let dbg_str = format!("{:?}", conf);
+                        action(conf).context(dbg_str)?
+                    }
                 }
             }
         }

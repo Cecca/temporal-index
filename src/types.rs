@@ -130,6 +130,10 @@ impl QueryAnswerBuilder {
         self.examined += cnt;
     }
 
+    pub fn set_matches(&mut self, cnt: u32) {
+        self.n_matches = cnt;
+    }
+
     #[inline]
     pub fn push(&mut self, _interval: Interval) {
         #[cfg(test)]

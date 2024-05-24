@@ -1,6 +1,6 @@
 use crate::types::*;
 use rayon::prelude::*;
-use std::sync::atomic::AtomicU32;
+use std::{sync::atomic::AtomicU32, time::Instant};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
@@ -192,22 +192,14 @@ impl Algorithm for RDIndex {
     }
 
     fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
-        let (sender, receiver) = crossbeam_channel::unbounded();
         if let Some(grid) = &self.grid {
-            let examined = match (query.range, query.duration) {
-                (Some(range), Some(duration)) => {
-                    grid.par_query_range_duration(range, duration, |interval| {
-                        sender.send(*interval).unwrap()
-                    })
-                }
+            let (matches, examined) = match (query.range, query.duration) {
+                (Some(range), Some(duration)) => grid.par_count_range_duration(range, duration),
                 (Some(_range), None) => unimplemented!(),
                 (None, Some(_duration)) => unimplemented!(),
                 (None, None) => unimplemented!("iteration is not supported"),
             };
-            drop(sender);
-            for interval in receiver {
-                answer.push(interval);
-            }
+            answer.set_matches(matches);
             answer.inc_examined(examined);
         } else {
             panic!("uninitialized index!");
@@ -309,25 +301,24 @@ impl Grid {
     }
 
     #[allow(dead_code)]
-    fn par_query_range_duration<F: Fn(&Interval) + Send + Sync>(
-        &self,
-        range: Interval,
-        duration: DurationRange,
-        action: F,
-    ) -> u32 {
+    fn par_count_range_duration(&self, range: Interval, duration: DurationRange) -> (u32, u32) {
         let examined = AtomicU32::new(0);
+        let matches = AtomicU32::new(0);
         let cell_callback = |cell: &Vec<Interval>| {
             // traverse the cell by decreasing end time
             let mut cnt = 0u32;
+            let mut cnt_match = 0u32;
             for interval in cell.iter().rev() {
                 cnt += 1;
                 if interval.end <= range.start {
                     return;
                 }
                 if duration.contains(interval) && interval.start < range.end {
-                    action(interval);
+                    // action(interval);
+                    cnt_match += 1;
                 }
             }
+            matches.fetch_add(cnt_match, std::sync::atomic::Ordering::SeqCst);
             examined.fetch_add(cnt, std::sync::atomic::Ordering::SeqCst);
         };
         match self {
@@ -340,7 +331,10 @@ impl Grid {
                 column.par_query(range, cell_callback);
             }),
         }
-        examined.load(std::sync::atomic::Ordering::SeqCst)
+        (
+            matches.load(std::sync::atomic::Ordering::SeqCst),
+            examined.load(std::sync::atomic::Ordering::SeqCst),
+        )
     }
 
     #[allow(dead_code)]

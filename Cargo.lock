@@ -1447,7 +1447,6 @@ dependencies = [
  "anyhow",
  "argh",
  "chrono",
- "crossbeam-channel",
  "csv",
  "dirs",
  "flate2",
