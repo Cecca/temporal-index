@@ -324,11 +324,11 @@ impl Grid {
         match self {
             Self::TimeDuration(grid) => {
                 grid.par_query(range, |column| {
-                    column.par_query(duration, cell_callback);
+                    column.query(duration, cell_callback);
                 });
             }
             Self::DurationTime(grid) => grid.par_query(duration, |column| {
-                column.par_query(range, cell_callback);
+                column.query(range, cell_callback);
             }),
         }
         (
