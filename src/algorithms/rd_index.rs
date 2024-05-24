@@ -204,6 +204,7 @@ impl Algorithm for RDIndex {
                 (None, Some(_duration)) => unimplemented!(),
                 (None, None) => unimplemented!("iteration is not supported"),
             };
+            drop(sender);
             for interval in receiver {
                 answer.push(interval);
             }
@@ -315,7 +316,7 @@ impl Grid {
         action: F,
     ) -> u32 {
         let examined = AtomicU32::new(0);
-        let mut cell_callback = |cell: &Vec<Interval>| {
+        let cell_callback = |cell: &Vec<Interval>| {
             // traverse the cell by decreasing end time
             let mut cnt = 0u32;
             for interval in cell.iter().rev() {
@@ -335,8 +336,8 @@ impl Grid {
                     column.par_query(duration, cell_callback);
                 });
             }
-            Self::DurationTime(grid) => grid.query(duration, |column| {
-                column.query(range, &mut cell_callback);
+            Self::DurationTime(grid) => grid.par_query(duration, |column| {
+                column.par_query(range, cell_callback);
             }),
         }
         examined.load(std::sync::atomic::Ordering::SeqCst)

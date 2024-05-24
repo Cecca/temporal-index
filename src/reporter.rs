@@ -412,7 +412,7 @@ impl Reporter {
                         time_query_ms, 
                         qps,
                         index_size_bytes )
-                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 ?12 )",
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12 )",
                     params![
                         self.date.to_rfc3339(),
                         env!("VERGEN_SHA_SHORT"),
