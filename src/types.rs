@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use progress_logger::ProgressLogger;
+use rayon::ThreadPoolBuilder;
 
 pub type Time = u64;
 
@@ -169,7 +170,7 @@ pub struct InsertResult {
     pub insert_per_sec: f64,
 }
 
-pub trait Algorithm: std::fmt::Debug {
+pub trait Algorithm: std::fmt::Debug + Send + Sync {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
@@ -200,15 +201,21 @@ pub trait Algorithm: std::fmt::Debug {
         cnt
     }
 
-    fn run_parallel(&self, queries: &[Query]) -> u32 {
+    fn run_parallel(&self, queries: &[Query], threads: usize) -> u32 {
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .unwrap();
         // Set a timeout given by 10 queries per second
-        let mut cnt = 0;
-        for query in queries.iter() {
-            let mut query_result = QueryAnswer::builder();
-            self.par_query(query, &mut query_result);
-            cnt += query_result.n_matches;
-        }
-        cnt
+        pool.install(|| {
+            let mut cnt = 0;
+            for query in queries.iter() {
+                let mut query_result = QueryAnswer::builder();
+                self.par_query(query, &mut query_result);
+                cnt += query_result.n_matches;
+            }
+            cnt
+        })
     }
 
     fn run_focus(&self, queries: &[Query], n_samples: u32) -> Vec<FocusResult> {

@@ -274,10 +274,6 @@ fn main() -> Result<()> {
                 }
                 ExperimentMode::Parallel { threads } => {
                     let (elapsed_index, elapsed_run, index_size_bytes) = {
-                        rayon::ThreadPoolBuilder::new()
-                            .num_threads(threads)
-                            .build_global()
-                            .unwrap();
                         let mut algorithm = experiment.algorithm.borrow_mut();
                         info!("Building index");
                         let start = Instant::now();
@@ -286,9 +282,9 @@ fn main() -> Result<()> {
                         let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
                         info!("Index built in {:?}", end - start);
 
-                        info!("Running queries [batch]");
+                        info!("Running queries [parallel batch]");
                         let start = Instant::now();
-                        let matches = algorithm.run_parallel(&queryset_queries);
+                        let matches = algorithm.run_parallel(&queryset_queries, threads);
                         let end = Instant::now();
                         let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
 

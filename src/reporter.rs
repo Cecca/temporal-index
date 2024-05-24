@@ -88,7 +88,7 @@ impl Reporter {
                     AND dataset_id == ?2
                     AND queryset_id == ?3
                     AND algorithm_id == ?4
-                    AND threads == ?5
+                    AND num_threads == ?5
                     ",
                     params![hostname, dataset_id, queryset_id, algorithm_id, threads],
                     |row| row.get(0),
