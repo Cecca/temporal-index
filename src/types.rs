@@ -200,6 +200,17 @@ pub trait Algorithm: std::fmt::Debug {
         cnt
     }
 
+    fn run_parallel(&self, queries: &[Query]) -> u32 {
+        // Set a timeout given by 10 queries per second
+        let mut cnt = 0;
+        for query in queries.iter() {
+            let mut query_result = QueryAnswer::builder();
+            self.par_query(query, &mut query_result);
+            cnt += query_result.n_matches;
+        }
+        cnt
+    }
+
     fn run_focus(&self, queries: &[Query], n_samples: u32) -> Vec<FocusResult> {
         let mut results = Vec::with_capacity(queries.len());
         let mut pl = ProgressLogger::builder()

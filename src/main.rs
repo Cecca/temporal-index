@@ -272,6 +272,43 @@ fn main() -> Result<()> {
 
                     reporter.report_batch(elapsed_index, elapsed_run, index_size_bytes)?;
                 }
+                ExperimentMode::Parallel { threads } => {
+                    let (elapsed_index, elapsed_run, index_size_bytes) = {
+                        rayon::ThreadPoolBuilder::new()
+                            .num_threads(threads)
+                            .build_global()
+                            .unwrap();
+                        let mut algorithm = experiment.algorithm.borrow_mut();
+                        info!("Building index");
+                        let start = Instant::now();
+                        algorithm.index(&dataset_intervals);
+                        let end = Instant::now();
+                        let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+                        info!("Index built in {:?}", end - start);
+
+                        info!("Running queries [batch]");
+                        let start = Instant::now();
+                        let matches = algorithm.run_parallel(&queryset_queries);
+                        let end = Instant::now();
+                        let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+
+                        info!(
+                            "time for index {}ms, time for query {}ms, output size {}",
+                            elapsed_index, elapsed_run, matches
+                        );
+                        // Clear up the index to free resources, and measure the space it took up
+                        let allocated_start = get_allocated();
+                        algorithm.clear();
+                        let allocated_end = get_allocated();
+                        assert!(allocated_start.0 > allocated_end.0);
+                        info!("Size of the index was {}", allocated_start - allocated_end);
+                        let index_size_bytes = (allocated_start - allocated_end).0;
+                        (elapsed_index, elapsed_run, index_size_bytes)
+                    };
+
+                    // FIXME:
+                    // reporter.report_parallel(elapsed_index, elapsed_run, index_size_bytes)?;
+                }
                 ExperimentMode::Focus { samples } => {
                     let results = {
                         // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
@@ -300,7 +337,7 @@ fn main() -> Result<()> {
                         results
                     };
                     reporter.report_insert(batch, results)?;
-                } // TODO: add ExperimentMode::Parallel
+                }
             }
 
             Ok(())
