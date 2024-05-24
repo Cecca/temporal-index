@@ -306,8 +306,12 @@ fn main() -> Result<()> {
                         (elapsed_index, elapsed_run, index_size_bytes)
                     };
 
-                    // FIXME:
-                    // reporter.report_parallel(elapsed_index, elapsed_run, index_size_bytes)?;
+                    reporter.report_parallel(
+                        threads,
+                        elapsed_index,
+                        elapsed_run,
+                        index_size_bytes,
+                    )?;
                 }
                 ExperimentMode::Focus { samples } => {
                     let results = {

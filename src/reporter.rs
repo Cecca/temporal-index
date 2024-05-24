@@ -21,7 +21,7 @@ impl Reporter {
 
         Ok(Self {
             date,
-            config: config,
+            config,
             config_file: config_file.as_ref().to_owned(),
         })
     }
@@ -72,6 +72,25 @@ impl Reporter {
                     AND algorithm_id == ?4
                     ",
                     params![hostname, dataset_id, queryset_id, algorithm_id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, batch mode")
+            }
+            ExperimentMode::Parallel { threads } => {
+                if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
+                    // This configuration has not been run, neither in batch nor in focus mode
+                    return Ok(None);
+                }
+                conn.query_row(
+                    "SELECT id FROM parallel_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND queryset_id == ?3
+                    AND algorithm_id == ?4
+                    AND threads == ?5
+                    ",
+                    params![hostname, dataset_id, queryset_id, algorithm_id, threads],
                     |row| row.get(0),
                 )
                 .optional()
@@ -343,6 +362,85 @@ impl Reporter {
             }
         }
         tx.commit()?;
+        Ok(())
+    }
+
+    pub fn report_parallel(
+        &self,
+        threads: usize,
+        elapsed_index: i64,
+        elapsed_query: i64,
+        index_size_bytes: usize,
+    ) -> Result<()> {
+        let dbpath = Self::get_db_path();
+        let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let hostname = get_hostname()?;
+
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+        let queryset = &self.config.queries;
+
+        // elapsed query is in milliseconds, we turn it to seconds
+        let qps = queryset.get().len() as f64 / (elapsed_query as f64 / 1000.0);
+
+        info!("Queries per second {}", qps);
+
+        let conf_file = self
+            .config_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
+            .to_owned();
+
+        let tx = conn.transaction()?;
+        {
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let queryset_id = Self::get_or_insert_queryset(&tx, queryset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
+
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO parallel_raw ( 
+                        date, 
+                        git_rev, 
+                        hostname, 
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id,
+                        num_threads,
+                        time_index_ms, 
+                        time_query_ms, 
+                        qps,
+                        index_size_bytes )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 ?12 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id,
+                        threads,
+                        elapsed_index,
+                        elapsed_query,
+                        qps,
+                        index_size_bytes as i64
+                    ],
+                )
+                .context("error inserting into main table")?;
+            if updated_cnt == 0 {
+                anyhow::bail!("Insertion didn't happen");
+            }
+
+            let id = tx.last_insert_rowid();
+            info!("last inserted row id is {}", id);
+        }
+
+        tx.commit()?;
+        conn.close()
+            .map_err(|e| e.1)
+            .context("error inserting into the database")?;
         Ok(())
     }
 
@@ -805,6 +903,12 @@ pub fn db_setup() -> Result<()> {
         tx.execute_batch(include_str!("migrations/v12.sql"))?;
         tx.commit()?;
         bump(&conn, 12)?;
+    }
+    if version < 13 {
+        let tx = conn.transaction()?;
+        tx.execute_batch(include_str!("migrations/v13.sql"))?;
+        tx.commit()?;
+        bump(&conn, 13)?;
     }
 
     info!("database schema up to date");
