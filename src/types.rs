@@ -1,4 +1,4 @@
-use std::{iter::Sum, time::Instant};
+use std::{time::Instant};
 
 use progress_logger::ProgressLogger;
 use rayon::ThreadPoolBuilder;

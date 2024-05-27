@@ -1,6 +1,5 @@
 use crate::types::*;
 use rayon::prelude::*;
-use std::{sync::atomic::AtomicU32, time::Instant};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {

@@ -1,4 +1,4 @@
-use crate::types::{Algorithm, Interval, QueryAnswer, QueryAnswerBuilder};
+use crate::types::{Algorithm, Interval, QueryAnswer};
 
 #[derive(Debug)]
 pub struct StripedIndex {

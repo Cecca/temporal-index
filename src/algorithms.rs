@@ -10,13 +10,7 @@ pub mod rd_index;
 pub mod rtree;
 pub mod striped;
 
-pub use btree::*;
-pub use grid::*;
-pub use grid3d::*;
 pub use grid_file::*;
-pub use interval_tree::*;
-pub use naive::*;
-pub use period_index::*;
 pub use period_index_plusplus::*;
 pub use rd_index::*;
 pub use rtree::*;
