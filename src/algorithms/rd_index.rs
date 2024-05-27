@@ -8,6 +8,7 @@ pub enum DimensionOrder {
     DurationTime,
 }
 
+#[derive(Clone)]
 pub struct RDIndex {
     dimension_order: DimensionOrder,
     page_size: usize,
@@ -134,6 +135,9 @@ impl RDIndex {
 }
 
 impl Algorithm for RDIndex {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.dimension_order, self.page_size))
+    }
     fn name(&self) -> String {
         "rd-index".to_owned()
     }
@@ -251,6 +255,7 @@ fn next_breakpoint<F: Fn(&Interval) -> Time>(
     }
     end
 }
+#[derive(Clone)]
 enum Grid {
     TimeDuration(TimePartition<DurationPartition<Vec<Interval>>>),
     DurationTime(DurationPartition<TimePartition<Vec<Interval>>>),
@@ -631,6 +636,7 @@ fn duration_cells(
     DurationPartition::new(intervals, page_size, cell_builder)
 }
 
+#[derive(Clone)]
 struct TimePartition<V> {
     min_start_times: Vec<Time>,
     max_end_times: Vec<Time>,
@@ -749,6 +755,7 @@ impl<V: Send + Sync> TimePartition<V> {
     }
 }
 
+#[derive(Clone)]
 struct DurationPartition<V> {
     max_durations: Vec<Time>,
     min_durations: Vec<Time>,

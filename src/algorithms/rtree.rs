@@ -11,7 +11,7 @@ impl RTreeObject for Interval {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RTreeIndex {
     tree: RTree<Interval>,
     max_start: Time,
@@ -19,6 +19,9 @@ pub struct RTreeIndex {
 }
 
 impl Algorithm for RTreeIndex {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::default())
+    }
     fn name(&self) -> String {
         "RTree".to_owned()
     }

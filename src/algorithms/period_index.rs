@@ -1,6 +1,7 @@
 use crate::types::*;
 use anyhow::Result;
 
+#[derive(Clone)]
 struct Cell {
     time_range: Interval,
     duration_range: DurationRange,
@@ -102,6 +103,7 @@ impl Cell {
     }
 }
 
+#[derive(Clone)]
 struct Bucket {
     time_range: Interval,
     /// Two dimensional arrangement of cells: each level holds cells
@@ -309,6 +311,7 @@ impl Bucket {
     }
 }
 
+#[derive(Clone)]
 pub struct PeriodIndex {
     num_buckets: usize,
     num_levels: u32,
@@ -364,6 +367,9 @@ impl PeriodIndex {
 }
 
 impl Algorithm for PeriodIndex {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.num_buckets, self.num_levels).unwrap())
+    }
     fn name(&self) -> String {
         String::from("period-index")
     }
@@ -531,6 +537,7 @@ impl Algorithm for PeriodIndex {
     }
 }
 
+#[derive(Clone)]
 pub struct PeriodIndexStar {
     /// Buckets wof different widths, sorted by their end times so that we can
     /// make binary search for start times on them.
@@ -585,6 +592,9 @@ impl std::fmt::Debug for PeriodIndexStar {
 }
 
 impl Algorithm for PeriodIndexStar {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.num_buckets, self.num_levels).unwrap())
+    }
     fn name(&self) -> String {
         String::from("period-index-*")
     }

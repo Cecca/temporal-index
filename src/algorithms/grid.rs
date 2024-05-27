@@ -2,6 +2,7 @@ use crate::types::*;
 use std::collections::BTreeMap;
 use std::ops::Bound::{Included, Unbounded};
 
+#[derive(Clone)]
 pub struct Grid {
     num_buckets: usize,
     bucket_size: Option<usize>,
@@ -101,6 +102,9 @@ impl Grid {
 }
 
 impl Algorithm for Grid {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.num_buckets))
+    }
     fn name(&self) -> String {
         String::from("grid")
     }

@@ -1,5 +1,6 @@
 use crate::types::*;
 
+#[derive(Clone)]
 pub struct IntervalTree {
     n: usize,
     root: Option<Box<Node>>,
@@ -110,6 +111,9 @@ impl std::fmt::Debug for IntervalTree {
 }
 
 impl Algorithm for IntervalTree {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new())
+    }
     fn name(&self) -> String {
         String::from("interval-tree")
     }
@@ -210,6 +214,7 @@ impl Algorithm for IntervalTree {
     }
 }
 
+#[derive(Clone)]
 struct Node {
     pub middle: Time,
     pub upper: Vec<Interval>,

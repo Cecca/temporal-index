@@ -7,6 +7,8 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
+use self::striped::StripedIndex;
+
 #[derive(Debug, Clone)]
 pub struct ExperimentConfiguration {
     pub mode: ExperimentMode,
@@ -60,11 +62,21 @@ pub enum AlgorithmConfiguration {
     BTree,
     IntervalTree,
     RTree,
+    Striped {
+        inner: Box<AlgorithmConfiguration>,
+    },
 }
 
 impl AlgorithmConfiguration {
     fn algorithms(&self) -> Box<dyn Iterator<Item = Rc<RefCell<dyn Algorithm>>> + '_> {
         match self {
+            Self::Striped { inner } => {
+                let iter = inner.algorithms().map(|algo| {
+                    let algo: Box<dyn Algorithm> = algo.borrow().alike();
+                    Rc::new(RefCell::new(StripedIndex::new(algo))) as Rc<RefCell<dyn Algorithm>>
+                });
+                Box::new(iter)
+            }
             Self::PeriodIndex {
                 num_buckets,
                 num_levels,

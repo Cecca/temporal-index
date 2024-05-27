@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{iter::Sum, time::Instant};
 
 use progress_logger::ProgressLogger;
 use rayon::ThreadPoolBuilder;
@@ -125,6 +125,15 @@ impl QueryAnswerBuilder {
         }
     }
 
+    pub fn merge(&mut self, other: &Self) {
+        self.examined += other.examined;
+        self.n_matches += other.n_matches;
+        #[cfg(test)]
+        {
+            self.intervals.extend(other.intervals.iter().cloned());
+        }
+    }
+
     #[inline]
     pub fn inc_examined(&mut self, cnt: u32) {
         self.examined += cnt;
@@ -175,6 +184,7 @@ pub struct InsertResult {
 }
 
 pub trait Algorithm: std::fmt::Debug + Send + Sync {
+    fn alike(&self) -> Box<dyn Algorithm>;
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;

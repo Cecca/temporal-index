@@ -1,6 +1,7 @@
 use crate::types::*;
 use std::iter::FromIterator;
 
+#[derive(Clone)]
 pub struct PeriodIndexPlusPlus {
     page_size: usize,
     index: Option<SortedBlockIndex<SortedBlockIndex<Vec<Interval>>>>,
@@ -22,6 +23,9 @@ impl std::fmt::Debug for PeriodIndexPlusPlus {
 }
 
 impl Algorithm for PeriodIndexPlusPlus {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.page_size))
+    }
     fn name(&self) -> String {
         "period-index++".to_owned()
     }
@@ -255,6 +259,7 @@ impl Algorithm for PeriodIndexPlusPlus {
     }
 }
 
+#[derive(Clone)]
 struct SortedBlockIndex<V> {
     boundaries: Vec<Time>,
     values: Vec<V>,

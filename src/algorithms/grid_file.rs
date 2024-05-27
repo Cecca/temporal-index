@@ -1,5 +1,6 @@
 use crate::types::*;
 
+#[derive(Clone)]
 pub struct GridFile {
     side_cells: usize,
     /// index by duration (first dimension) and then by start time
@@ -127,6 +128,9 @@ impl GridFile {
 }
 
 impl Algorithm for GridFile {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.side_cells))
+    }
     fn name(&self) -> String {
         "grid-file".to_owned()
     }

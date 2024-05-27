@@ -1,6 +1,7 @@
 use crate::types::*;
 use std::collections::BTreeMap;
 
+#[derive(Clone)]
 pub struct BTree {
     data: BTreeMap<Time, Vec<Interval>>,
 }
@@ -20,6 +21,9 @@ impl std::fmt::Debug for BTree {
 }
 
 impl Algorithm for BTree {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new())
+    }
     fn name(&self) -> String {
         String::from("BTree")
     }

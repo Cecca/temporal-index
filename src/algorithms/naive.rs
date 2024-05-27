@@ -1,5 +1,6 @@
 use crate::types::*;
 
+#[derive(Clone)]
 pub struct LinearScan {
     dataset: Vec<Interval>,
 }
@@ -19,6 +20,9 @@ impl LinearScan {
 }
 
 impl Algorithm for LinearScan {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new())
+    }
     fn name(&self) -> String {
         "linear-scan".to_owned()
     }

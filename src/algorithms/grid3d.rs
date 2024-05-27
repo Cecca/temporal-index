@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::ops::Bound::{Included, Unbounded};
 use std::ops::RangeInclusive;
 
+#[derive(Clone)]
 pub struct Grid3D {
     num_buckets: usize,
     bucket_size: Option<usize>,
@@ -89,6 +90,9 @@ impl Grid3D {
 }
 
 impl Algorithm for Grid3D {
+    fn alike(&self) -> Box<dyn Algorithm> {
+        Box::new(Self::new(self.num_buckets))
+    }
     fn name(&self) -> String {
         String::from("grid3D")
     }

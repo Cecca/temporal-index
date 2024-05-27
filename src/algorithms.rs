@@ -8,6 +8,7 @@ pub mod period_index;
 pub mod period_index_plusplus;
 pub mod rd_index;
 pub mod rtree;
+pub mod striped;
 
 pub use btree::*;
 pub use grid::*;
