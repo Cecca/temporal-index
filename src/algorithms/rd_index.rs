@@ -307,39 +307,29 @@ impl Grid {
 
     #[allow(dead_code)]
     fn par_count_range_duration(&self, range: Interval, duration: DurationRange) -> (u32, u32) {
-        let examined = AtomicU32::new(0);
-        let matches = AtomicU32::new(0);
         let cell_callback = |cell: &Vec<Interval>| {
             // traverse the cell by decreasing end time
-            let mut cnt = 0u32;
-            let mut cnt_match = 0u32;
+            let mut cnt_match = 0usize;
             for interval in cell.iter().rev() {
-                cnt += 1;
                 if interval.end <= range.start {
-                    return;
+                    break;
                 }
                 if duration.contains(interval) && interval.start < range.end {
-                    // action(interval);
                     cnt_match += 1;
                 }
             }
-            matches.fetch_add(cnt_match, std::sync::atomic::Ordering::SeqCst);
-            examined.fetch_add(cnt, std::sync::atomic::Ordering::SeqCst);
+            cnt_match
         };
-        match self {
+
+        let matches = match self {
             Self::TimeDuration(grid) => {
-                grid.par_query(range, |column| {
-                    column.query(duration, cell_callback);
-                });
+                grid.par_count(range, |column| column.count(duration, cell_callback))
             }
-            Self::DurationTime(grid) => grid.par_query(duration, |column| {
-                column.query(range, cell_callback);
-            }),
-        }
-        (
-            matches.load(std::sync::atomic::Ordering::SeqCst),
-            examined.load(std::sync::atomic::Ordering::SeqCst),
-        )
+            Self::DurationTime(grid) => {
+                grid.par_count(duration, |column| column.count(range, cell_callback))
+            }
+        };
+        (matches as u32, 0)
     }
 
     #[allow(dead_code)]
@@ -753,6 +743,35 @@ impl<V: Send + Sync> TimePartition<V> {
                 action(&self.values[i]);
             });
     }
+
+    fn count<F: Fn(&V) -> usize + Sync + Send>(&self, range: Interval, counter: F) -> usize {
+        let end = match self.min_start_times.binary_search(&range.end) {
+            Ok(i) => i, // exact match, equal end time than maximum start time
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
+        };
+
+        let max_end_times = &self.max_end_times;
+
+        (0..=end)
+            .filter(|i| range.start < max_end_times[*i])
+            .map(|i| counter(&self.values[i]))
+            .sum::<usize>()
+    }
+
+    fn par_count<F: Fn(&V) -> usize + Sync + Send>(&self, range: Interval, counter: F) -> usize {
+        let end = match self.min_start_times.binary_search(&range.end) {
+            Ok(i) => i, // exact match, equal end time than maximum start time
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
+        };
+
+        let max_end_times = &self.max_end_times;
+
+        (0..=end)
+            .into_par_iter()
+            .filter(|i| range.start < max_end_times[*i])
+            .map(|i| counter(&self.values[i]))
+            .sum()
+    }
 }
 
 #[derive(Clone)]
@@ -776,6 +795,39 @@ impl<V: Send + Sync> DurationPartition<V> {
             .for_each(|i| {
                 action(&self.values[i]);
             });
+    }
+
+    fn par_count<F: Fn(&V) -> usize + Send + Sync>(
+        &self,
+        duration_range: DurationRange,
+        counter: F,
+    ) -> usize {
+        let end = match self.min_durations.binary_search(&duration_range.max) {
+            Ok(i) => i,
+            Err(i) => std::cmp::min(i, self.min_durations.len() - 1),
+        };
+
+        (0..=end)
+            .into_par_iter()
+            .filter(|i| duration_range.min <= self.max_durations[*i])
+            .map(|i| counter(&self.values[i]))
+            .sum::<usize>()
+    }
+
+    fn count<F: Fn(&V) -> usize + Send + Sync>(
+        &self,
+        duration_range: DurationRange,
+        counter: F,
+    ) -> usize {
+        let end = match self.min_durations.binary_search(&duration_range.max) {
+            Ok(i) => i,
+            Err(i) => std::cmp::min(i, self.min_durations.len() - 1),
+        };
+
+        (0..=end)
+            .filter(|i| duration_range.min <= self.max_durations[*i])
+            .map(|i| counter(&self.values[i]))
+            .sum::<usize>()
     }
 }
 

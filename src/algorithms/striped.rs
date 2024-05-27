@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use crate::types::{Algorithm, Interval, QueryAnswer, QueryAnswerBuilder};
 
 #[derive(Debug)]
