@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::types::*;
 use rayon::prelude::*;
 
@@ -265,7 +267,7 @@ impl Grid {
         use std::iter::FromIterator;
 
         match order {
-            DimensionOrder::TimeDuration => Self::TimeDuration(TimePartition::new(
+            DimensionOrder::TimeDuration => Self::TimeDuration(TimePartition::par_new(
                 intervals,
                 page_size * page_size,
                 |column| {
@@ -661,6 +663,76 @@ impl<V> TimePartition<V> {
             values.push(inner_builder(&mut intervals[start..=end]));
             start = end + 1;
         }
+
+        // do the cumulative maximum end time.
+        // we need to do this because early buckets might contain end times that are later
+        // than the end times of the following buckets.
+        let mut cum_max = 0;
+        for t in max_end_times.iter_mut() {
+            if *t > cum_max {
+                cum_max = *t;
+            }
+            *t = cum_max;
+        }
+
+        Self {
+            min_start_times: max_start_times,
+            max_end_times,
+            values,
+            size: intervals.len(),
+        }
+    }
+
+    fn par_new<B: Fn(&mut [Interval]) -> V + Send + Sync>(
+        intervals: &mut [Interval],
+        block: usize,
+        inner_builder: B,
+    ) -> Self
+    where
+        V: Send,
+    {
+        let mut max_start_times = Vec::new();
+        let mut max_end_times = Vec::new();
+        // let mut values = Vec::new();
+
+        log::info!("Using {} threads", rayon::current_num_threads());
+        let timer = Instant::now();
+        intervals.par_sort_unstable_by_key(|interval| interval.start);
+        log::info!("  [time] Sorting took {:?}", timer.elapsed());
+
+        let mut start = 0usize;
+
+        let mut ranges = Vec::new();
+
+        let timer = Instant::now();
+        while start < intervals.len() {
+            let end = next_breakpoint(&intervals, start, block, |interval| interval.start);
+            max_start_times.push(intervals[start].start);
+            max_end_times.push(
+                intervals[start..=end]
+                    .iter()
+                    .map(|interval| interval.end)
+                    .max()
+                    .unwrap(),
+            );
+            // FIXME: push mutable slices instead of cloning
+            ranges.push(intervals[start..=end].to_owned());
+            // values.push(inner_builder(&mut intervals[start..=end]));
+            start = end + 1;
+        }
+        log::info!("  [time] Breakpoints took {:?}", timer.elapsed());
+
+        let timer = Instant::now();
+        let nranges = ranges.len();
+        let values: Vec<V> = ranges
+            .par_chunks_mut(nranges / rayon::current_num_threads() + 1)
+            .flat_map_iter(|chunk| chunk.iter_mut().map(|ints| inner_builder(ints)))
+            .collect();
+        log::info!(
+            "  [time] Recursion over {} ranges took {:?}",
+            values.len(),
+            timer.elapsed()
+        );
 
         // do the cumulative maximum end time.
         // we need to do this because early buckets might contain end times that are later
