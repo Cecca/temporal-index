@@ -40,8 +40,9 @@ impl Algorithm for StripedIndex {
 
     fn index(&mut self, dataset: &[crate::types::Interval]) {
         use rand::prelude::*;
+
         let n_stripes = rayon::current_num_threads();
-        let stripe_size = (dataset.len() + 1) / n_stripes;
+        let stripe_size = dataset.len() / n_stripes + 1;
         dbg!(stripe_size);
         let template = &self.template;
         self.stripes.clear();
