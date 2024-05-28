@@ -250,10 +250,13 @@ impl Grid {
                 intervals,
                 page_size * page_size,
                 |column| {
-                    DurationPartition::new(column, page_size, |cell| {
+                    let timer = Instant::now();
+                    let c = DurationPartition::new(column, page_size, |cell| {
                         cell.sort_unstable_by_key(|interval| interval.end);
                         Vec::from_iter(cell.iter().cloned())
-                    })
+                    });
+                    log::info!(">>>>> Column built in {:?}", timer.elapsed());
+                    c
                 },
             )),
             DimensionOrder::DurationTime => Self::DurationTime(DurationPartition::new(
@@ -635,18 +638,21 @@ impl<V> TimePartition<V> {
     }
 
     #[allow(dead_code)]
-    fn par_new<B: FnMut(&mut [Interval]) -> V>(
+    fn par_new<B: Fn(&mut [Interval]) -> V + Send + Sync>(
         intervals: &mut [Interval],
         block: usize,
-        mut inner_builder: B,
-    ) -> Self {
+        inner_builder: B,
+    ) -> Self
+    where
+        V: Send,
+    {
         use rayon::prelude::*;
 
         let mut max_start_times = Vec::new();
         let mut max_end_times = Vec::new();
 
         let timer = Instant::now();
-        intervals.sort_unstable_by_key(|interval| interval.start);
+        intervals.par_sort_unstable_by_key(|interval| interval.start);
         log::info!(">>> Sorting {:?}", timer.elapsed());
 
         let mut start = 0usize;
@@ -670,8 +676,8 @@ impl<V> TimePartition<V> {
         log::info!(">>> Breakpoints {:?}", timer.elapsed());
 
         let timer = Instant::now();
-        let values = subs.iter_mut().map(|sub| inner_builder(sub)).collect();
-        log::info!(">>> Columns {:?}", timer.elapsed());
+        let values = subs.par_iter_mut().map(|sub| inner_builder(sub)).collect();
+        log::info!(">>> Columns {:?} ({} columns)", timer.elapsed(), subs.len());
 
         // do the cumulative maximum end time.
         // we need to do this because early buckets might contain end times that are later
