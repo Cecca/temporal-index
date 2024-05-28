@@ -3,7 +3,7 @@ name = "temporal-index"
 version = "0.1.0"
 authors = ["Matteo Ceccarello <mceccarello@unibz.it>"]
 edition = "2018"
-build = "build.rs"  
+build = "build.rs"
 
 [dependencies]
 rand = "0.7"
@@ -22,10 +22,10 @@ serde_derive = "1.0"
 serde_yaml = "0.8"
 itertools = "0.9"
 sysinfo = "0.15"
-rayon = "1.4"
+rayon = "1.10"
 csv = "1.1"
 flate2 = "1.0.19"
-reqwest = {version = "0.11", features = ["blocking"]}
+reqwest = { version = "0.11", features = ["blocking"] }
 rstar = "0.8"
 serde_json = "1.0.91"
 
