@@ -39,5 +39,5 @@ paste = "1.0"
 vergen = "3"
 
 [profile.release]
-debug = false
+debug = true
 incremental = true
