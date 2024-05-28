@@ -1,12 +1,90 @@
-use std::time::Instant;
-
 use crate::types::*;
 use rayon::prelude::*;
+use std::{
+    rc::Rc,
+    sync::{
+        mpsc::{Receiver, Sender},
+        Arc,
+    },
+    thread::JoinHandle,
+    time::Instant,
+};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
     TimeDuration,
     DurationTime,
+}
+
+type CountingTask = Arc<dyn Fn(&[usize]) -> u32 + Send + Sync>;
+type TaskSender = Sender<(CountingTask, Vec<usize>)>;
+type Task<'a> = Arc<dyn Fn(&[usize]) -> u32 + Send + Sync + 'a>;
+
+enum Msg<'a> {
+    Task(Task<'a>, Vec<usize>),
+    Kill,
+}
+
+struct Workers {
+    workers: Vec<JoinHandle<()>>,
+    senders: Vec<TaskSender>,
+    receiver: Receiver<u32>,
+}
+
+impl Workers {
+    fn new(n_workers: usize) -> Self {
+        let mut workers = Vec::new();
+        let mut senders = Vec::new();
+
+        let (out_send, out_recv) = std::sync::mpsc::channel::<u32>();
+        for _ in 0..n_workers {
+            let out_send = out_send.clone();
+            let (in_send, in_recv) = std::sync::mpsc::channel::<(CountingTask, Vec<usize>)>();
+            senders.push(in_send);
+            let thread = std::thread::spawn(move || {
+                for (task, idxs) in in_recv {
+                    let res = task(&idxs);
+                    out_send.send(res).expect("error sending back result");
+                }
+            });
+            workers.push(thread);
+        }
+
+        Self {
+            workers,
+            senders,
+            receiver: out_recv,
+        }
+    }
+
+    fn exec<'task, F: Fn(&[usize]) -> u32 + Send + Sync + 'task>(
+        &self,
+        indices: &[usize],
+        action: F,
+    ) -> u32 {
+        let action = unsafe {
+            // NOTE: maybe we need to explicitly set a scope handle in order to make sure that we
+            // are done using the function reference before returning?
+            std::mem::transmute::<Task<'task>, Task<'static>>(Arc::new(action))
+        };
+
+        let chunk_size = indices.len() / self.senders.len() + 1;
+        let indices = indices.chunks(chunk_size);
+
+        // Schedule and execute tasks
+        let mut n_tasks = 0;
+        for (sender, indices) in self.senders.iter().zip(indices) {
+            sender.send((action.clone(), indices.to_owned())).unwrap();
+            n_tasks += 1;
+        }
+
+        // Collect results
+        let mut sum = 0u32;
+        for _ in 0..n_tasks {
+            sum += self.receiver.recv().unwrap();
+        }
+        sum
+    }
 }
 
 #[derive(Clone)]
@@ -15,6 +93,7 @@ pub struct RDIndex {
     page_size: usize,
     /// This inner data structure abstracts the choices induced by the order of the dimensions
     grid: Option<Grid>,
+    workers: Rc<Workers>,
 }
 
 impl std::fmt::Debug for RDIndex {
@@ -33,6 +112,7 @@ impl RDIndex {
             dimension_order,
             page_size,
             grid: None,
+            workers: Rc::new(Workers::new(16)),
         }
     }
 
@@ -199,7 +279,9 @@ impl Algorithm for RDIndex {
     fn par_query(&self, query: &Query, answer: &mut QueryAnswerBuilder) {
         if let Some(grid) = &self.grid {
             let (matches, examined) = match (query.range, query.duration) {
-                (Some(range), Some(duration)) => grid.par_count_range_duration(range, duration),
+                (Some(range), Some(duration)) => {
+                    grid.par_count_range_duration2(range, duration, &self.workers)
+                }
                 (Some(_range), None) => unimplemented!(),
                 (None, Some(_duration)) => unimplemented!(),
                 (None, None) => unimplemented!("iteration is not supported"),
@@ -327,6 +409,39 @@ impl Grid {
                 grid.par_count(range, |column| column.count(duration, cell_callback))
             }
             Self::DurationTime(grid) => {
+                grid.par_count(duration, |column| column.count(range, cell_callback))
+            }
+        };
+        (matches as u32, 0)
+    }
+
+    #[allow(dead_code)]
+    fn par_count_range_duration2(
+        &self,
+        range: Interval,
+        duration: DurationRange,
+        pool: &Workers,
+    ) -> (u32, u32) {
+        let cell_callback = |cell: &Vec<Interval>| {
+            // traverse the cell by decreasing end time
+            let mut cnt_match = 0usize;
+            for interval in cell.iter().rev() {
+                if interval.end <= range.start {
+                    break;
+                }
+                if duration.contains(interval) && interval.start < range.end {
+                    cnt_match += 1;
+                }
+            }
+            cnt_match
+        };
+
+        let matches = match self {
+            Self::TimeDuration(grid) => {
+                grid.par_count2(pool, range, |column| column.count(duration, cell_callback))
+            }
+            Self::DurationTime(grid) => {
+                // TODO: implement here
                 grid.par_count(duration, |column| column.count(range, cell_callback))
             }
         };
@@ -651,7 +766,7 @@ impl<V> TimePartition<V> {
         let mut start = 0usize;
 
         while start < intervals.len() {
-            let end = next_breakpoint(&intervals, start, block, |interval| interval.start);
+            let end = next_breakpoint(intervals, start, block, |interval| interval.start);
             max_start_times.push(intervals[start].start);
             max_end_times.push(
                 intervals[start..=end]
@@ -783,12 +898,14 @@ impl<V> TimePartition<V> {
             Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
         };
 
+        let timer = Instant::now();
         for i in (0..=end).rev() {
             if range.start >= self.max_end_times[i] {
                 return;
             }
             action(&self.values[i]);
         }
+        log::info!("Sequential counting {:?}", timer.elapsed());
     }
 
     fn for_each<F: FnMut(&V)>(&self, mut action: F) {
@@ -842,6 +959,45 @@ impl<V: Send + Sync> TimePartition<V> {
             .filter(|i| range.start < max_end_times[*i])
             .map(|i| counter(&self.values[i]))
             .sum()
+    }
+
+    fn par_count2<F: Fn(&V) -> usize + Sync + Send>(
+        &self,
+        pool: &Workers,
+        range: Interval,
+        counter: F,
+    ) -> usize {
+        let timer = Instant::now();
+        let end = match self.min_start_times.binary_search(&range.end) {
+            Ok(i) => i, // exact match, equal end time than maximum start time
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
+        };
+        log::info!("find end {:?}", timer.elapsed());
+
+        let timer = Instant::now();
+        let max_end_times = &self.max_end_times;
+
+        // FIXME: remove this allocation
+        let indices = (0..=end).collect::<Vec<usize>>();
+        let res = pool.exec(&indices, |idxs| {
+            log::info!("Processing thread {:?}", std::thread::current().id());
+            let timer = Instant::now();
+            let mut cnt = 0u32;
+            for i in idxs {
+                if range.start < max_end_times[*i] {
+                    cnt += counter(&self.values[*i]) as u32;
+                }
+            }
+            log::info!(
+                "Processing thread {:?} completed in {:?} ({} indices)",
+                std::thread::current().id(),
+                timer.elapsed(),
+                idxs.len()
+            );
+            cnt
+        }) as usize;
+        log::info!("do counts {:?}", timer.elapsed());
+        res
     }
 }
 

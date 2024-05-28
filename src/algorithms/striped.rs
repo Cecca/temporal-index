@@ -72,19 +72,21 @@ impl Algorithm for StripedIndex {
         answer: &mut crate::types::QueryAnswerBuilder,
     ) {
         use rayon::prelude::*;
-        let ans = self
-            .stripes
-            .par_iter()
-            .map(|stripe| {
-                let mut partial = QueryAnswer::builder();
-                stripe.query(query, &mut partial);
-                partial
-            })
-            .reduce_with(|mut a, b| {
-                a.merge(&b);
-                a
-            });
-        answer.merge(&ans.unwrap());
+        // FIXME
+        // let ans = self
+        //     .stripes
+        //     .par_iter()
+        //     .map(|stripe| {
+        //         let mut partial = QueryAnswer::builder();
+        //         stripe.query(query, &mut partial);
+        //         partial
+        //     })
+        //     .reduce_with(|mut a, b| {
+        //         a.merge(&b);
+        //         a
+        //     });
+        // answer.merge(&ans.unwrap());
+        todo!()
     }
 
     fn clear(&mut self) {
