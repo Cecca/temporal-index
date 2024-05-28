@@ -17,7 +17,7 @@ pub enum DimensionOrder {
     DurationTime,
 }
 
-type TaskSender = Sender<(Task<'static>, usize)>;
+type TaskSender = crossbeam_channel::Sender<(Task<'static>, usize)>;
 type Task<'a> = Arc<dyn Fn(usize) -> u32 + Send + Sync + 'a>;
 
 enum Msg<'a> {
@@ -28,9 +28,8 @@ enum Msg<'a> {
 struct Workers {
     workers: Vec<JoinHandle<()>>,
     senders: Vec<TaskSender>,
-    receiver: Receiver<u32>,
+    receiver: crossbeam_channel::Receiver<u32>,
     current_index: Arc<AtomicUsize>,
-    max_index: Arc<AtomicUsize>,
     barrier: Arc<Barrier>,
 }
 
@@ -39,42 +38,25 @@ impl Workers {
         let mut workers = Vec::new();
         let mut senders = Vec::new();
         let current_index = Arc::new(AtomicUsize::new(0));
-        let max_index = Arc::new(AtomicUsize::new(0));
         let barrier = Arc::new(Barrier::new(n_workers + 1));
 
-        let (out_send, out_recv) = std::sync::mpsc::channel::<u32>();
+        let (out_send, out_recv) = crossbeam_channel::unbounded::<u32>();
         for i in 0..n_workers {
             let barrier = barrier.clone();
             let current_index = current_index.clone();
-            let max_index = max_index.clone();
             let out_send = out_send.clone();
-            let (in_send, in_recv) = std::sync::mpsc::channel::<(Task, usize)>();
+            let (in_send, in_recv) = crossbeam_channel::unbounded::<(Task, usize)>();
             senders.push(in_send);
             let thread = std::thread::Builder::new()
                 .name(format!("index-{}", i))
                 .spawn(move || {
                     for (task, max_idx) in in_recv {
-                        // let max_idx = max_index.load(Ordering::SeqCst);
-                        // log::info!("{:?} Max idx: {}", std::thread::current().name(), max_idx);
-                        // let timer = Instant::now();
                         loop {
                             let idx = current_index.fetch_add(1, Ordering::SeqCst);
                             if idx > max_idx {
-                                // log::info!(
-                                //     "Thread {:?} completed in {:?}",
-                                //     std::thread::current(),
-                                //     timer.elapsed()
-                                // );
-                                // log::info!(
-                                //     "idx={} > {} breaking from thread {:?}",
-                                //     idx,
-                                //     max_idx,
-                                //     std::thread::current().id()
-                                // );
                                 break;
                             } else {
                                 let res = task(idx);
-                                // log::info!("Output for {} is {}", idx, res);
                                 out_send.send(res).expect("error sending back result");
                             }
                         }
@@ -91,7 +73,6 @@ impl Workers {
             senders,
             receiver: out_recv,
             current_index,
-            max_index,
             barrier,
         }
     }
@@ -106,17 +87,13 @@ impl Workers {
             // are done using the function reference before returning?
             std::mem::transmute::<Task<'task>, Task<'static>>(Arc::new(action))
         };
-        // log::info!("=======================================");
 
         self.current_index.store(0, Ordering::SeqCst);
-        self.max_index.store(indices.len() - 1, Ordering::SeqCst);
 
         // let chunk_size = indices.len() / self.senders.len() + 1;
         // let indices = indices.chunks(chunk_size);
 
         // Schedule and execute tasks
-        // let mut n_tasks = 0;
-        // for (sender, indices) in self.senders.iter().zip(indices) {
         for sender in self.senders.iter() {
             sender.send((action.clone(), indices.len() - 1)).unwrap();
         }
@@ -125,9 +102,7 @@ impl Workers {
         let mut sum = 0u32;
         for i in 0..indices.len() {
             sum += self.receiver.recv().unwrap();
-            // log::info!("step {}/{} sum={}", i, indices.len(), sum);
         }
-        // log::info!("main waiting for all to be at the same point");
         self.barrier.wait();
         sum
     }
