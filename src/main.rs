@@ -89,7 +89,6 @@ fn log_memory(system: &mut System) {
     }
 }
 
-
 #[derive(Serialize, Eq, PartialEq, Hash)]
 struct WorkloadEntry {
     data_name: String,
@@ -131,7 +130,7 @@ fn export_workload(configurations: Vec<Configuration>, out_dir: &str) -> Result<
                 query_name: experiment.queries.name(),
                 query_descr: experiment.queries.parameters(),
                 query_path: queries_path,
-                query_version: experiment.queries.version()
+                query_version: experiment.queries.version(),
             });
             Ok(())
         })?;

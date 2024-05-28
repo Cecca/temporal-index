@@ -1,6 +1,5 @@
-use std::time::Instant;
-
 use crate::types::*;
+use std::time::Instant;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum DimensionOrder {
@@ -13,6 +12,7 @@ pub struct RDIndex {
     page_size: usize,
     /// This inner data structure abstracts the choices induced by the order of the dimensions
     grid: Option<Grid>,
+    pool: scoped_pool::Pool,
 }
 
 impl std::fmt::Debug for RDIndex {
@@ -31,6 +31,7 @@ impl RDIndex {
             dimension_order,
             page_size,
             grid: None,
+            pool: scoped_pool::Pool::new(16),
         }
     }
 
@@ -164,6 +165,7 @@ impl Algorithm for RDIndex {
             &mut dataset,
             self.page_size,
             self.dimension_order,
+            &self.pool,
         ));
         assert!(
             self.grid.as_ref().unwrap().len() == dataset.len(),
@@ -199,8 +201,12 @@ impl Algorithm for RDIndex {
         if let Some(grid) = self.grid.as_mut() {
             grid.insert(x, self.page_size);
         } else {
-            self.grid
-                .replace(Grid::new(&mut [x], self.page_size, self.dimension_order));
+            self.grid.replace(Grid::new(
+                &mut [x],
+                self.page_size,
+                self.dimension_order,
+                &self.pool,
+            ));
         }
     }
 
@@ -242,20 +248,26 @@ enum Grid {
 }
 
 impl Grid {
-    fn new(intervals: &mut [Interval], page_size: usize, order: DimensionOrder) -> Self {
+    fn new(
+        intervals: &mut [Interval],
+        page_size: usize,
+        order: DimensionOrder,
+        pool: &scoped_pool::Pool,
+    ) -> Self {
         use std::iter::FromIterator;
 
         match order {
             DimensionOrder::TimeDuration => Self::TimeDuration(TimePartition::par_new(
+                pool,
                 intervals,
                 page_size * page_size,
                 |column| {
-                    let timer = Instant::now();
+                    // let timer = Instant::now();
                     let c = DurationPartition::new(column, page_size, |cell| {
                         cell.sort_unstable_by_key(|interval| interval.end);
                         Vec::from_iter(cell.iter().cloned())
                     });
-                    log::info!(">>>>> Column built in {:?}", timer.elapsed());
+                    // log::info!(">>>>> Column built in {:?}", timer.elapsed());
                     c
                 },
             )),
@@ -638,13 +650,14 @@ impl<V> TimePartition<V> {
     }
 
     #[allow(dead_code)]
-    fn par_new<B: Fn(&mut [Interval]) -> V + Send + Sync>(
+    fn par_new<B: Fn(&mut [Interval]) -> V + Send + Sync + Copy>(
+        pool: &scoped_pool::Pool,
         intervals: &mut [Interval],
         block: usize,
         inner_builder: B,
     ) -> Self
     where
-        V: Send,
+        V: Send + Default,
     {
         use rayon::prelude::*;
 
@@ -676,7 +689,18 @@ impl<V> TimePartition<V> {
         log::info!(">>> Breakpoints {:?}", timer.elapsed());
 
         let timer = Instant::now();
-        let values = subs.par_iter_mut().map(|sub| inner_builder(sub)).collect();
+        // let values = subs.par_iter_mut().map(|sub| inner_builder(sub)).collect();
+        let mut values = Vec::with_capacity(subs.len());
+        values.resize_with(subs.len(), V::default);
+
+        pool.scoped(|scope| {
+            for (v, sub) in values.iter_mut().zip(subs.iter_mut()) {
+                scope.execute(move || {
+                    *v = inner_builder(sub);
+                });
+            }
+        });
+
         log::info!(">>> Columns {:?} ({} columns)", timer.elapsed(), subs.len());
 
         // do the cumulative maximum end time.
@@ -743,6 +767,7 @@ impl<V> TimePartition<V> {
     }
 }
 
+#[derive(Default)]
 struct DurationPartition<V> {
     max_durations: Vec<Time>,
     min_durations: Vec<Time>,
