@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use std::{
     rc::Rc,
     sync::{
+        atomic::AtomicUsize,
         mpsc::{Receiver, Sender},
         Arc,
     },
@@ -16,9 +17,8 @@ pub enum DimensionOrder {
     DurationTime,
 }
 
-type CountingTask = Arc<dyn Fn(&[usize]) -> u32 + Send + Sync>;
-type TaskSender = Sender<(CountingTask, Vec<usize>)>;
-type Task<'a> = Arc<dyn Fn(&[usize]) -> u32 + Send + Sync + 'a>;
+type TaskSender = Sender<(Task<'static>, usize)>;
+type Task<'a> = Arc<dyn Fn(usize) -> u32 + Send + Sync + 'a>;
 
 enum Msg<'a> {
     Task(Task<'a>, Vec<usize>),
@@ -29,6 +29,7 @@ struct Workers {
     workers: Vec<JoinHandle<()>>,
     senders: Vec<TaskSender>,
     receiver: Receiver<u32>,
+    // current_index: Arc<AtomicUsize>,
 }
 
 impl Workers {
@@ -39,11 +40,11 @@ impl Workers {
         let (out_send, out_recv) = std::sync::mpsc::channel::<u32>();
         for _ in 0..n_workers {
             let out_send = out_send.clone();
-            let (in_send, in_recv) = std::sync::mpsc::channel::<(CountingTask, Vec<usize>)>();
+            let (in_send, in_recv) = std::sync::mpsc::channel::<(Task, usize)>();
             senders.push(in_send);
             let thread = std::thread::spawn(move || {
-                for (task, idxs) in in_recv {
-                    let res = task(&idxs);
+                for (task, idx) in in_recv {
+                    let res = task(idx);
                     out_send.send(res).expect("error sending back result");
                 }
             });
@@ -57,7 +58,7 @@ impl Workers {
         }
     }
 
-    fn exec<'task, F: Fn(&[usize]) -> u32 + Send + Sync + 'task>(
+    fn exec<'task, F: Fn(usize) -> u32 + Send + Sync + 'task>(
         &self,
         indices: &[usize],
         action: F,
@@ -74,8 +75,10 @@ impl Workers {
         // Schedule and execute tasks
         let mut n_tasks = 0;
         for (sender, indices) in self.senders.iter().zip(indices) {
-            sender.send((action.clone(), indices.to_owned())).unwrap();
-            n_tasks += 1;
+            for i in indices {
+                sender.send((action.clone(), *i)).unwrap();
+                n_tasks += 1;
+            }
         }
 
         // Collect results
@@ -905,7 +908,7 @@ impl<V> TimePartition<V> {
             }
             action(&self.values[i]);
         }
-        log::info!("Sequential counting {:?}", timer.elapsed());
+        // log::info!("Sequential counting {:?}", timer.elapsed());
     }
 
     fn for_each<F: FnMut(&V)>(&self, mut action: F) {
@@ -979,21 +982,18 @@ impl<V: Send + Sync> TimePartition<V> {
 
         // FIXME: remove this allocation
         let indices = (0..=end).collect::<Vec<usize>>();
-        let res = pool.exec(&indices, |idxs| {
-            log::info!("Processing thread {:?}", std::thread::current().id());
-            let timer = Instant::now();
+        let res = pool.exec(&indices, |i| {
+            // log::info!("Processing thread {:?}", std::thread::current().id());
+            // let timer = Instant::now();
             let mut cnt = 0u32;
-            for i in idxs {
-                if range.start < max_end_times[*i] {
-                    cnt += counter(&self.values[*i]) as u32;
-                }
+            if range.start < max_end_times[i] {
+                cnt += counter(&self.values[i]) as u32;
             }
-            log::info!(
-                "Processing thread {:?} completed in {:?} ({} indices)",
-                std::thread::current().id(),
-                timer.elapsed(),
-                idxs.len()
-            );
+            // log::info!(
+            //     "Processing thread {:?} completed in {:?}",
+            //     std::thread::current().id(),
+            //     timer.elapsed()
+            // );
             cnt
         }) as usize;
         log::info!("do counts {:?}", timer.elapsed());
