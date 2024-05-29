@@ -31,7 +31,7 @@ impl RDIndex {
             dimension_order,
             page_size,
             grid: None,
-            pool: scoped_pool::Pool::new(16),
+            pool: scoped_pool::Pool::new(rayon::current_num_threads()),
         }
     }
 
