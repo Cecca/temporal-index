@@ -24,6 +24,17 @@ impl Interval {
         }
     }
 
+    pub fn dummy() -> Self {
+        Self {
+            start: u64::MAX,
+            end: u64::MAX,
+        }
+    }
+
+    pub fn is_dummy(&self) -> bool {
+        self.start == u64::MAX && self.end == u64::MAX
+    }
+
     pub fn duration(&self) -> Time {
         self.end - self.start
     }

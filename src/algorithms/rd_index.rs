@@ -262,12 +262,12 @@ impl Grid {
                 intervals,
                 page_size * page_size,
                 |column| {
-                    // let timer = Instant::now();
+                    let timer = Instant::now();
                     let c = DurationPartition::new(column, page_size, |cell| {
                         cell.sort_unstable_by_key(|interval| interval.end);
-                        Vec::from_iter(cell.iter().cloned())
+                        Vec::from_iter(cell.iter().cloned().filter(|int| !int.is_dummy()))
                     });
-                    // log::info!(">>>>> Column built in {:?}", timer.elapsed());
+                    log::info!(">>>>> Column built in {:?}", timer.elapsed());
                     c
                 },
             )),
@@ -683,7 +683,17 @@ impl<V> TimePartition<V> {
                     .max()
                     .unwrap(),
             );
-            subs.push(intervals[start..=end].to_owned());
+            let segment_length = end - start + 1;
+            let padding = 64 - (segment_length % 64);
+            let mut owned = Vec::with_capacity(segment_length + padding);
+            owned.extend_from_slice(&intervals[start..=end]);
+            for _ in 0..padding {
+                owned.push(Interval::dummy());
+            }
+            assert_eq!(owned.len(), segment_length + padding);
+            // dbg!(segment_length, padding);
+            // subs.push(intervals[start..=end].to_owned());
+            subs.push(owned);
             start = end + 1;
         }
         log::info!(">>> Breakpoints {:?}", timer.elapsed());
@@ -694,9 +704,14 @@ impl<V> TimePartition<V> {
         values.resize_with(subs.len(), V::default);
 
         pool.scoped(|scope| {
-            for (v, sub) in values.iter_mut().zip(subs.iter_mut()) {
+            let chunk_size = values.len() / pool.workers() + 1;
+            let values_chunks = values.chunks_mut(chunk_size);
+            let subs_chunks = subs.chunks_mut(chunk_size);
+            for (val_chunk, subs_chunk) in values_chunks.zip(subs_chunks) {
                 scope.execute(move || {
-                    *v = inner_builder(sub);
+                    for (v, sub) in val_chunk.iter_mut().zip(subs_chunk.iter_mut()) {
+                        *v = inner_builder(sub);
+                    }
                 });
             }
         });
