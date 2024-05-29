@@ -1,3 +1,5 @@
+use scoped_pool::Pool;
+
 use crate::types::*;
 use std::time::Instant;
 
@@ -271,7 +273,8 @@ impl Grid {
                     c
                 },
             )),
-            DimensionOrder::DurationTime => Self::DurationTime(DurationPartition::new(
+            DimensionOrder::DurationTime => Self::DurationTime(DurationPartition::par_new(
+                pool,
                 intervals,
                 page_size * page_size,
                 |column| {
@@ -594,6 +597,7 @@ fn duration_cells(
     DurationPartition::new(intervals, page_size, cell_builder)
 }
 
+#[derive(Default)]
 struct TimePartition<V> {
     min_start_times: Vec<Time>,
     max_end_times: Vec<Time>,
@@ -802,6 +806,58 @@ impl<V> DurationPartition<V> {
             values.push(inner_builder(&mut intervals[start..=end]));
             start = end + 1;
         }
+
+        Self {
+            max_durations,
+            min_durations,
+            values,
+            size: intervals.len(),
+        }
+    }
+
+    fn par_new<B: Fn(&mut [Interval]) -> V + Send + Sync + Copy>(
+        pool: &Pool,
+        intervals: &mut [Interval],
+        block: usize,
+        inner_builder: B,
+    ) -> Self
+    where
+        V: Send + Default,
+    {
+        use rayon::prelude::*;
+
+        let mut max_durations = Vec::new();
+        let mut min_durations = Vec::new();
+
+        intervals.par_sort_unstable_by_key(|interval| interval.duration());
+
+        let mut subs = Vec::new();
+
+        let mut start = 0usize;
+
+        while start < intervals.len() {
+            let end = next_breakpoint(intervals, start, block, |interval| interval.duration());
+            max_durations.push(intervals[end].duration());
+            min_durations.push(intervals[start].duration());
+            // values.push(inner_builder(&mut intervals[start..=end]));
+            subs.push(intervals[start..=end].to_owned());
+            start = end + 1;
+        }
+
+        let mut values = Vec::with_capacity(subs.len());
+        values.resize_with(subs.len(), V::default);
+        pool.scoped(|scope| {
+            let chunk_size = values.len() / pool.workers() + 1;
+            let values_chunks = values.chunks_mut(chunk_size);
+            let subs_chunks = subs.chunks_mut(chunk_size);
+            for (val_chunk, subs_chunk) in values_chunks.zip(subs_chunks) {
+                scope.execute(move || {
+                    for (v, sub) in val_chunk.iter_mut().zip(subs_chunk.iter_mut()) {
+                        *v = inner_builder(sub);
+                    }
+                });
+            }
+        });
 
         Self {
             max_durations,
