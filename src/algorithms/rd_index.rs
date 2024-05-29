@@ -683,17 +683,7 @@ impl<V> TimePartition<V> {
                     .max()
                     .unwrap(),
             );
-            let segment_length = end - start + 1;
-            let padding = 64 - (segment_length % 64);
-            let mut owned = Vec::with_capacity(segment_length + padding);
-            owned.extend_from_slice(&intervals[start..=end]);
-            for _ in 0..padding {
-                owned.push(Interval::dummy());
-            }
-            assert_eq!(owned.len(), segment_length + padding);
-            // dbg!(segment_length, padding);
-            // subs.push(intervals[start..=end].to_owned());
-            subs.push(owned);
+            subs.push(intervals[start..=end].to_owned());
             start = end + 1;
         }
         log::info!(">>> Breakpoints {:?}", timer.elapsed());
