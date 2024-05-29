@@ -267,7 +267,7 @@ impl Grid {
                         cell.sort_unstable_by_key(|interval| interval.end);
                         Vec::from_iter(cell.iter().cloned().filter(|int| !int.is_dummy()))
                     });
-                    log::info!(">>>>> Column built in {:?}", timer.elapsed());
+                    // log::info!(">>>>> Column built in {:?}", timer.elapsed());
                     c
                 },
             )),

@@ -64,14 +64,16 @@ impl Reporter {
                     // This configuration has not been run, neither in batch nor in focus mode
                     return Ok(None);
                 }
+                let num_threads = rayon::current_num_threads();
                 conn.query_row(
                     "SELECT id FROM batch_raw
                     WHERE hostname == ?1
                     AND dataset_id == ?2
                     AND queryset_id == ?3
                     AND algorithm_id == ?4
+                    AND num_threads == ?5
                     ",
-                    params![hostname, dataset_id, queryset_id, algorithm_id],
+                    params![hostname, dataset_id, queryset_id, algorithm_id, num_threads],
                     |row| row.get(0),
                 )
                 .optional()
@@ -352,6 +354,7 @@ impl Reporter {
         elapsed_query: i64,
         index_size_bytes: usize,
     ) -> Result<()> {
+        let num_threads = rayon::current_num_threads();
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
         let hostname = get_hostname()?;
@@ -390,8 +393,9 @@ impl Reporter {
                         time_index_ms, 
                         time_query_ms, 
                         qps,
-                        index_size_bytes )
-                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 )",
+                        index_size_bytes,
+                        num_threads )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12 )",
                     params![
                         self.date.to_rfc3339(),
                         env!("VERGEN_SHA_SHORT"),
@@ -403,7 +407,8 @@ impl Reporter {
                         elapsed_index,
                         elapsed_query,
                         qps,
-                        index_size_bytes as i64
+                        index_size_bytes as i64,
+                        num_threads
                     ],
                 )
                 .context("error inserting into main table")?;
@@ -805,6 +810,13 @@ pub fn db_setup() -> Result<()> {
         tx.execute_batch(include_str!("migrations/v12.sql"))?;
         tx.commit()?;
         bump(&conn, 12)?;
+    }
+    if version < 13 {
+        Reporter::backup(Some("v13".to_owned()))?;
+        let tx = conn.transaction()?;
+        tx.execute_batch(include_str!("migrations/v13.sql"))?;
+        tx.commit()?;
+        bump(&conn, 13)?;
     }
 
     info!("database schema up to date");
