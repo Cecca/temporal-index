@@ -46,7 +46,24 @@
             rust-analyzer
             jupyter
             python311Packages.pandas
-          ];
+            python311Packages.seaborn
+            R
+            python311Packages.radian
+          ] ++ (with pkgs.rPackages; [
+            tidyverse
+            drake
+            ggforce
+            ggthemes
+            colorspace
+            ggridges
+            cowplot
+            patchwork
+            ggiraph
+            tidytext
+            kableExtra
+            ggrepel
+            ggtern
+          ]);
         };
       });
     };
