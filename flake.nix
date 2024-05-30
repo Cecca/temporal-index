@@ -63,6 +63,9 @@
             kableExtra
             ggrepel
             ggtern
+            units
+            assertthat
+            RSQLite
           ]);
         };
       });
