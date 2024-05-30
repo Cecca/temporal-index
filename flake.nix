@@ -44,6 +44,8 @@
             cargo-edit
             cargo-watch
             rust-analyzer
+            jupyter
+            python311Packages.pandas
           ];
         };
       });
