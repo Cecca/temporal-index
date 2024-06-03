@@ -449,6 +449,7 @@ impl QueryConfiguration {
 pub enum ExperimentMode {
     Focus { samples: u32 },
     Batch,
+    Parallel,
     Insertion { batch: usize },
 }
 

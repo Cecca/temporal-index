@@ -237,6 +237,48 @@ fn main() -> Result<()> {
             let dataset_intervals = experiment.dataset.get()?;
 
             match experiment.mode {
+                ExperimentMode::Parallel => {
+                    let threads = rayon::current_num_threads();
+
+                    let (elapsed_index, elapsed_run, index_size_bytes) = {
+                        // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
+                        // on the RefCell which is borrowed mutable by the algorithm
+
+                        let mut algorithm = experiment.algorithm.borrow_mut();
+                        info!("Building index");
+                        let start = Instant::now();
+                        algorithm.index(&dataset_intervals);
+                        let end = Instant::now();
+                        let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+                        info!("Index built in {:?}", end - start);
+
+                        info!("Running queries [parallel batch]");
+                        let start = Instant::now();
+                        let matches = algorithm.run_parallel(&queryset_queries, threads);
+                        let end = Instant::now();
+                        let elapsed_run = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
+
+                        info!(
+                            "time for index {}ms, time for query {}ms, output size {}",
+                            elapsed_index, elapsed_run, matches
+                        );
+                        // Clear up the index to free resources, and measure the space it took up
+                        let allocated_start = get_allocated();
+                        algorithm.clear();
+                        let allocated_end = get_allocated();
+                        assert!(allocated_start.0 > allocated_end.0);
+                        info!("Size of the index was {}", allocated_start - allocated_end);
+                        let index_size_bytes = (allocated_start - allocated_end).0;
+                        (elapsed_index, elapsed_run, index_size_bytes)
+                    };
+
+                    reporter.report_parallel(
+                        threads,
+                        elapsed_index,
+                        elapsed_run,
+                        index_size_bytes,
+                    )?;
+                }
                 ExperimentMode::Batch => {
                     let (elapsed_index, elapsed_run, index_size_bytes) = {
                         // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
