@@ -29,7 +29,7 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [500]
+        page_size: [10, 50, 100, 500]
 
 
 
@@ -64,7 +64,7 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [500]
+        page_size: [10, 50, 100, 500]
 
 - mode:
     Parallel
@@ -94,7 +94,7 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [500]
+        page_size: [10, 50, 100, 500]
 
 - mode:
     Parallel
@@ -121,7 +121,7 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [500]
+        page_size: [10, 50, 100, 500]
 
 
 - mode: 
@@ -152,5 +152,5 @@
   algorithms:
     - RDIndex:
         dimension_order: [TimeDuration, DurationTime]
-        page_size: [500]
+        page_size: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000]
 
