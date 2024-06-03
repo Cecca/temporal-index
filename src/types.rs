@@ -180,7 +180,7 @@ pub struct InsertResult {
     pub insert_per_sec: f64,
 }
 
-pub trait Algorithm: std::fmt::Debug {
+pub trait Algorithm: std::fmt::Debug + Send + Sync {
     fn name(&self) -> String;
     fn parameters(&self) -> String;
     fn version(&self) -> u8;
@@ -208,6 +208,30 @@ pub trait Algorithm: std::fmt::Debug {
             cnt += query_result.n_matches;
         }
         cnt
+    }
+
+    fn run_parallel(&self, queries: &[Query], threads: usize) -> u32 {
+        let pool = scoped_pool::Pool::new(threads);
+
+        let mut res = vec![0u32; queries.len()];
+
+        let chunk_size = (queries.len() / threads) + 1;
+        let q_chunks = queries.chunks(chunk_size);
+        let res_chunks = res.chunks_mut(chunk_size);
+
+        pool.scoped(|scope| {
+            for (q_c, res_c) in q_chunks.zip(res_chunks) {
+                scope.execute(move || {
+                    for (query, cnt) in q_c.iter().zip(res_c.iter_mut()) {
+                        let mut query_result = QueryAnswer::builder();
+                        self.query(query, &mut query_result);
+                        *cnt += query_result.n_matches;
+                    }
+                });
+            }
+        });
+
+        res.iter().sum()
     }
 
     fn run_focus(&self, queries: &[Query], n_samples: u32) -> Vec<FocusResult> {
