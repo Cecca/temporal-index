@@ -1,0 +1,156 @@
+---
+- mode: 
+    Parallel
+
+  datasets:
+    - Random:
+        seed: [123]
+        n: 
+          - 10000000
+        start_times:
+          - Uniform: { low: 1, high: 10000000 }
+          # - Clustered: { n: 10, high: 10000000, std_dev: 100000 }
+        durations:
+          - Zipf: { n: 10000000, beta: 1 }
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 10000000 },
+              Zipf: { n: 10000000, beta: 1 }
+          ]
+        duration:
+          - Single:
+              Uniform: { low: 1, high: 10000 }
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [500]
+
+
+
+- mode:
+    Parallel
+
+  datasets:
+    - Flight
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        # Granularity of days, in minutes
+        range:
+          - Pair: 
+              - Scaled: 
+                  inner: {Uniform: { low: 1, high: 666 }} # 666 hours
+                  scale: 1440 # one hour in minutes
+              # Up to one month, granularity of hours
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 744 }}
+                  scale: 60
+          
+        duration:
+          - Single: 
+              # Up to one day, with granularity of minutes
+              Scaled:
+                inner: {Uniform: { low: 1, high: 1140 }}
+                scale: 1
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [500]
+
+- mode:
+    Parallel
+
+  datasets:
+    - Webkit
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          # Granularity of minutes, in milliseconds
+          - Pair:
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 6980952 }}
+                  scale: 60000
+              # Durations up to one year for the range queries, in milliseconds
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 31556925975 }}
+                  scale: 60000
+        duration:
+          - Single: 
+              # Duration ranges of up to 3 years, in milliseconds
+              Uniform: { low: 1, high: 94670777924 }
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [500]
+
+- mode:
+    Parallel
+
+  datasets:
+    - Tourism
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [5000]
+        range:
+          - Pair: [
+              Uniform: { low: 1, high: 2055 },
+              # Durations up to one three months for the range queries, in days
+              Uniform: { low: 1, high: 90 }
+          ]
+        duration:
+          - Single: 
+              # Duration ranges of up to four months, in days. Otherwise there are not
+              # enough distinct queries.
+              Uniform: { low: 1, high: 120 }
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [500]
+
+
+- mode: 
+    Parallel
+
+  datasets:
+    - MimicIII
+
+  queries:
+    - Random:
+        seed: [23512]
+        n: [10000]
+        range:
+          - Pair: 
+              - Scaled: 
+                  inner: {Uniform: { low: 1, high:  40251}}
+                  scale: 1
+              - Scaled:
+                  inner: {Uniform: { low: 1, high: 40251}}
+                  scale: 1
+          
+        duration:
+          - Single: 
+              Scaled:
+                inner: {Uniform: { low: 1, high: 200}}
+                scale: 1
+
+  algorithms:
+    - RDIndex:
+        dimension_order: [TimeDuration, DurationTime]
+        page_size: [500]
+
