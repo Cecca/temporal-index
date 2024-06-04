@@ -244,6 +244,12 @@ fn main() -> Result<()> {
                         // we need to run into a block (with some code duplication) in order to satisfy runtime constraints
                         // on the RefCell which is borrowed mutable by the algorithm
 
+                        use rand::prelude::*;
+                        use rand_xoshiro::Xoroshiro128StarStar;
+                        let mut queryset_queries = queryset_queries.to_owned();
+                        let mut rng = Xoroshiro128StarStar::seed_from_u64(1234);
+                        queryset_queries.shuffle(&mut rng);
+
                         let mut algorithm = experiment.algorithm.borrow_mut();
                         info!("Building index");
                         let start = Instant::now();
@@ -252,7 +258,7 @@ fn main() -> Result<()> {
                         let elapsed_index = (end - start).as_millis() as i64; // truncation happens here, but only on extremely long runs
                         info!("Index built in {:?}", end - start);
 
-                        info!("Running queries [parallel batch]");
+                        info!("Running queries [parallel batch {} threads]", threads);
                         let start = Instant::now();
                         let matches = algorithm.run_parallel(&queryset_queries, threads);
                         let end = Instant::now();
