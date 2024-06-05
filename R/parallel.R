@@ -17,14 +17,22 @@ parallel_plan <- drake_plan(
         !str_detect(dataset_params, "n=100000000"),
         algorithm_name == "rd-index"
       ) |>
+      mutate(
+        dataset_name = case_when(
+          dataset_name == "random-uniform-zipf" ~ "Random",
+          T ~ dataset_name
+        ),
+        dataset_name = factor(dataset_name, levels=c("Random", "Flight", "Webkit", "MimicIII"), ordered=T)
+      ) |>
       # select(dataset_name, algorithm_params, num_threads, time_index_ms) |>
       arrange(dataset_name, algorithm_params, num_threads)
 
     selector <- res |>
-      filter(num_threads == 32) |>
+      filter(num_threads == 16) |>
       distinct(dataset_name, algorithm_params)
     
-    res <- semi_join(res, selector)
+    res <- semi_join(res, selector) |>
+      filter(num_threads <= 16)
 
     res |>
       distinct(dataset_name, dataset_params) |>
@@ -44,6 +52,14 @@ parallel_plan <- drake_plan(
         !str_detect(dataset_params, "n=100000000"),
         algorithm_name == "rd-index"
       ) |>
+      mutate(
+        dataset_name = case_when(
+          dataset_name == "random-uniform-zipf" ~ "Random",
+          T ~ dataset_name
+        ),
+        dataset_name = factor(dataset_name, levels=c("Random", "Flight", "Webkit", "MimicIII"), ordered=T)
+      ) |>
+      filter(num_threads <= 16) |>
       arrange(dataset_name, algorithm_params, num_threads)
 
     best <- res |>
@@ -55,8 +71,10 @@ parallel_plan <- drake_plan(
 
     res <- semi_join(res, best)
     res |>
-      filter(num_threads == 1) |>
       select(dataset_name, num_threads, qps) |>
+      arrange(dataset_name, num_threads) |>
+      group_by(dataset_name) |>
+      mutate(speedup = qps / lag(qps)) |>
       print()
 
     dbDisconnect(con)
@@ -99,7 +117,7 @@ parallel_plan <- drake_plan(
   parallel_plots_file = target(ggsave(
     "paper/images/parallel-indexing.png",
     parallel_plots,
-    width=10,
+    width=7,
     height=1.8,
     dpi=300)
   ),
@@ -107,7 +125,7 @@ parallel_plan <- drake_plan(
   parallel_queries_plots_file = target(ggsave(
     "paper/images/parallel-queries.png",
     parallel_queries_plot,
-    width=10,
+    width=7,
     height=1.8,
     dpi=300)
   )
