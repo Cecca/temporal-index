@@ -383,10 +383,9 @@ impl Grid {
             Self::TimeDuration(grid) => {
                 grid.count_par(range, &|column| column.count(duration, cell_callback), pool)
             }
-            Self::DurationTime(grid) => todo!(), //     grid.query(duration, |column| {
-                                                 //     todo!()
-                                                 //     // column.query(range, &mut cell_callback);
-                                                 // }),
+            Self::DurationTime(grid) => {
+                grid.count_par(duration, &|column| column.count(range, cell_callback), pool)
+            }
         }
     }
 
@@ -823,6 +822,27 @@ impl<V> TimePartition<V> {
         }
     }
 
+    fn count<F: Fn(&V) -> (u32, u32)>(&self, range: Interval, action: F) -> (u32, u32) {
+        let end = match self.min_start_times.binary_search(&range.end) {
+            Ok(i) => i, // exact match, equal end time than maximum start time
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
+        };
+
+        let mut c1 = 0u32;
+        let mut c2 = 0u32;
+
+        for i in (0..=end).rev() {
+            if range.start >= self.max_end_times[i] {
+                break;
+            }
+            let (r1, r2) = action(&self.values[i]);
+            c1 += r1;
+            c2 += r2;
+        }
+
+        (c1, c2)
+    }
+
     fn count_par<F: Fn(&V) -> (u32, u32) + Send + Sync>(
         &self,
         range: Interval,
@@ -1002,6 +1022,54 @@ impl<V> DurationPartition<V> {
                 break;
             }
             let (r1, r2) = action(&self.values[i]);
+            c1 += r1;
+            c2 += r2;
+        }
+
+        (c1, c2)
+    }
+
+    fn count_par<F: Fn(&V) -> (u32, u32) + Send + Sync>(
+        &self,
+        duration_range: DurationRange,
+        action: &F,
+        pool: &scoped_pool::Pool,
+    ) -> (u32, u32)
+    where
+        V: Send + Sync,
+    {
+        let end = match self.min_durations.binary_search(&duration_range.max) {
+            Ok(i) => i,
+            Err(i) => std::cmp::min(i, self.min_durations.len() - 1),
+        };
+
+        let threads = pool.workers();
+
+        let mut accumulators = vec![(0u32, 0u32); threads];
+        let indices: Vec<usize> = (0..=end).rev().collect();
+        let chunk_size = indices.len() / threads + 1;
+        assert!(chunk_size * threads >= indices.len());
+        let chunks = indices.chunks(chunk_size);
+
+        pool.scoped(|scope| {
+            for (chunk, acc) in chunks.into_iter().zip(accumulators.iter_mut()) {
+                scope.execute(move || {
+                    for &i in chunk {
+                        if duration_range.min > self.max_durations[i] {
+                            return;
+                        }
+                        let (r1, r2) = action(&self.values[i]);
+                        acc.0 += r1;
+                        acc.1 += r2;
+                    }
+                });
+            }
+        });
+
+        let mut c1 = 0u32;
+        let mut c2 = 0u32;
+
+        for (r1, r2) in accumulators {
             c1 += r1;
             c2 += r2;
         }
