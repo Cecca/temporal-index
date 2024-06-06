@@ -448,6 +448,7 @@ impl QueryConfiguration {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ExperimentMode {
     Focus { samples: u32 },
+    FocusParallel { samples: u32 },
     Batch,
     Parallel,
     Insertion { batch: usize },

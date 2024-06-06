@@ -100,6 +100,27 @@ impl Reporter {
                 .optional()
                 .context("problem checking if the algorithm already ran, batch mode")
             }
+            ExperimentMode::FocusParallel { samples: _ } => {
+                let threads = rayon::current_num_threads();
+                if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
+                    // This configuration has not been run, neither in batch nor in focus mode
+                    return Ok(None);
+                }
+                conn.query_row(
+                    "SELECT id FROM focus_configuration_parallel_raw
+                    WHERE hostname == ?1
+                    AND dataset_id == ?2
+                    AND queryset_id == ?3
+                    AND algorithm_id == ?4
+                    AND num_threads == ?5
+                    ",
+                    params![hostname, dataset_id, queryset_id, algorithm_id, threads],
+                    |row| row.get(0),
+                )
+                .optional()
+                .context("problem checking if the algorithm already ran, focus mode")
+            }
+
             ExperimentMode::Focus { samples: _ } => {
                 if dataset_id.is_none() || queryset_id.is_none() || algorithm_id.is_none() {
                     // This configuration has not been run, neither in batch nor in focus mode
@@ -261,6 +282,115 @@ impl Reporter {
         Ok(())
     }
 
+    pub fn report_focus_parallel(&self, results: Vec<FocusResult>, threads: usize) -> Result<()> {
+        let dbpath = Self::get_db_path();
+        let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
+        let hostname = get_hostname()?;
+
+        let algorithm = &self.config.algorithm;
+        let dataset = &self.config.dataset;
+        let queryset = &self.config.queries;
+
+        let conf_file = self
+            .config_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("config file path could not be converted to string"))?
+            .to_owned();
+
+        let tx = conn.transaction()?;
+        {
+            // First get the component spec ids, inserting them if necessary
+            info!("Getting dataset, queryset, and algorithm IDs");
+            let dataset_id = Self::get_or_insert_dataset(&tx, dataset)?;
+            let queryset_id = Self::get_or_insert_queryset(&tx, queryset)?;
+            let algorithm_id = Self::get_or_insert_algorithm(&tx, algorithm)?;
+
+            // Then insert into the configuration_raw table
+            info!("Inserting into the configuration table");
+            let updated_cnt = tx
+                .execute(
+                    "INSERT INTO focus_configuration_parallel_raw ( 
+                            date, 
+                            git_rev, 
+                            hostname, 
+                            conf_file,
+                            num_threads,
+                            dataset_id,
+                            queryset_id,
+                            algorithm_id)
+                    VALUES ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 )",
+                    params![
+                        self.date.to_rfc3339(),
+                        env!("VERGEN_SHA_SHORT"),
+                        hostname,
+                        conf_file,
+                        threads,
+                        dataset_id,
+                        queryset_id,
+                        algorithm_id
+                    ],
+                )
+                .context("error inserting into main table")?;
+            if updated_cnt == 0 {
+                anyhow::bail!("Insertion didn't happen");
+            }
+
+            // Then insert into the query_focus table
+            info!("Inserting into the query_focus table");
+            let id = tx.last_insert_rowid();
+            info!("last inserted row id is {}", id);
+            let mut stmt = tx.prepare(
+                "INSERT INTO query_focus_parallel (
+                    id,
+                    query_index,
+                    query_time_ns,
+                    matches,
+                    examined )
+                    VALUES ( ?1, ?2, ?3, ?4, ?5 )",
+            )?;
+            for (query_index, res) in results.into_iter().enumerate() {
+                stmt.execute(params![
+                    id,
+                    query_index as u32,
+                    res.query_time.as_nanos() as i64,
+                    res.n_matches,
+                    res.n_examined
+                ])?;
+            }
+
+            // Finally insert query statistics in the appropriate table
+            let count_existing: u32 = tx.query_row(
+                "SELECT COUNT(*) FROM queryset_info WHERE dataset_id == ?1 AND queryset_id == ?2",
+                params![dataset_id, queryset_id],
+                |row| row.get(0),
+            )?;
+            if count_existing == 0 {
+                info!("Inserting stats into queryset_info");
+                let mut stmt = tx.prepare(
+                    "INSERT INTO queryset_info (
+                        dataset_id,
+                        queryset_id,
+                        query_index,
+                        selectivity_time,
+                        selectivity_duration,
+                        selectivity 
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                )?;
+                for (query_index, query_stats) in queryset.stats(&dataset.get()?) {
+                    stmt.execute(params![
+                        dataset_id,
+                        queryset_id,
+                        query_index,
+                        query_stats.selectivity_time,
+                        query_stats.selectivity_duration,
+                        query_stats.selectivity
+                    ])?;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
     pub fn report_focus(&self, results: Vec<FocusResult>) -> Result<()> {
         let dbpath = Self::get_db_path();
         let mut conn = Connection::open(dbpath).context("error connecting to the database")?;
@@ -923,6 +1053,13 @@ pub fn db_setup() -> Result<()> {
         tx.execute_batch(include_str!("migrations/v14.sql"))?;
         tx.commit()?;
         bump(&conn, 14)?;
+    }
+    if version < 15 {
+        Reporter::backup(Some("v15".to_owned()))?;
+        let tx = conn.transaction()?;
+        tx.execute_batch(include_str!("migrations/v15.sql"))?;
+        tx.commit()?;
+        bump(&conn, 15)?;
     }
 
     info!("database schema up to date");

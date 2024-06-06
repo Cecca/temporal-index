@@ -841,8 +841,8 @@ impl<V> TimePartition<V> {
 
         let mut accumulators = vec![(0u32, 0u32); threads];
         let indices: Vec<usize> = (0..=end).rev().collect();
-        let chunk_size = indices.len() / threads;
-        dbg!(threads, chunk_size);
+        let chunk_size = indices.len() / threads + 1;
+        assert!(chunk_size * threads >= indices.len());
         let chunks = indices.chunks(chunk_size);
 
         pool.scoped(|scope| {

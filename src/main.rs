@@ -339,6 +339,27 @@ fn main() -> Result<()> {
 
                     reporter.report_focus(results)?;
                 }
+                ExperimentMode::FocusParallel { samples } => {
+                    let threads = rayon::current_num_threads();
+                    let results = {
+                        let mut algorithm = experiment.algorithm.borrow_mut();
+
+                        info!("Building index");
+                        algorithm.index(&dataset_intervals);
+
+                        info!(
+                            "Running queries [focus with {} samples and {} threads]",
+                            samples, threads
+                        );
+                        let results =
+                            algorithm.run_focus_parallel(&queryset_queries, samples, threads);
+
+                        algorithm.clear();
+                        results
+                    };
+
+                    reporter.report_focus_parallel(results, threads)?;
+                }
                 ExperimentMode::Insertion { batch } => {
                     let results = {
                         let mut algorithm = experiment.algorithm.borrow_mut();
