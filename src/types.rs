@@ -135,6 +135,10 @@ impl QueryAnswerBuilder {
         }
     }
 
+    pub fn set_matches(&mut self, cnt: u32) {
+        self.n_matches = cnt;
+    }
+
     #[inline]
     pub fn inc_examined(&mut self, cnt: u32) {
         self.examined += cnt;
@@ -189,6 +193,15 @@ pub trait Algorithm: std::fmt::Debug + Send + Sync {
     fn query(&self, query: &Query, answer: &mut QueryAnswerBuilder);
     /// Clears the index, freeing up space
     fn clear(&mut self);
+
+    fn query_parallel(
+        &self,
+        _query: &Query,
+        _answer: &mut QueryAnswerBuilder,
+        _pool: &scoped_pool::Pool,
+    ) {
+        unimplemented!();
+    }
 
     fn descr(&self) -> String {
         format!(
@@ -258,6 +271,52 @@ pub trait Algorithm: std::fmt::Debug + Send + Sync {
             let start = std::time::Instant::now();
             for _ in 0..n_samples {
                 self.query(query, &mut query_result);
+            }
+            let query_time = start.elapsed() / n_samples;
+
+            results.push(FocusResult {
+                n_matches,
+                n_examined,
+                query_time,
+            });
+            pl.update(1u64);
+        }
+        pl.stop();
+
+        results
+    }
+
+    fn run_focus_parallel(
+        &self,
+        queries: &[Query],
+        n_samples: u32,
+        threads: usize,
+    ) -> Vec<FocusResult> {
+        let pool = scoped_pool::Pool::new(threads);
+
+        let mut results = Vec::with_capacity(queries.len());
+        let mut pl = ProgressLogger::builder()
+            .with_expected_updates(queries.len() as u64)
+            .with_items_name("queries")
+            .start();
+        for query in queries {
+            // Get the results in terms of number of matches and number of intervals examined
+            let mut query_result = QueryAnswer::builder();
+            self.query_parallel(query, &mut query_result, &pool);
+            let n_matches = query_result.n_matches;
+            let n_examined = query_result.examined;
+
+            // Warm up the cache etc.. in the hope of having more stable measurements
+            for _ in 0..5 {
+                let mut query_result = QueryAnswer::builder();
+                self.query_parallel(query, &mut query_result, &pool);
+            }
+
+            // Now run the estimate
+            let mut query_result = QueryAnswer::builder();
+            let start = std::time::Instant::now();
+            for _ in 0..n_samples {
+                self.query_parallel(query, &mut query_result, &pool);
             }
             let query_time = start.elapsed() / n_samples;
 

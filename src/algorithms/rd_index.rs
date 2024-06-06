@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use scoped_pool::Pool;
 
 use crate::types::*;
@@ -195,6 +196,26 @@ impl Algorithm for RDIndex {
         }
     }
 
+    fn query_parallel(
+        &self,
+        query: &Query,
+        answer: &mut QueryAnswerBuilder,
+        pool: &scoped_pool::Pool,
+    ) {
+        if let Some(grid) = &self.grid {
+            let (count_matching, examined) = match (query.range, query.duration) {
+                (Some(range), Some(duration)) => {
+                    grid.par_count_range_duration(range, duration, pool)
+                }
+                _ => unimplemented!("only range-duration queries supported in parallel"),
+            };
+            answer.inc_examined(examined);
+            answer.set_matches(count_matching);
+        } else {
+            panic!("uninitialized index!");
+        }
+    }
+
     fn clear(&mut self) {
         drop(self.grid.take());
     }
@@ -334,6 +355,39 @@ impl Grid {
             }),
         }
         examined
+    }
+
+    fn par_count_range_duration(
+        &self,
+        range: Interval,
+        duration: DurationRange,
+        pool: &scoped_pool::Pool,
+    ) -> (u32, u32) {
+        let cell_callback = |cell: &Vec<Interval>| -> (u32, u32) {
+            let mut examined = 0u32;
+            let mut matching = 0u32;
+            // traverse the cell by decreasing end time
+            for interval in cell.iter().rev() {
+                examined += 1;
+                if interval.end <= range.start {
+                    break;
+                }
+                if duration.contains(interval) && interval.start < range.end {
+                    matching += 1;
+                }
+            }
+            (matching, examined)
+        };
+
+        match self {
+            Self::TimeDuration(grid) => {
+                grid.count_par(range, &|column| column.count(duration, cell_callback), pool)
+            }
+            Self::DurationTime(grid) => todo!(), //     grid.query(duration, |column| {
+                                                 //     todo!()
+                                                 //     // column.query(range, &mut cell_callback);
+                                                 // }),
+        }
     }
 
     #[allow(dead_code)]
@@ -769,6 +823,54 @@ impl<V> TimePartition<V> {
         }
     }
 
+    fn count_par<F: Fn(&V) -> (u32, u32) + Send + Sync>(
+        &self,
+        range: Interval,
+        action: &F,
+        pool: &scoped_pool::Pool,
+    ) -> (u32, u32)
+    where
+        V: Send + Sync,
+    {
+        let end = match self.min_start_times.binary_search(&range.end) {
+            Ok(i) => i, // exact match, equal end time than maximum start time
+            Err(i) => std::cmp::min(i, self.min_start_times.len() - 1),
+        };
+
+        let threads = pool.workers();
+
+        let mut accumulators = vec![(0u32, 0u32); threads];
+        let indices: Vec<usize> = (0..=end).rev().collect();
+        let chunk_size = indices.len() / threads;
+        dbg!(threads, chunk_size);
+        let chunks = indices.chunks(chunk_size);
+
+        pool.scoped(|scope| {
+            for (chunk, acc) in chunks.into_iter().zip(accumulators.iter_mut()) {
+                scope.execute(move || {
+                    for &i in chunk {
+                        if range.start >= self.max_end_times[i] {
+                            return;
+                        }
+                        let (r1, r2) = action(&self.values[i]);
+                        acc.0 += r1;
+                        acc.1 += r2;
+                    }
+                });
+            }
+        });
+
+        let mut c1 = 0u32;
+        let mut c2 = 0u32;
+
+        for (r1, r2) in accumulators {
+            c1 += r1;
+            c2 += r2;
+        }
+
+        (c1, c2)
+    }
+
     fn for_each<F: FnMut(&V)>(&self, mut action: F) {
         for v in &self.values {
             action(v);
@@ -880,6 +982,31 @@ impl<V> DurationPartition<V> {
             }
             action(&self.values[i]);
         }
+    }
+
+    fn count<F: Fn(&V) -> (u32, u32)>(
+        &self,
+        duration_range: DurationRange,
+        action: F,
+    ) -> (u32, u32) {
+        let end = match self.min_durations.binary_search(&duration_range.max) {
+            Ok(i) => i,
+            Err(i) => std::cmp::min(i, self.min_durations.len() - 1),
+        };
+
+        let mut c1 = 0u32;
+        let mut c2 = 0u32;
+
+        for i in (0..=end).rev() {
+            if duration_range.min > self.max_durations[i] {
+                break;
+            }
+            let (r1, r2) = action(&self.values[i]);
+            c1 += r1;
+            c2 += r2;
+        }
+
+        (c1, c2)
     }
 
     fn replace(&mut self, i: usize, mut other: Self) {
