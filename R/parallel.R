@@ -96,7 +96,7 @@ plot_parallel_query_focus <- function(data_focus) {
     ggplot(plotdata, aes(
         x = selectivity_time_group,
         y = selectivity_duration_group,
-        color = query_time,
+        # color = query_time,
         fill = query_time,
         tooltip = query_time
     )) +
@@ -116,11 +116,13 @@ plot_parallel_query_focus <- function(data_focus) {
         facet_grid(vars(algorithm_name), vars(num_threads)) +
         labs(
             x = "time selectivity",
-            y = "duration selectivity"
+            y = "duration selectivity",
+            fill = "speedup"
         ) +
+        # guides(color = "none") +
         theme_paper() +
         theme(
-            legend.title = element_blank(),
+            # legend.title = element_blank(),
             legend.position = "right",
             # legend.key.width = unit(30, "mm")
         )
